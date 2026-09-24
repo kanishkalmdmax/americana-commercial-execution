@@ -783,6 +783,9 @@ button.me { background: none; color: inherit; text-align: start; width: 100%; bo
 
 .grid-eq.wide-first { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
 @media (max-width: 1100px) { .grid-eq.wide-first { grid-template-columns: minmax(0, 1fr); } }
+
+/* use the full width on large screens (cap only on very wide monitors) */
+.page { max-width: 2200px; }
 </style>
 </head>
 <body>
