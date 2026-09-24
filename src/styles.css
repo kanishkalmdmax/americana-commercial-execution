@@ -713,3 +713,10 @@ button.me { background: none; color: inherit; text-align: start; width: 100%; bo
 
 /* use the full width on large screens (cap only on very wide monitors) */
 .page { max-width: 2200px; }
+
+/* product icons in shelf tiles, chips, timeline */
+.tile .nm { display: flex; align-items: center; gap: 6px; } .tile .nm .sku-ic { flex: none; }
+.chip .sku-ic { flex: none; margin-inline-end: 2px; }
+.tl-ic.sku { background: var(--paper-2); }
+
+.shelf .tiles { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }

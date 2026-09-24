@@ -379,7 +379,7 @@
           FD.select([{ id: '', label: t('L_OPEN_SKUS') }].concat(skusIn.map(c => ({ id: c, label: FD.nameOf(FD.sku(c)) }))), loc.sku || '', v => { loc.sku = v; FD.drawer.refresh(); }),
           FD.chip(FD.fmt.num(rs.length), 'info')),
         rs.length ? h('div', { class: 'card' }, rs.slice(0, 60).map(r => h('div', { class: 'list-row', style: { alignItems: 'flex-start' } },
-          h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { style: { fontWeight: 500 }, class: 'ellipsis' }, FD.nameOf(FD.sku(r.sku))),
+          h('div', { class: 'grow', style: { minWidth: 0 } }, FD.skuLabel(r.sku),
             h('div', { class: 'small muted ellipsis' }, FD.nameOf(storeOf(r.store)) + ' · ' + FD.nameOf(vsrOf(FD.recVsr(r))) + ' · ' + FD.fmt.date(r.date)),
             h('div', { class: 'row wrap', style: { marginTop: '6px', gap: '6px' } }, outcomeChip(r), reasonCell(r), r.comment ? FD.chip([I('message', 's14'), h('bdi', null, r.comment.slice(0, 40))], 'outline') : null, r.photo ? h('button', { type: 'button', class: 'chip chip-btn', on: { click: () => FD.lightbox(r.photo) } }, I('image', 's14'), t('L_PHOTO')) : null)),
           h('div', { class: 'row', style: { gap: 0 } },
@@ -404,6 +404,7 @@
         ['ST_OFFERED', r.outcome && r.outcome !== 'NOT_OFFERED', ''], ['ST_OUTCOME', !!r.outcome && r.outcome !== 'WAITING', r.gradedAt ? FD.fmt.time(r.gradedAt) : ''], ['ST_MATURITY', r.maturity === 'SUSTAINED' || r.maturity === 'RETURNED', r.maturity ? '' : '']];
       const recM = FD.recMsgs(s, r.id);
       return h('div', { class: 'stack s16' },
+        h('div', { class: 'row', style: { gap: '10px' } }, FD.skuTile(r.sku, 32), h('span', { class: 'muted' }, FD.nameOf(storeOf(r.store)))),
         h('div', { class: 'row wrap' }, FD.chip(t('TYPE_' + r.type), 'info'), outcomeChip(r), matChip(r), r.corrected ? FD.chip(t('E_CORRECTED')) : null, r.blockedAt ? FD.chip(t('E_BLOCKED'), 'bad') : null, r.exempted ? FD.chip(t('E_EXEMPTED'), 'info') : null),
         h('div', { class: 'card', style: { padding: '14px' } }, h('div', { style: { marginBottom: '8px' } }, tx(r.reasonId, Object.assign({ skuCode: r.sku }, r.slots, { unitOf: r.sku }))),
           h('dl', { class: 'kv' }, h('dt', null, t('L_STORE')), h('dd', null, h('a', { href: '#', on: { click: e => { e.preventDefault(); S.storeDrawer(r.store, r.sku, true); } } }, FD.nameOf(storeOf(r.store)))),
@@ -657,7 +658,7 @@
       const visits = s.visits.filter(v => v.store === storeId && v.status === 'DONE' && v.date <= today()).slice(-20).reverse();
       body = h('div', { class: 'card' }, visits.map(v => { const lines = FD.SKUS.flatMap(k => FD.storeOrders(s, storeId, k.code).filter(o => o.date === v.date && o.units > 0));
         return h('div', { class: 'list-row', style: { alignItems: 'flex-start' } }, h('div', { style: { width: '90px', flex: 'none' } }, h('b', null, FD.fmt.date(v.date)), h('div', { class: 'small muted' }, FD.fmt.money0(sum(lines, l => l.value)))),
-          h('div', { class: 'row wrap grow', style: { gap: '4px' } }, lines.map(l => FD.chip(FD.nameOf(FD.sku(l.sku)) + ' ×' + FD.fmt.num(l.units), l.edited ? 'warn' : ''))));
+          h('div', { class: 'row wrap grow', style: { gap: '4px' } }, lines.map(l => FD.chip([FD.skuIcon(l.sku, 16), FD.nameOf(FD.sku(l.sku)) + ' ×' + FD.fmt.num(l.units)], l.edited ? 'warn' : ''))));
       }));
     } else if (tab === 'recs') {
       body = h('div', { class: 'card' }, FD.table({ id: 'storeRecs' + (full ? 'P' : 'D'), rows: recs, onRow: r => S.recDrawer(r.id, !full), limit: 80, columns: [
@@ -703,8 +704,8 @@
     const days = {}; for (const k of FD.SKUS) for (const o of FD.storeOrders(s, storeId, k.code)) if (o.date >= from && o.date <= today() && o.units > 0) (days[o.date] = days[o.date] || []).push(o);
     Object.entries(days).forEach(([d, os]) => ev.push({ d, tm: '12:00', ic: 'package', tone: 'good', text: t('L_ORDER_LINE', { n: FD.fmt.num(os.length), money: FD.fmt.money0(sum(os, o => o.value)) }), chips: os.slice(0, 6).map(o => FD.skuLabel(o.sku)) }));
     FD.storeRecs(s, storeId).filter(r => r.date >= from && r.outcome && r.outcome !== 'CARRIED').forEach(r => ev.push({ d: r.soldOn || r.date, tm: r.gradedAt || '12:30', ic: FD.SOLD.includes(r.outcome) ? 'check-circle' : r.outcome === 'NOT_OFFERED' ? 'eye-off' : 'x-circle', tone: FD.SOLD.includes(r.outcome) ? 'good' : 'bad',
-      text: FD.nameOf(FD.sku(r.sku)) + ' · ' + (r.revisit ? t('E_REVISIT') : r.outcome === 'NOT_OFFERED' ? t('E_NOT_FOLLOWED') : S.outcomeChip(r).textContent), sub: r.reason ? t(r.reason) : null, rec: r.id }));
-    s.returns.filter(x => x.store === storeId && x.date >= from && x.date <= today()).forEach(x => ev.push({ d: x.date, tm: '13:00', ic: 'undo', tone: 'bad', text: t('E_RETURNED') + ' · ' + FD.nameOf(FD.sku(x.sku)), sub: FD.fmt.money0(x.value) }));
+      sku: r.sku, text: FD.nameOf(FD.sku(r.sku)) + ' · ' + (r.revisit ? t('E_REVISIT') : r.outcome === 'NOT_OFFERED' ? t('E_NOT_FOLLOWED') : S.outcomeChip(r).textContent), sub: r.reason ? t(r.reason) : null, rec: r.id }));
+    s.returns.filter(x => x.store === storeId && x.date >= from && x.date <= today()).forEach(x => ev.push({ d: x.date, tm: '13:00', ic: 'undo', tone: 'bad', sku: x.sku, text: t('E_RETURNED') + ' · ' + FD.nameOf(FD.sku(x.sku)), sub: FD.fmt.money0(x.value) }));
     const ph = s.photos.filter(p => p.store === storeId && p.date >= from); [...new Set(ph.map(p => p.date))].forEach(d => ev.push({ d, tm: '12:10', ic: 'camera', text: t('L_PHOTOS') + ' · ' + FD.fmt.num(ph.filter(p => p.date === d).length), photos: ph.filter(p => p.date === d) }));
     s.threads.forEach(th => th.messages.filter(m => m.store === storeId && m.at.date >= from).forEach(m => ev.push({ d: m.at.date, tm: m.at.time, ic: 'message', text: (m.by === 'SUP' ? FD.nameOf(s.world.supervisor) : FD.nameOf(vsrOf(m.by))) + ': ' + (m.text || t('L_PHOTO')) })));
     ev.sort((a, b) => (b.d + b.tm).localeCompare(a.d + a.tm));
@@ -713,7 +714,7 @@
     for (const e of ev.slice(0, 120)) {
       if (e.d !== day) { day = e.d; out.push(h('div', { class: 'tl-day' }, FD.fmt.dateLong(e.d))); }
       out.push(h('div', { class: 'tl-item' + (e.rec ? ' click' : ''), style: e.rec ? { cursor: 'pointer' } : null, on: e.rec ? { click: () => S.recDrawer(e.rec, true) } : null },
-        h('span', { class: 'tl-ic ' + (e.tone || '') }, I(e.ic, 's16')),
+        e.sku ? h('span', { class: 'tl-ic sku' }, FD.skuIcon(e.sku, 22)) : h('span', { class: 'tl-ic ' + (e.tone || '') }, I(e.ic, 's16')),
         h('div', { style: { minWidth: 0 } }, h('div', { dir: 'auto' }, e.text), e.sub ? h('div', { class: 'small muted' }, e.sub) : null,
           e.chips ? h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '6px' } }, e.chips) : null,
           e.photos ? h('div', { class: 'photo-day', style: { marginTop: '6px' } }, e.photos.map(p => h('button', { type: 'button', on: { click: () => FD.lightbox(p.src) } }, h('img', { src: p.src, alt: '', loading: 'lazy' })))) : null),

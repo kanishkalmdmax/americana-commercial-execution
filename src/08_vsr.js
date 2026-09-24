@@ -176,7 +176,7 @@
       return h('div', { style: { marginTop: '12px' } },
         h('div', { class: 'row between', style: { marginBottom: '6px' } }, h('b', { style: { fontSize: '14px' } }, t('L_VAN_CHECK')), FD.chip(t('L_VAN_FEED_NOTE'), 'outline')),
         h('div', { class: 'banner ' + (short.length ? 'warn' : 'good') }, I(short.length ? 'alert' : 'check-circle'), h('span', null, short.length ? t('L_VAN_SHORT', { n: FD.fmt.num(shortRecs) }) : t('L_VAN_OK'))),
-        short.length ? h('div', { class: 'v-card', style: { marginTop: '8px' } }, short.map(x => h('div', { class: 'list-row', style: { padding: '10px 14px' } }, h('span', { class: 'grow' }, FD.nameOf(FD.sku(x.code))),
+        short.length ? h('div', { class: 'v-card', style: { marginTop: '8px' } }, short.map(x => h('div', { class: 'list-row', style: { padding: '10px 14px' } }, h('span', { class: 'grow' }, FD.skuLabel(x.code)),
           FD.chip(t('L_NEED_ON_VAN', { n: FD.fmt.num(x.n), qty: FD.fmt.num(x.have) }), 'warn')))) : null);
     };
     const review = confirmed
@@ -306,7 +306,7 @@
         const g = FD.recommend(s, storeId, d).gated[0];
         body.push(h('div', { class: 'v-card', style: { marginTop: '14px' } }, g && (store.credit === 'BLOCKED' || store.onboarding !== 'APPROVED') ? FD.empty('X_STORE_GATED', { gateId: g.gate }, 'lock') : FD.empty('X_STORE_WELL', null, 'check-circle')));
       } else body.push(h('div', { class: 'stack s8', style: { marginTop: '14px' } }, live.map((x, i) => V.recCard(x, i === 0))));
-      recs.filter(x => x.blockedAt).forEach(x => body.push(h('div', { class: 'v-card rec gone', style: { marginTop: '8px' } }, h('div', { class: 'row' }, I('ban'), h('span', null, FD.nameOf(FD.sku(x.sku)) + ' · ' + t('E_BLOCKED'))))));
+      recs.filter(x => x.blockedAt).forEach(x => body.push(h('div', { class: 'v-card rec gone', style: { marginTop: '8px' } }, h('div', { class: 'row' }, I('ban'), FD.skuLabel(x.sku, t('E_BLOCKED'))))));
       const openVisit = (plan.stops || []).some(x => x.store === storeId && x.status !== 'DONE' && x.status !== 'SKIPPED');
       if (openVisit && (live.some(x => x.outcome === null) || FD.openTemps(s, storeId, d).length)) cta = FD.btn(t('L_OPEN_SB'), () => V.salesBuzz(), 'primary lg block', 'external');
     } else body.push(V.profile(storeId));
@@ -414,7 +414,7 @@
     const recent = h('div', { class: 'v-card', style: { padding: '8px 0' } }, visits.slice().reverse().map(v => {
       const lines = FD.SKUS.flatMap(k => FD.storeOrders(s, storeId, k.code).filter(o => o.date === v.date && o.units > 0));
       return h('div', { class: 'list-row', style: { padding: '8px 14px', alignItems: 'flex-start' } }, h('span', { class: 'small', style: { width: '56px', flex: 'none', color: 'var(--ink-3)' } }, FD.fmt.date(v.date)),
-        h('div', { class: 'row wrap grow', style: { gap: '4px' } }, lines.length ? lines.map(l => FD.chip(FD.nameOf(FD.sku(l.sku)) + ' ×' + FD.fmt.num(l.units))) : h('span', { class: 'small muted' }, '—')));
+        h('div', { class: 'row wrap grow', style: { gap: '4px' } }, lines.length ? lines.map(l => FD.chip([FD.skuIcon(l.sku, 16), FD.nameOf(FD.sku(l.sku)) + ' ×' + FD.fmt.num(l.units)])) : h('span', { class: 'small muted' }, '—')));
     }));
     return h('div', { class: 'stack s16', style: { marginTop: '14px' } },
       h('div', { class: 'v-card', style: { padding: '16px' } }, h('div', { class: 'row', style: { gap: '16px' } },
@@ -439,7 +439,7 @@
         const state = shelf[k.code];
         const blk = opts.blocked && opts.blocked[k.code];
         const tile = h('button', { type: 'button', class: 'tile st-' + state + (blk ? ' is-blocked' : ''), 'aria-label': FD.nameOf(k) + ', ' + t('SH_' + state) + (blk ? ', ' + t('L_BLOCKED') : ''), on: { click: e => opts.onTile ? opts.onTile(k.code, state, e) : null } },
-          h('div', { class: 'nm' }, FD.nameOf(k)), h('div', { class: 'stt' }, I(FD.SHELF_ICON[state]), t('SH_' + state) + (state === 'GATED' && shelf.gates[k.code] && !blk ? ' · ' + t(shelf.gates[k.code]) : '')),
+          h('div', { class: 'nm' }, FD.skuIcon(k.code, 20), h('span', null, FD.nameOf(k))), h('div', { class: 'stt' }, I(FD.SHELF_ICON[state]), t('SH_' + state) + (state === 'GATED' && shelf.gates[k.code] && !blk ? ' · ' + t(shelf.gates[k.code]) : '')),
           blk ? h('div', { class: 'tile-blk' }, I('ban', 's14'), t('L_BLOCKED')) : null);
         return tile;
       })))));
@@ -562,7 +562,7 @@
       h('section', { class: 'v-section' }, h('div', { class: 'row between', style: { marginBottom: '8px' } }, h('h3', { style: { margin: 0 } }, t('L_MY_UPSELLS')),
         FD.seg([{ id: 'ALL', label: t('L_ALL') }, { id: 'PENDING', label: t('L_FILTER_PENDING') }, { id: 'SUSTAINED', label: t('L_FILTER_SUSTAINED') }, { id: 'RETURNED', label: t('L_FILTER_RETURNED') }], filt, v => { L['vsr:upsFilter'] = v; FD.render(); })),
         ups.length ? h('div', { class: 'v-card' }, ups.slice(0, 25).map(x => h('div', { class: 'list-row', style: { padding: '10px 14px' } },
-          h('div', { class: 'grow' }, h('div', { style: { fontWeight: 500 } }, FD.nameOf(FD.sku(x.alt || x.sku))), h('div', { class: 'small muted ellipsis' }, FD.nameOf(storeOf(x.store)) + ' · ' + FD.fmt.date(x.date))),
+          h('div', { class: 'grow', style: { minWidth: 0 } }, FD.skuLabel(x.alt || x.sku, FD.nameOf(storeOf(x.store)) + ' · ' + FD.fmt.date(x.date))),
           FD.chip(x.maturity === 'PENDING' ? tx('E_PENDING', { days: Math.max(0, s.rules.maturityDays - FD.daysBetween(x.date, today())) }) : t(x.maturity === 'RETURNED' ? 'E_RETURNED' : 'E_SUSTAINED'), x.maturity === 'RETURNED' ? 'bad' : x.maturity === 'SUSTAINED' ? 'good' : 'info')))) : h('div', { class: 'v-card' }, FD.empty('X_FILTER'))),
       h('section', { class: 'v-section' }, h('h3', null, t('L_SETTINGS')), h('div', { class: 'v-card' },
         setRow('L_LANGUAGE', FD.seg([{ id: 'en', label: 'English' }, { id: 'ar', label: 'العربية' }], s.lang, v => FD.dx('SET_LANG', { lang: v }))),
