@@ -949,18 +949,10 @@ table.t th.n { min-width:84px; line-height:1.35; vertical-align:middle; }
 .msg-photos .photo-open { width:120px;height:120px; }
 .lightbox .icon-btn { position:absolute;inset-block-start:16px;inset-inline-end:16px;background:var(--paper);color:var(--ink); }
 .lightbox img { max-height:calc(100dvh - 96px); }
-.pg-view,.pg-request { margin-block-start:14px; }
-.pg-request { padding:14px; }
-.pg-request p { margin-block:8px 12px; }
-.pg-evidence { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:16px; }
-.pg-evidence h4 { margin-block:6px 10px; }
+.pg-view { margin-block-start:14px; }
 .photo-day figure { margin:0;max-width:128px; }
 .photo-day .photo-open { width:104px;height:104px; }
 .photo-day figcaption { overflow-wrap:anywhere;margin-block-start:4px; }
-.pg-dimension { border-block-start:1px solid var(--line);padding-block:12px; }
-.pg-dimension h4 { margin-block:0 10px; }
-.pg-finding { padding-block:8px 16px; }
-.pg-finding+.pg-finding { border-block-start:1px solid var(--line); }
 .pg-assortment details { padding-block:10px;border-block-start:1px solid var(--line); }
 summary { cursor:pointer;min-height:44px;align-content:center; }
 .pg-offer-advice:empty { display:none; }
@@ -1063,6 +1055,73 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
 .offer-camera-action { display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:32px;padding:0 6px;border-radius:6px;color:var(--ink-3);font-size:12px;white-space:nowrap; }
 .offer-camera-action:hover { background:var(--hover);color:var(--ink); }
 .offer-camera-action:focus-visible { outline:2px solid var(--focus);outline-offset:2px; }
+/* Approved pilot contract: primary result plus four supporting KPIs. */
+.kpis.pilot-kpis { grid-template-columns:repeat(5,minmax(0,1fr)); }
+@media(min-width:1101px) { .kpis.pilot-kpis .kpi.hero .val { font-size:22px; } }
+.pilot-metrics-heading { gap:12px; }
+.pilot-metrics-heading .sec-h { margin:0; }
+.pilot-measures { overflow-wrap:anywhere; }
+.pilot-measures h3 { margin:0 0 12px; }
+.pilot-measures h4 { margin:20px 0 8px; }
+.pilot-measure { padding:12px 0;border-bottom:1px solid var(--line); }
+.pilot-measure p { margin:6px 0 0; }
+.pilot-target { margin-top:6px;font-weight:600;color:var(--brand); }
+.team-selected-metric { padding:0 12px 8px;overflow-wrap:anywhere; }
+@media(max-width:1100px) {
+  .kpis.pilot-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .kpis.pilot-kpis .hero { grid-column:1 / -1; }
+}
+
+/* Shelf Check */
+.sc-head { display:flex;flex-direction:column;gap:6px; }
+.sc-head .row { gap:16px;align-items:flex-end; }
+.sc-score { display:flex;flex-direction:column; }
+.sc-score b { font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2; }
+.sc-areas { display:grid;gap:6px; }
+.sc-area { display:grid;grid-template-columns:minmax(96px,auto) 1fr 32px;gap:10px;align-items:center;font-size:13px; }
+.sc-meter { height:6px;border-radius:999px;background:var(--line);overflow:hidden; }
+.sc-meter i { display:block;height:100%;background:var(--brand);border-radius:inherit; }
+.sc-photos { display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:12px; }
+.sc-figure { margin:0; }
+.sc-figure figcaption { margin-block-start:6px; }
+.sc-figure p { margin:2px 0 0; }
+.sc-photo { position:relative; }
+.sc-photo .photo-open { display:block;width:100%;padding:0;border:0;border-radius:var(--r-md);overflow:hidden;background:var(--paper-2); }
+.sc-photo img { display:block;width:100%;height:auto; }
+.sc-mark { position:absolute;border:2px solid var(--warn);border-radius:6px;pointer-events:none; }
+.sc-mark.urgent { border-color:var(--bad); }
+.sc-mark b { position:absolute;top:-9px;left:-9px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--warn);color:#fff;font-size:11px;display:grid;place-items:center; }
+.sc-mark.urgent b { background:var(--bad); }
+.sc-finding { padding:12px;border:1px solid var(--line);border-radius:var(--r-md);display:flex;flex-direction:column;gap:6px; }
+.sc-finding.urgent { border-color:var(--bad);background:var(--bad-tint); }
+.sc-finding p { margin:0; }
+.sc-num { min-width:20px;height:20px;border-radius:999px;background:var(--warn-tint);color:var(--warn-ink);font-size:11px;font-weight:600;display:inline-grid;place-items:center;flex:none; }
+.sc-outcomes { gap:6px; }
+.sc-out { min-height:32px;padding:4px 10px;border:1px solid var(--line-2);border-radius:999px;background:var(--paper);color:var(--ink-2);font:inherit;font-size:12px;cursor:pointer; }
+.sc-out.on { background:var(--brand);border-color:var(--brand);color:#fff; }
+.sc-out:focus-visible { outline:2px solid var(--focus);outline-offset:2px; }
+.sc-comp>summary { cursor:pointer;font-size:13px; }
+.sc-comp[open]>.stack { margin-block-start:8px; }
+.sc-visit { display:flex;flex-direction:column;gap:4px;width:100%;margin-block-start:12px;text-align:start;cursor:pointer;font:inherit;color:inherit; }
+.sc-visit.urgent { border-color:var(--bad); }
+.sc-panel h4 { margin:4px 0 0;font-size:13px; }
+@media (max-width:480px) { .sc-out { min-height:40px; } }
+.sc-facts { display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0;font-size:13px; }
+.sc-facts dt { color:var(--ink-3); }
+.sc-facts dd { margin:0;text-align:end;font-variant-numeric:tabular-nums; }
+/* numeric columns: header and values centred in every table, label and sort arrow kept together */
+table.t td.n, table.t th.n { text-align:center; }
+table.t th.n .th-content { justify-content:center;text-align:center; }
+.sc-camera { position:relative; }
+.sc-camera-tick { position:absolute;top:2px;inset-inline-end:2px;width:16px;height:16px;border-radius:999px;background:var(--good);color:#fff;display:grid;place-items:center; }
+.sc-camera-tick svg { width:10px;height:10px; }
+.sc-card { padding:14px;display:flex;flex-direction:column;gap:10px; }
+.sc-card h3 { margin:0;font-size:14px; }
+.sc-lines { list-style:none;margin:0;padding:0;display:grid;gap:6px; }
+.sc-lines li { display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px; }
+.sc-thumbs { display:flex;gap:6px; }
+.sc-thumbs img { width:48px;height:48px;object-fit:cover;border-radius:8px; }
+.sc-chips { gap:6px; }
 </style>
 </head>
 <body>
@@ -2439,6 +2498,13 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
 
 ;
 (function () {
+  // Shelf Check results for the field photos (IDs only, no model text). Generated by tools/shelf_analysis/make_results_js.py.
+  globalThis.FD = globalThis.FD || {};
+  globalThis.FD.SHELF_RESULTS = {"model":"gemini-3.8-flash","photos":{"0":{"file":"WhatsApp Image 2026-09-22 at 8.14.25 PM (1).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[{"signal":"COMP_NO_AMERICANA","brand":"UNKNOWN","box_2d":[0,0,1000,912]},{"signal":"COMP_TRAY","brand":"SWITZ","box_2d":[233,0,636,477]},{"signal":"COMP_TRAY","brand":"SEVEN_DAYS","box_2d":[623,0,1000,437]},{"signal":"COMP_TRAY","brand":"SWITZ","box_2d":[637,411,959,785]}],"confidence":"HIGH"}},"1":{"file":"WhatsApp Image 2026-09-22 at 8.14.25 PM (2).jpeg","result":{"scope":"VAN","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[],"confidence":"HIGH"}},"2":{"file":"WhatsApp Image 2026-09-22 at 8.14.25 PM (3).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"RETAKE","reasons":["BLOCKED"],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"CANT_SEE"},"FULL_NOT_FORWARD":{"result":"CANT_SEE"},"FULL_EMPTY_CARTON":{"result":"CANT_SEE"},"FIND_WRONG_AREA":{"result":"CANT_SEE"},"FIND_HIDDEN":{"result":"CANT_SEE"},"FIND_FACING":{"result":"CANT_SEE"},"FIND_MIXED":{"result":"CANT_SEE"},"COND_DAMAGED_PACK":{"result":"CANT_SEE"},"COND_CARTON":{"result":"CANT_SEE"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["CUPCAKE","BUTTER_COOKIES","SWISS_ROLL","POUND_CAKE"],"competition":[{"signal":"COMP_NONE"}],"confidence":"HIGH"}},"3":{"file":"WhatsApp Image 2026-09-22 at 8.14.25 PM (4).jpeg","result":{"scope":"FREEZER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[],"confidence":"HIGH"}},"4":{"file":"WhatsApp Image 2026-09-22 at 8.14.25 PM (5).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"CARTON_DISPLAY"},"checks":{"FULL_EMPTY_SPACE":{"result":"PARTLY","met":0.6},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"PASS"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"PASS"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[{"check":"FULL_EMPTY_SPACE","box_2d":[303,348,532,608]}],"americana_seen":["CUPCAKE","SWISS_ROLL","CAKE_BAR","SLICE_CAKE"],"competition":[{"signal":"COMP_TRAY","brand":"SEVEN_DAYS","box_2d":[0,640,207,1000]},{"signal":"COMP_TRAY","brand":"SEVEN_DAYS","box_2d":[27,406,200,641]},{"signal":"COMP_NEXT","brand":"LUSINE","box_2d":[386,755,846,1000]}],"confidence":"HIGH"}},"5":{"file":"WhatsApp Image 2026-09-22 at 8.14.25 PM.jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"CARTON_DISPLAY"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"PASS"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PARTLY","met":0.75},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"PASS"},"COND_ROTATION":{"result":"PASS"}},"findings":[{"check":"FIND_FACING","box_2d":[253,335,426,574]}],"americana_seen":["SLICE_CAKE","CUPCAKE"],"competition":[{"signal":"COMP_TRAY","brand":"LUSINE","box_2d":[0,423,122,1000]},{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[757,521,945,620]},{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[784,158,963,287]}],"confidence":"HIGH"}},"6":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM (1).jpeg","result":{"scope":"FREEZER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":["OTHER_AMERICANA"],"competition":[],"confidence":"HIGH"}},"7":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM (2).jpeg","result":{"scope":"FREEZER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[],"confidence":"HIGH"}},"8":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM (3).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"PASS"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["BUTTER_COOKIES"],"competition":[{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[386,738,679,781]},{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[474,854,915,966]},{"signal":"COMP_OFFER","brand":"OTHER","box_2d":[386,692,630,737]}],"confidence":"HIGH"}},"9":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM (4).jpeg","result":{"scope":"FREEZER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[],"confidence":"HIGH"}},"10":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM (5).jpeg","result":{"scope":"FREEZER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[],"confidence":"HIGH"}},"11":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM (6).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[{"signal":"COMP_NO_AMERICANA","brand":"SWITZ","box_2d":[270,0,755,990]},{"signal":"COMP_TRAY","brand":"LUSINE","box_2d":[108,222,273,599]},{"signal":"COMP_TRAY","brand":"LUSINE","box_2d":[100,596,252,905]},{"signal":"COMP_TRAY","brand":"SWITZ","box_2d":[313,381,630,715]},{"signal":"COMP_TRAY","brand":"SWITZ","box_2d":[287,592,570,908]}],"confidence":"HIGH"}},"12":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM (7).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[{"signal":"COMP_NO_AMERICANA","brand":"LUSINE","box_2d":[0,0,878,997]},{"signal":"COMP_TRAY","brand":"LUSINE","box_2d":[140,186,297,547]},{"signal":"COMP_TRAY","brand":"SWITZ","box_2d":[669,667,846,899]}],"confidence":"HIGH"}},"13":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM (8).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"RETAKE","reasons":["BLOCKED"],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[{"signal":"COMP_NO_AMERICANA","brand":"SWITZ","box_2d":[221,155,874,792]}],"confidence":"HIGH"}},"14":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM (9).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"PASS"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"PASS"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["CAKE_BAR"],"competition":[{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[33,616,637,995]},{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[75,0,614,237]}],"confidence":"HIGH"}},"15":{"file":"WhatsApp Image 2026-09-22 at 8.14.29 PM.jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"CARTON_DISPLAY"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"PASS"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PARTLY","met":0.7},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"PASS"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[{"check":"FIND_FACING","box_2d":[322,51,689,447]}],"americana_seen":["SWISS_ROLL","CAKE_BAR","CUPCAKE"],"competition":[{"signal":"COMP_NONE"}],"confidence":"HIGH"}},"16":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (1).jpeg","result":{"scope":"FREEZER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[],"confidence":"HIGH"}},"17":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (10).jpeg","result":{"scope":"FREEZER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[],"confidence":"HIGH"}},"18":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (11).jpeg","result":{"scope":"FREEZER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":["OTHER_AMERICANA"],"competition":[],"confidence":"HIGH"}},"19":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (12).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["RUSK"],"competition":[{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[273,0,414,108]},{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[454,0,598,120]}],"confidence":"HIGH"}},"20":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (13).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["SWISS_ROLL","CAKE_BAR","CUPCAKE"],"competition":[{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[193,502,458,636]},{"signal":"COMP_NEXT","brand":"LUSINE","box_2d":[199,65,460,234]},{"signal":"COMP_NEXT","brand":"SEVEN_DAYS","box_2d":[564,187,772,493]},{"signal":"COMP_NEXT","brand":"SABAHOO","box_2d":[549,804,773,955]}],"confidence":"HIGH"}},"21":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (2).jpeg","result":{"scope":"FREEZER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[],"confidence":"HIGH"}},"22":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (3).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PARTLY","met":0.8},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"PASS"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"PASS"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[{"check":"FULL_EMPTY_SPACE","box_2d":[287,492,396,567]}],"americana_seen":["POUND_CAKE","SWISS_ROLL"],"competition":[{"signal":"COMP_NONE"}],"confidence":"HIGH"}},"23":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (4).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"PASS"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"PASS"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["SWISS_ROLL"],"competition":[{"signal":"COMP_NONE"}],"confidence":"HIGH"}},"24":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (5).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["CHOCO_COOKIES","BUTTER_COOKIES"],"competition":[{"signal":"COMP_NONE"}],"confidence":"HIGH"}},"25":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (6).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"CARTON_DISPLAY"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["BUTTER_COOKIES"],"competition":[{"signal":"COMP_NONE","brand":"OTHER"}],"confidence":"HIGH"}},"26":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (7).jpeg","result":{"scope":"OTHER","photo":{"status":"NOT_SHELF","reasons":[],"display":"OTHER"},"checks":{"FULL_EMPTY_SPACE":{"result":"NOT_APPLICABLE"},"FULL_NOT_FORWARD":{"result":"NOT_APPLICABLE"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"NOT_APPLICABLE"},"FIND_HIDDEN":{"result":"NOT_APPLICABLE"},"FIND_FACING":{"result":"NOT_APPLICABLE"},"FIND_MIXED":{"result":"NOT_APPLICABLE"},"COND_DAMAGED_PACK":{"result":"NOT_APPLICABLE"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"NOT_APPLICABLE"}},"findings":[],"americana_seen":[],"competition":[],"confidence":"HIGH"}},"27":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (8).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["POUND_CAKE"],"competition":[{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[583,47,664,157]},{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[553,558,693,627]}],"confidence":"HIGH"}},"28":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM (9).jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"PASS"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"PASS"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["CUPCAKE","CAKE_BAR","OTHER_AMERICANA"],"competition":[{"signal":"COMP_NEXT","brand":"OTHER","box_2d":[91,95,856,510]},{"signal":"COMP_OFFER","brand":"OTHER","box_2d":[268,44,374,101]}],"confidence":"HIGH"}},"29":{"file":"WhatsApp Image 2026-09-22 at 8.14.30 PM.jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"OK","reasons":[],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"PASS"},"FULL_NOT_FORWARD":{"result":"PASS"},"FULL_EMPTY_CARTON":{"result":"NOT_APPLICABLE"},"FIND_WRONG_AREA":{"result":"PASS"},"FIND_HIDDEN":{"result":"PASS"},"FIND_FACING":{"result":"PASS"},"FIND_MIXED":{"result":"PASS"},"COND_DAMAGED_PACK":{"result":"PASS"},"COND_CARTON":{"result":"NOT_APPLICABLE"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["BUTTER_COOKIES","CHOCO_COOKIES"],"competition":[{"signal":"COMP_OFFER","brand":"OTHER","box_2d":[304,595,407,747]}],"confidence":"HIGH"}},"30":{"file":"WhatsApp Image 2026-10-07 at 9.37.50 PM.jpeg","result":{"scope":"AMBIENT_SHELF","photo":{"status":"RETAKE","reasons":["BLOCKED","CUT_OFF"],"display":"RACK"},"checks":{"FULL_EMPTY_SPACE":{"result":"CANT_SEE"},"FULL_NOT_FORWARD":{"result":"CANT_SEE"},"FULL_EMPTY_CARTON":{"result":"CANT_SEE"},"FIND_WRONG_AREA":{"result":"CANT_SEE"},"FIND_HIDDEN":{"result":"CANT_SEE"},"FIND_FACING":{"result":"CANT_SEE"},"FIND_MIXED":{"result":"CANT_SEE"},"COND_DAMAGED_PACK":{"result":"CANT_SEE"},"COND_CARTON":{"result":"CANT_SEE"},"COND_ROTATION":{"result":"CANT_SEE"}},"findings":[],"americana_seen":["CAKE_BAR"],"competition":[{"signal":"COMP_NEXT","brand":"UNKNOWN","box_2d":[246,778,507,981]}],"confidence":"HIGH"}}},"groups":[[4,15],[11,12]]};
+})();
+
+;
+(function () {
   const FD = globalThis.FD;
   const PRIOR = { LAPSED: 0.55, UPGRADE: 0.40, GAP: 0.25, PROMO: 0.45 };
   const WEIGHT = { LAPSED: 1.0, UPGRADE: 0.85, GAP: 0.7, PROMO: 0.6 };
@@ -2976,9 +3042,9 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       const lastDone = {}; for (const x of st.visits) if (x.status === 'DONE' && x.date < FD.TODAY) (lastDone[x.store] = lastDone[x.store] || []).push(x);
       st.world.stores.forEach((so, i) => { const vs = (lastDone[so.id] || []).slice(-2);
         if (!vs.length) vs.push({ vsr: so.vsr, date: FD.addDays(FD.TODAY, -3 - (i % 9)), leftAt: '11:30' });
-        vs.forEach((v, j) => { for (let k = 0; k < (j === vs.length - 1 ? 1 + (i % 2) : 1); k++) { n++; st.photos.push({ id: 'PH' + n, store: so.id, vsr: v.vsr, date: v.date, time: v.leftAt || '12:00', src: P[(i * 7 + j * 3 + k) % P.length], seeded: true }); } }); });
+        vs.forEach((v, j) => { for (let k = 0; k < (j === vs.length - 1 ? 1 + (i % 2) : 1); k++) { n++; const ref = (i * 7 + j * 3 + k) % P.length; st.photos.push({ id: 'PH' + n, store: so.id, vsr: v.vsr, date: v.date, time: v.leftAt || '12:00', src: P[ref], ref, seeded: true }); } }); });
       // a reason with a photo is how the salesman proves a full shelf or a competitor on display
-      st.recs.filter(r => ['R_NO_SHELF', 'R_COMPETITOR', 'R_ENOUGH'].includes(r.reason)).forEach((r, i) => { if (i % 4 === 0) r.photo = P[(i * 5) % P.length]; }); }
+      st.recs.filter(r => ['R_NO_SHELF', 'R_COMPETITOR', 'R_ENOUGH'].includes(r.reason)).forEach((r, i) => { if (i % 4 === 0) r.photo = P[(i * 5) % P.length]; });  if (FD.scSeed) FD.scSeed(st); }
     const at = { date: y, time: '16:40' };
     const pv = st.priceVan; const pr = st.recs.filter(r => r.vsr === pv && r.reason === 'R_PRICE').pop();
     if (pr) { postMsg(st, { type: 'rec', id: pr.id }, pv, { text: 'Owner says the carton is too much. He wants a few packs only.', at });
@@ -3406,58 +3472,36 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
 ;
 (function () {
   const FD=globalThis.FD;
-  const state=st=>st.planogram||(st.planogram={assessments:[],observations:[],columnPrefs:{},deferred:{}});
-  const stamp=st=>({date:st.clock.date,time:st.clock.time});
+  const state=st=>st.planogram||(st.planogram={assessments:[],columnPrefs:{}});
   FD.pgAssessment=(st,id)=>state(st).assessments.find(a=>a.id===id)||null;
   FD.pgAssessments=(st,store)=>state(st).assessments.filter(a=>a.store===store).slice().sort((a,b)=>(b.date+' '+b.time).localeCompare(a.date+' '+a.time));
   FD.pgPhotos=(st,id)=>{const a=FD.pgAssessment(st,id);return a?st.photos.filter(p=>a.photoIds.includes(p.id)):[];};
-  FD.pgCaptureState=(st,id)=>{
-    const a=FD.pgAssessment(st,id),ps=FD.pgPhotos(st,id); const os=Object.entries(a?a.fixtureOutcomes:{});
-    const belongs=(p,f)=>p.fixtureId===f||(p.regions||[]).some(r=>r.fixtureId===f&&r.confirmed);
-    const worked=os.filter(([,o])=>o==='CHANGED').length, unchanged=os.filter(([,o])=>o==='UNCHANGED').length;
-    const incomplete=os.filter(([f,o])=>o==='CHANGED'&&(!ps.some(p=>p.phase==='BEFORE'&&belongs(p,f))||!ps.some(p=>p.phase==='AFTER'&&belongs(p,f)))).length;
-    return {before:ps.filter(p=>p.phase==='BEFORE').length,after:ps.filter(p=>p.phase==='AFTER').length,context:ps.filter(p=>p.phase==='CONTEXT').length,worked,unchanged,incomplete};
-  };
   FD.registerReducer('PG_START',(st,p)=>{
     const pg=state(st),so=st.world.stores.find(s=>s.id===p.store); if(!p.id||!so||pg.assessments.some(a=>a.id===p.id))return;
     const visit=p.visitId&&st.visits.find(v=>v.id===p.visitId); if(visit&&(visit.store!==p.store||visit.date!==st.clock.date))return;
-    pg.assessments.push({id:p.id,store:p.store,vsr:visit?.vsr||p.vsr||so.vsr,visitId:p.visitId||null,date:st.clock.date,time:st.clock.time,photoIds:[],fixtureOutcomes:{},processing:'AWAITING',analysisAt:null,demo:!!p.demo});
+    pg.assessments.push({id:p.id,store:p.store,vsr:visit?.vsr||p.vsr||so.vsr,visitId:p.visitId||null,date:st.clock.date,time:st.clock.time,photoIds:[],weights:null,actions:{},dismissed:{}});
   });
+  // `ref` links a photo to its analysis result; weights freeze on the first analysed photo so later setting changes never rewrite this check.
   FD.registerReducer('PG_PHOTOS_ADD',(st,p)=>{
     const a=FD.pgAssessment(st,p.id); if(!a)return;
     for(const ph of p.photos||[]) {
-      if(!ph.id||typeof ph.src!=='string'||!ph.src||!['BEFORE','AFTER','CONTEXT'].includes(ph.phase)||st.photos.some(x=>x.id===ph.id))continue;
-      st.photos.push({id:ph.id,src:ph.src,store:a.store,vsr:a.vsr,date:st.clock.date,time:st.clock.time,assessmentId:a.id,phase:ph.phase,fixtureId:ph.phase==='CONTEXT'?null:(ph.fixtureId||'display'),regions:[]});a.photoIds.push(ph.id);
+      if(!ph.id||typeof ph.src!=='string'||!ph.src||!['BEFORE','AFTER'].includes(ph.phase)||st.photos.some(x=>x.id===ph.id))continue;
+      const ref=FD.scResult&&FD.scResult(ph.ref)?ph.ref:null;
+      st.photos.push({id:ph.id,src:ph.src,store:a.store,vsr:a.vsr,date:st.clock.date,time:st.clock.time,assessmentId:a.id,phase:ph.phase,ref});a.photoIds.push(ph.id);
+      if(ref!=null&&!a.weights)a.weights=FD.scWeights(st);
     }
-    if((p.photos||[]).length)a.processing='AWAITING';
   });
-  FD.registerReducer('PG_OUTCOME_SET',(st,p)=>{const a=FD.pgAssessment(st,p.id);if(a&&p.fixtureId&&['CHANGED','UNCHANGED'].includes(p.outcome))a.fixtureOutcomes[p.fixtureId]=p.outcome;});
-  FD.registerReducer('PG_REGION_REVIEW',(st,p)=>{
-    const a=FD.pgAssessment(st,p.id),ph=st.photos.find(x=>x.id===p.photoId&&x.assessmentId===a?.id);
-    if(!a||!ph||!p.regionId||!p.fixtureId)return;
-    const old=ph.regions.find(x=>x.id===p.regionId),value={id:String(p.regionId).slice(0,100),fixtureId:String(p.fixtureId).slice(0,100),label:String(p.label||p.fixtureId).slice(0,100),confirmed:true};
-    if(old)Object.assign(old,value);else ph.regions.push(value);
+  FD.registerReducer('SC_ACTION_SET',(st,p)=>{
+    const a=FD.pgAssessment(st,p.id); if(!a||!FD.SC_CHECKS.includes(p.check))return;
+    if(p.outcome===null){delete a.actions[p.check];return;}
+    if(FD.SC_OUTCOMES[FD.scClass(p.check)].includes(p.outcome))a.actions[p.check]=p.outcome;
   });
-  FD.registerReducer('PG_DEFER',(st,p)=>{state(st).deferred[(p.visitId||p.store)+'|'+st.clock.date]={...stamp(st),reason:p.reason||null};});
-  FD.registerReducer('PG_ANALYSIS_SET',(st,p)=>{
-    const pg=state(st),a=FD.pgAssessment(st,p.id);if(!a||p.store&&p.store!==a.store||p.source==='demo'&&!a.demo)return;
-    const at=p.analysisAt||stamp(st);const nextDate=typeof at==='string'?at:at.date+' '+at.time;
-    if(a.analysisAt&&nextDate<a.analysisAt)return;
-    for(const r of p.regions||[]){const ph=st.photos.find(x=>x.id===r.photoId&&x.assessmentId===a.id);if(!ph||!r.id)continue;const old=ph.regions.find(x=>x.id===r.id);if(old&&old.confirmed)continue;const value={...r,confirmed:!!r.confirmed};if(old)Object.assign(old,value);else ph.regions.push(value);}
-    for(const o of p.observations||[]){
-      if(!o.id||o.store&&o.store!==a.store||!['availability','assortment','placement','visibility','price','condition'].includes(o.dimension))continue;
-      if(o.sku&&!FD.sku(o.sku))continue;
-      const evidence=(o.evidence||[]).filter(e=>a.photoIds.includes(e.photoId));if(!evidence.length)continue;
-      const old=pg.observations.find(x=>x.id===o.id);if(old&&(old.assessmentId!==a.id||['CONFIRMED','CORRECTED','DISMISSED'].includes(old.review)))continue;
-      const value={id:o.id,assessmentId:a.id,store:a.store,vsr:a.vsr,fixtureId:o.fixtureId||null,dimension:o.dimension,sku:o.sku||null,kind:o.kind||'REVIEW',value:o.value||null,evidence,observedAt:{date:a.date,time:a.time},analysisAt:nextDate,source:p.source||'model',phase:evidence.some(e=>st.photos.find(ph=>ph.id===e.photoId)?.phase==='AFTER')?'AFTER':o.phase||'BEFORE',review:'NEEDS_REVIEW',confirmation:null};
-      if(old)Object.assign(old,value);else pg.observations.push(value);
-    }
-    a.processing='AVAILABLE';a.analysisAt=nextDate;
-  });
-  FD.registerReducer('PG_REVIEW',(st,p)=>{
-    const o=state(st).observations.find(x=>x.id===p.id);if(!o||!['CONFIRMED','CORRECTED','DISMISSED'].includes(p.decision))return;
-    if(p.decision==='CORRECTED'&&p.patch){if(p.patch.sku===null||FD.sku(p.patch.sku))o.sku=p.patch.sku;if(['availability','assortment','placement','visibility','price','condition'].includes(p.patch.dimension))o.dimension=p.patch.dimension;if(typeof p.patch.value==='string')o.value=p.patch.value.slice(0,500);}
-    o.review=p.decision;o.confirmation={...stamp(st),by:p.by||'SUP',note:typeof p.note==='string'?p.note.slice(0,500):null};
+  FD.registerReducer('SC_DISMISS',(st,p)=>{const a=FD.pgAssessment(st,p.id);if(a&&FD.SC_CHECKS.includes(p.check))a.dismissed[p.check]={date:st.clock.date,time:st.clock.time,by:p.by||'SUP'};});
+  FD.registerReducer('SC_WEIGHTS_SET',(st,p)=>{
+    if(p.weights===null){delete st.rules.shelfWeights;return;}
+    const w=p.weights||{},keys=Object.keys(FD.SC_DEFAULT_WEIGHTS);
+    if(!keys.every(k=>Number.isInteger(w[k])&&w[k]>=0)||keys.reduce((s,k)=>s+w[k],0)!==100)return;
+    st.rules.shelfWeights=Object.fromEntries(keys.map(k=>[k,w[k]]));
   });
   FD.registerReducer('PRODUCT_COLUMNS_SET',(st,p)=>{state(st).columnPrefs.products=FD.productColumns(p.keys);});
 })();
@@ -3479,6 +3523,17 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     { k: 'upsell', label: 'M_UPSELL', info: 'MI_UPSELL', icon: 'coins' },
     { k: 'returns', label: 'M_RETURNS', info: 'MI_RETURNS', icon: 'undo', lowerBetter: true }];
   FD.METRIC_KEYS = FD.METRICS.map(x => x.k);
+  // Approved pilot contract. Upsell value remains an operational diagnostic, outside the four supporting KPIs.
+  FD.PILOT_METRICS = [{ k: 'primary', label: 'M_PRIMARY', info: 'MI_PRIMARY', formula: 'MF_PRIMARY', icon: 'chart' },
+    ...FD.METRICS.filter(m => m.k !== 'upsell').map((m, i) => ({...m, number: i + 1, formula: 'MF_' + m.k.toUpperCase()}))];
+  FD.PILOT_ADOPTION = [
+    { role: 'supervisor', label: 'PA_QUEUE', target: 'PAT_QUEUE', info: 'PAI_QUEUE', status: 'PAS_NOT_MEASURED' },
+    { role: 'supervisor', label: 'PA_FOLLOWUP', target: 'PAT_FOLLOWUP', info: 'PAI_FOLLOWUP', status: 'PAS_PLAN_EVENTS' },
+    { role: 'salesman', label: 'PA_OPEN', target: 'PAT_OPEN', info: 'PAI_OPEN', status: 'PAS_PLAN_EVENTS' },
+    { role: 'salesman', label: 'PA_EXECUTION', target: 'PAT_EXECUTION', info: 'PAI_EXECUTION', status: 'PAS_INVOICE_EVENTS' },
+    { role: 'salesman', label: 'PA_PITCH', target: 'PAT_PITCH', info: 'PAI_PITCH', status: 'PAS_PITCH_EVENTS' },
+    { role: 'salesman', label: 'PA_REASON', target: 'PAT_REASON', info: 'PAI_REASON', status: 'PAS_REASON_PARTIAL' }
+  ];
   FD.DEFAULT_WEIGHTS = { visits: 20, withSale: 20, avgSale: 20, upsell: 25, returns: 15 };
   // editable in Rules (percent points); composite is normalised by their total so any mix stays 0–100.
   // Weights saved before the five levers (net/pvr/drop/...) are ignored.
@@ -3527,7 +3582,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const rv = returnVsr(st);
     const ret = st.returns.filter(x => rv.get(x.id) === vsrId && x.date >= from && x.date <= lim).reduce((a, x) => a + x.value, 0);
     const net = gross - ret;
-    return { net, gross, ret, genuine: seen.size, productive, days: days.size, pvr: pct(productive, vs.length), drop: productive ? net / productive : 0, perDay: days.size ? net / days.size : 0 };
+    return { net, gross, ret, genuine: seen.size, productive, days: days.size, pvr: pct(productive, seen.size), drop: productive ? net / productive : 0, perDay: days.size ? net / days.size : 0 };
   }
   FD.baseline = (st, vsrId) => cached('base', st, vsrId, () => core(st, vsrId, FD.BASE_START, FD.addDays(FD.PILOT_START, -1)));
 
@@ -3560,8 +3615,8 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       const xsell = pct(sustained, offered.length);
       const action = pct(acted.length, counted.length);
       // the five levers; a selling day is a day the salesman made at least one visit
-      const lev = { visits: c.days ? c.genuine / c.days : 0, withSale: c.pvr, avgSale: c.productive ? c.gross / c.productive : 0, upsell: upsellSales, returns: pct(c.ret, c.gross) };
-      const base = { visits: b.days ? b.genuine / b.days : 0, withSale: b.pvr, avgSale: b.productive ? b.gross / b.productive : 0, upsell: 0, returns: pct(b.ret, b.gross) };
+      const lev = { primary: c.days ? c.perDay : null, visits: c.days ? c.genuine / c.days : 0, withSale: c.pvr, avgSale: c.productive ? c.gross / c.productive : 0, upsell: upsellSales, returns: pct(c.ret, c.gross) };
+      const base = { primary: b.days ? b.perDay : null, visits: b.days ? b.genuine / b.days : 0, withSale: b.pvr, avgSale: b.productive ? b.gross / b.productive : 0, upsell: 0, returns: pct(b.ret, b.gross) };
       const T = FD.TARGETS; const retT = base.returns * T.returnsCut;
       const target = { visits: base.visits * T.uplift, withSale: base.withSale * T.uplift, avgSale: base.avgSale * T.uplift, upsell: T.upsellPerDay * c.days, returns: retT };
       const score = {
@@ -3596,7 +3651,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   FD.teamLevers = (st, vsrIds, from, to) => {
     const ms = vsrIds.map(id => FD.vsrMetrics(st, id, from, to)); const S = f => ms.reduce((a, m) => a + f(m), 0);
     const days = S(m => m.days), visits = S(m => m.genuine), sold = S(m => m.productive), gross = S(m => m.net + m.returnsValue), ret = S(m => m.returnsValue);
-    return { visits: days ? visits / days : null, withSale: visits ? pct(sold, visits) : null, avgSale: sold ? gross / sold : null, upsell: S(m => m.upsellSales), returns: gross ? pct(ret, gross) : null, net: gross - ret, days };
+    return { primary: days ? (gross - ret) / days : null, perDay: days ? (gross - ret) / days : null, visits: days ? visits / days : null, withSale: visits ? pct(sold, visits) : null, avgSale: sold ? gross / sold : null, upsell: S(m => m.upsellSales), returns: gross ? pct(ret, gross) : null, net: gross - ret, days };
   };
 
   FD.ranking = function (st, mode, from, to) {
@@ -4218,47 +4273,133 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
 (function(){
  const FD=globalThis.FD,E=(en,ar)=>({en,ar});
  Object.assign(FD.CATALOG,{
-  PG_MATCH:E('Match display regions','مطابقة مناطق العرض'),PG_REGION:E('Region name','اسم المنطقة'),PG_NEXT_CHECK:E('On your next visit to {store}, please check this display: {tip} Add a clear photo when you can.','في زيارتك القادمة إلى {store}، يرجى التحقق من هذا العرض: {tip} أضف صورة واضحة عندما تستطيع.'),PG_NO_OBSERVATION:E('No photo finding for this area yet','لا توجد ملاحظة من الصور لهذا الجانب بعد'),PG_CATALOG_DATE:E('Catalogue data through {date}.','بيانات المنتجات حتى {date}.'),PG_NOT_SAVED:E('Photos could not be saved. Choose fewer or smaller images and try again. Other work can continue.','تعذّر حفظ الصور. اختر صوراً أقل أو أصغر وحاول مرة أخرى. يمكنك متابعة عملك.'),PG_TAB:E('Store intelligence','معلومات المحل'),PG_TAKE:E('Shelf photos','صور الأرفف'),PG_TAKE_SUB:E('Show the arrangement before you start. Add an after photo if you change it.','صوّر الترتيب قبل البدء، وأضف صورة بعده إذا غيّرته.'),
-  PG_TAKE_PHOTOS:E('Take photo','التقاط صورة'),PG_ADD:E('Add photos','إضافة صور'),PG_LATER:E('Not now','ليس الآن'),PG_BEFORE:E('Before','قبل الترتيب'),PG_AFTER:E('After','بعد الترتيب'),PG_CONTEXT:E('Store & competitors','المحل والمنافسون'),
+  PG_NEXT_CHECK:E('On your next visit to {store}, please check this display: {tip} Add a clear photo when you can.','في زيارتك القادمة إلى {store}، يرجى التحقق من هذا العرض: {tip} أضف صورة واضحة عندما تستطيع.'),PG_CATALOG_DATE:E('Catalogue data through {date}.','بيانات المنتجات حتى {date}.'),PG_NOT_SAVED:E('Photos could not be saved. Choose fewer or smaller images and try again. Other work can continue.','تعذّر حفظ الصور. اختر صوراً أقل أو أصغر وحاول مرة أخرى. يمكنك متابعة عملك.'),PG_TAB:E('Store intelligence','معلومات المحل'),PG_TAKE:E('Shelf photos','صور الأرفف'),
+  PG_TAKE_PHOTOS:E('Take photo','التقاط صورة'),PG_ADD:E('Add photos','إضافة صور'),PG_BEFORE:E('Before','قبل الترتيب'),PG_AFTER:E('After','بعد الترتيب'),
   PG_GUIDE:E('Face the display straight on. Include its edges and price labels. Keep product fronts clear.','واجه الرف مباشرة، وأظهر حوافه وبطاقات الأسعار وواجهات المنتجات بوضوح.'),
   PG_TIPS:E('Use the normal lens. Tap to focus, hold still and check glare. Match the angle for the after photo.','استخدم العدسة العادية، واضغط للتركيز وثبّت الهاتف وتجنب الانعكاس. استخدم الزاوية نفسها للصورة التالية.'),
   PG_SAVED:E('Photos saved','تم حفظ الصور'),PG_SAVING:E('Saving photos…','جارٍ حفظ الصور…'),PG_FAILED:E('{n} photos could not be saved. You can try them again.','تعذّر حفظ {n} صور. يمكنك المحاولة مرة أخرى.'),
-  PG_AWAITING:E('Awaiting analysis','بانتظار التحليل'),PG_ANALYSING:E('Analysing photos','جارٍ تحليل الصور'),PG_AVAILABLE:E('Analysis available','التحليل متاح'),PG_UNAVAILABLE:E('Analysis unavailable','التحليل غير متاح'),PG_UPDATED:E('Analysis updated {time}','تم تحديث التحليل {time}'),
-  PG_NO_CHANGE:E('No changes made','لم يتم تغيير الترتيب'),PG_CHANGED:E('Arrangement changed','تم تغيير الترتيب'),PG_NEEDS_AFTER:E('Add an after photo when you can','أضف صورة بعد الترتيب عندما تستطيع'),PG_PAIR:E('Before and after photos saved','تم حفظ صور قبل الترتيب وبعده'),
-  PG_PHOTO_LABEL:E('Open shelf photo','فتح صورة الرف'),PG_CAPTURED:E('Photos from {date}','صور بتاريخ {date}'),PG_PREVIOUS:E('Previous photos','الصور السابقة'),PG_CURRENT:E('This visit','هذه الزيارة'),PG_NONE:E('No shelf photos yet. Add them whenever it helps.','لا توجد صور للأرفف بعد. أضفها عندما تكون مفيدة.'),
-  PG_DISPLAY:E('Display','منطقة العرض'),PG_DISPLAY_LABEL:E('Shelf or display','الرف أو منطقة العرض'),PG_DISPLAY_HINT:E('Use a short name to keep photos of the same display together. A photo may include several shelves.','استخدم اسماً قصيراً لجمع صور منطقة العرض نفسها. يمكن للصورة أن تشمل عدة أرفف.'),
-  PG_REVIEW:E('Review finding','مراجعة الملاحظة'),PG_CONFIRM:E('Confirm','تأكيد'),PG_CORRECT:E('Correct','تصحيح'),PG_DISMISS:E('Dismiss','استبعاد'),PG_REQUEST:E('Request a check','طلب التحقق'),PG_COACH:E('Send coaching tip','إرسال نصيحة'),PG_REVIEW_PENDING:E('Needs review','تحتاج مراجعة'),PG_CONFIRMED:E('Confirmed','مؤكدة'),PG_CORRECTED:E('Corrected','مصححة'),PG_DISMISSED:E('Dismissed','مستبعدة'),
-  PG_REVIEW_NOTE:E('Review note','ملاحظة المراجعة'),PG_EDIT_OBS:E('Correct the observation','تصحيح الملاحظة'),PG_MATCH_HINT:E('A photo may cover several shelves. Check the display and evidence before confirming.','قد تشمل الصورة عدة أرفف. تحقق من منطقة العرض والأدلة قبل التأكيد.'),
-  PG_DIM_AVAILABILITY:E('Product Availability','توفر المنتجات'),PG_DIM_ASSORTMENT:E('Assortment Fit','ملاءمة التشكيلة'),PG_DIM_PLACEMENT:E('Space & Placement','المساحة والموقع'),PG_DIM_VISIBILITY:E('Visibility & Arrangement','الوضوح والترتيب'),PG_DIM_PRICE:E('Price & Promotion','السعر والعرض'),PG_DIM_CONDITION:E('Pack Condition & Freshness','حالة العبوة والصلاحية'),
-  PG_GROUP_FAMILY:E('Keep products of the same family together and make each flavour easy to see.','اجمع منتجات العائلة نفسها وأظهر كل نكهة بوضوح.'),PG_IMPROVE_VISIBILITY:E('Bring the product fronts into view and clear anything blocking them.','أظهر واجهات المنتجات وأزل ما يحجبها.'),
-  PG_REPAIR_TRAY:E('Replace or tidy the display tray. Check consumer packs separately.','استبدل صينية العرض أو رتّبها، وافحص عبوات المستهلك بشكل منفصل.'),PG_CHECK_PRICE:E('Check that the readable price label belongs to the product above it.','تحقق من وضوح بطاقة السعر ومطابقتها للمنتج فوقها.'),PG_CHECK_AVAILABILITY:E('Check whether this product is displayed elsewhere or kept in the backroom.','تحقق مما إذا كان المنتج معروضاً في مكان آخر أو موجوداً في المخزن.'),
-  PG_COMPETITOR_PRESENCE:E('A competing brand is visible in this display. Compare placement and pack value.','تظهر علامة منافسة في منطقة العرض هذه. قارن الموقع وقيمة العبوة.'),PG_REVIEW_GENERIC:E('Review this shelf observation against its photographs.','راجع ملاحظة الرف هذه بالرجوع إلى الصور.'),
-  PG_INSIGHTS:E('Arrangement & brand placement','الترتيب وموقع العلامات'),PG_NO_INSIGHTS:E('Findings will appear here when analysis is available. Purchase history remains available below.','ستظهر الملاحظات هنا عند توفر التحليل. يبقى سجل المشتريات متاحاً أدناه.'),
+  PG_PHOTO_LABEL:E('Open shelf photo','فتح صورة الرف'),PG_CAPTURED:E('Photos from {date}','صور بتاريخ {date}'),PG_PREVIOUS:E('Previous photos','الصور السابقة'),
+  PG_COACH:E('Send coaching tip','إرسال نصيحة'),PG_REQUEST:E('Request a check','طلب التحقق'),
   PG_ASSORTMENT:E('Store assortment','تشكيلة المحل'),PG_PURCHASED:E('Products purchased','المنتجات المشتراة'),PG_RECURRING:E('Recurring products','المنتجات المتكررة'),PG_GAPS:E('Suggested additions','إضافات مقترحة'),PG_HISTORY_SOURCE:E('From order history, not a shelf stock count','من سجل الطلبات، وليس تعداداً لمخزون الرف'),
-  PG_REVIEW_EMPTY:E('No findings need review','لا توجد ملاحظات تحتاج إلى مراجعة'),PG_SOURCE_DEMO:E('Example assessment','تقييم توضيحي'),PG_SOURCE_PHOTO:E('Photo observation','ملاحظة من صورة'),PG_READ_ONLY:E('Historical visit — view only','زيارة سابقة — للعرض فقط'),
-  F_PLANOGRAM:E('Review shelf findings at {store}','مراجعة ملاحظات الأرفف في {store}'),F_PLANOGRAM_C:E('{n} findings to check with the photos','{n} ملاحظات للتحقق منها باستخدام الصور'),ACT_PLANOGRAM:E('Review photos','مراجعة الصور'),
+  PG_READ_ONLY:E('Historical visit — view only','زيارة سابقة — للعرض فقط'),
+  F_PLANOGRAM:E('Shelf Check at {store} needs you','فحص الرف في {store} يحتاجك'),F_PLANOGRAM_C:E('{n} items: owner said no, not in van, help needed or a damaged pack','{n} بنود: رفض صاحب المحل أو غير متوفر في السيارة أو يحتاج مساعدة أو عبوة تالفة'),ACT_PLANOGRAM:E('Open Shelf Check','فتح فحص الرف'),
   PG_VALUE:E('Compare pack value','مقارنة قيمة العبوات'),PG_VALUE_CHEAPER:E('{n}% lower cost per 100g','تكلفة أقل بنسبة {n}% لكل ١٠٠ غ'),PG_PACK_COST:E('Store pays / pack','تكلفة المحل / عبوة'),PG_100G:E('Store pays / 100g','تكلفة المحل / ١٠٠ غ'),PG_PRICE_BASIS:E('Historical order price, including VAT. Compare the same selling unit.','سعر طلب سابق شامل الضريبة. قارن وحدة البيع نفسها.'),
   PG_COLUMNS:E('Columns','الأعمدة'),PG_SEARCH_PRODUCTS:E('Search products','بحث المنتجات'),PG_BROWSE:E('Browse assortment','تصفح التشكيلة'),PG_ALL_PRODUCTS:E('All products','كل المنتجات'),PG_RESET:E('Clear filters','مسح المرشحات'),PG_PRODUCT_COUNT:E('{n} products','{n} منتجات'),PG_STORE_COUNT:E('Stores · {n}','المحلات · {n}'),PG_SHOWING:E('Showing {n} of {m} stores','عرض {n} من {m} محلاً'),PG_SORT:E('Sort by','ترتيب حسب'),PG_SORT_SALES:E('Highest sales','الأعلى مبيعاً'),PG_SORT_NAME:E('Product name','اسم المنتج'),PG_SORT_RETURNS:E('Highest returns','الأعلى مرتجعات'),PG_SORT_COST:E('Lowest cost per 100g','أقل تكلفة لكل ١٠٠ غ'),
-  PG_BASE:E('Before recommendations','قبل التوصيات'),PG_PREVIOUS_PERIOD:E('Previous period','الفترة السابقة'),PG_PHOTOS_COUNT:E('{n} photos saved','تم حفظ {n} صور'),PG_VIEW:E('View store intelligence','عرض معلومات المحل')
+  PG_BASE:E('Before recommendations','قبل التوصيات'),PG_PREVIOUS_PERIOD:E('Previous period','الفترة السابقة'),PG_VIEW:E('View store intelligence','عرض معلومات المحل'),
+  // Shelf Check: fixed wording only. Analysis returns IDs; these strings are all a person ever reads.
+  SC_TITLE:E('Shelf Check','فحص الرف'),SC_SCORE:E('Shelf Score','درجة الرف'),SC_OF_100:E('{n} / 100','{n} / ١٠٠'),SC_CHANGE:E('{change} points','{change} نقطة'),
+  SC_PENDING:E('Score pending: part of the shelf could not be checked','الدرجة معلّقة: تعذّر فحص جزء من الرف'),
+  SC_NOT_SAME:E('Before and After show different shelves. Take the After photo of the same display.','صورتا قبل وبعد لرفين مختلفين. التقط صورة بعد للعرض نفسه.'),
+  SC_GOOD:E('Shelf looks good. Nothing to fix.','الرف بحالة جيدة. لا شيء يحتاج إلى إصلاح.'),SC_URGENT:E('Damaged pack: deal with this first','عبوة تالفة: تعامل معها أولاً'),
+  SC_TODO:E('To do on this visit','المطلوب في هذه الزيارة'),SC_ISSUES:E('What we found','ما وجدناه'),SC_MORE_TODO:E('{n} more','{n} أخرى'),SC_NEW_ISSUES:E('New in the After photo','جديد في صورة بعد'),
+  SC_FIXES:E('Fixes done','الإصلاحات المنجزة'),SC_N_OF_M:E('{n} of {m}','{n} من {m}'),SC_WAITING:E('{n} waiting for After photo','{n} بانتظار صورة بعد'),
+  SC_OPEN:E('Open issues','مشكلات مفتوحة'),SC_BLOCKERS:E('Owner or stock','صاحب المحل أو المخزون'),SC_TAKE_AFTER:E('Take the After photo when you finish.','التقط صورة بعد عند الانتهاء.'),
+  SC_AREA_FULL:E('Shelf full','الرف ممتلئ'),SC_AREA_FIND:E('Easy to find','سهل الإيجاد'),SC_AREA_COND:E('Good condition','بحالة جيدة'),
+  SC_CHK_FULL_EMPTY_SPACE:E('Empty space in our display','مساحة فارغة في عرض منتجاتنا'),SC_CHK_FULL_NOT_FORWARD:E('Packs pushed to the back','العبوات في الخلف'),SC_CHK_FULL_EMPTY_CARTON:E('Display carton is empty','كرتون العرض فارغ'),
+  SC_CHK_FIND_WRONG_AREA:E('Our products are next to non-food items','منتجاتنا بجانب مواد غير غذائية'),SC_CHK_FIND_HIDDEN:E('Our packs are hidden','عبواتنا مخفية'),SC_CHK_FIND_FACING:E('Packs face the wrong way','العبوات ليست بالاتجاه الصحيح'),SC_CHK_FIND_MIXED:E('Flavours are mixed up','النكهات مختلطة'),
+  SC_CHK_COND_DAMAGED_PACK:E('Damaged pack on the shelf','عبوة تالفة على الرف'),SC_CHK_COND_CARTON:E('Display carton is torn or crushed','كرتون العرض ممزق أو منضغط'),SC_CHK_COND_ROTATION:E('Older stock is behind newer stock','البضاعة الأقدم خلف الأحدث'),
+  SC_DO_FULL_EMPTY_SPACE:E('Fill the empty space.','املأ المساحة الفارغة.'),SC_DO_FULL_NOT_FORWARD:E('Bring the packs to the front.','قدّم العبوات إلى الأمام.'),SC_DO_FULL_EMPTY_CARTON:E('Refill the display carton.','أعد تعبئة كرتون العرض.'),
+  SC_DO_FIND_WRONG_AREA:E('Ask the owner to move them to the food shelf.','اطلب من صاحب المحل نقلها إلى رف المواد الغذائية.'),SC_DO_FIND_HIDDEN:E('Move what is blocking our packs.','أزح ما يحجب عبواتنا.'),SC_DO_FIND_FACING:E('Turn the packs to face forward.','أدر العبوات لتكون واجهتها للأمام.'),SC_DO_FIND_MIXED:E('Put each flavour together.','اجمع كل نكهة معاً.'),
+  SC_DO_COND_DAMAGED_PACK:E('Remove the damaged pack and report it.','أزل العبوة التالفة وأبلغ عنها.'),SC_DO_COND_CARTON:E('Replace the carton or fold a new display tray.','استبدل الكرتون أو جهّز صينية عرض جديدة.'),SC_DO_COND_ROTATION:E('Move older stock to the front.','قدّم البضاعة الأقدم إلى الأمام.'),
+  SC_CLASS_FIX:E('Fix now','أصلحه الآن'),SC_CLASS_ASK:E('Ask owner','اسأل صاحب المحل'),
+  SC_OUT_DONE:E('Done','تم'),SC_OUT_PARTLY_DONE:E('Partly done','تم جزئياً'),SC_OUT_NOT_IN_VAN:E('Not in van','غير متوفر في السيارة'),SC_OUT_OWNER_NO:E('Owner said no','رفض صاحب المحل'),SC_OUT_NEED_HELP:E('Need help','أحتاج مساعدة'),SC_OUT_OWNER_YES:E('Owner agreed','وافق صاحب المحل'),SC_OUT_OWNER_AWAY:E('Owner not there','صاحب المحل غير موجود'),
+  SC_ST_OPEN:E('To do','مطلوب'),SC_ST_WAIT:E('Waiting for After photo','بانتظار صورة بعد'),SC_ST_FIXED:E('Fixed','تم الإصلاح'),SC_ST_PARTLY_FIXED:E('Partly fixed','تم إصلاحه جزئياً'),SC_ST_STILL:E('Still there','ما زال موجوداً'),SC_ST_CANT_CHECK:E("Couldn't check",'تعذّر التحقق'),SC_ST_NEW:E('New','جديد'),
+  SC_PHOTO_OK:E('Photo OK','الصورة واضحة'),SC_PHOTO_PARTLY:E('Part of the shelf is not clear','جزء من الرف غير واضح'),SC_PHOTO_RETAKE:E('Retake the photo','أعد التقاط الصورة'),SC_PHOTO_NOT_SHELF:E("This photo doesn't show a cake or cookie display",'هذه الصورة لا تُظهر عرض كيك أو بسكويت'),SC_PHOTO_NONE:E("Shelf Check isn't available for this photo",'فحص الرف غير متاح لهذه الصورة'),
+  SC_WHY_BLUR:E('Hold the phone steady.','ثبّت الهاتف.'),SC_WHY_DARK:E('Find better light.','اختر إضاءة أفضل.'),SC_WHY_GLARE:E('Change the angle to avoid glare.','غيّر الزاوية لتجنب الانعكاس.'),SC_WHY_CUT_OFF:E('Include the whole display.','أظهر منطقة العرض كاملة.'),SC_WHY_TOO_FAR:E('Move closer.','اقترب أكثر.'),SC_WHY_BLOCKED:E('Clear the view of the display.','أزل ما يحجب منطقة العرض.'),
+  SC_COMPETITION:E('Competition seen','المنافسون في الصورة'),
+  SC_COMP_NEXT:E('Competitor products next to ours','منتجات منافسة بجانب منتجاتنا'),SC_COMP_TRAY:E('Competitor uses a branded display','المنافس يستخدم عرضاً بعلامته'),SC_COMP_OFFER:E('Competitor offer sign visible','لافتة عرض للمنافس ظاهرة'),SC_COMP_NO_AMERICANA:E('Competitor products here, none of ours','منتجات منافسة هنا ولا يوجد من منتجاتنا'),SC_COMP_NONE:E('No competitor in these photos','لا يوجد منافس في هذه الصور'),
+  SC_SEEN:E('Our products seen','منتجاتنا الظاهرة'),SC_NO_OURS:E('None of our products in this photo','لا توجد منتجاتنا في هذه الصورة'),SC_NOT_IN_PHOTO:E('Not in photo','غير ظاهرة في الصورة'),SC_PENDING_SHORT:E('Pending','معلّقة'),
+  SC_FAM_CUPCAKE:E('Cupcakes','كب كيك'),SC_FAM_SWISS_ROLL:E('Swiss rolls','سويس رول'),SC_FAM_CAKE_BAR:E('Cake bars','كيك بار'),SC_FAM_SLICE_CAKE:E('Slice cakes','كيك شرائح'),SC_FAM_POUND_CAKE:E('Pound cakes','باوند كيك'),SC_FAM_BUTTER_COOKIES:E('Butter cookies','بسكويت الزبدة'),SC_FAM_CHOCO_COOKIES:E('Choco cookies','بسكويت الشوكولاتة'),SC_FAM_RUSK:E('Rusks','شابورة'),SC_FAM_OTHER_AMERICANA:E('Other Americana products','منتجات أمريكانا أخرى'),
+  BR_SEVEN_DAYS:E('7Days','سفن دايز'),BR_SWITZ:E('Switz','سويتز'),BR_ALMARAI:E('Almarai','المراعي'),BR_SUNBULAH:E('Sunbulah','السنبلة'),BR_AL_KABEER:E('Al Kabeer','الكبير'),BR_UNKNOWN:E('Brand not readable','العلامة غير واضحة'),
+  SC_NOT_CORRECT:E('Not correct','غير صحيح'),
+  SC_NONE:E('No Shelf Check yet. Take a Before photo at the next visit.','لا يوجد فحص للرف بعد. التقط صورة قبل في الزيارة القادمة.'),SC_HISTORY:E('Shelf Check history','سجل فحص الرف'),
+  SC_SETTINGS:E('Shelf Score weights','أوزان درجة الرف'),SC_SETTINGS_D:E('How much each area counts in the Shelf Score. The total must be 100%. Changes apply to new checks only.','مقدار ما يحتسبه كل جانب في درجة الرف. يجب أن يكون المجموع ١٠٠٪. تُطبق التغييرات على الفحوصات الجديدة فقط.'),
+  SC_TOTAL:E('Total {pct}','المجموع {pct}'),SC_RESET:E('Reset to defaults','إعادة الافتراضي'),SC_INSIDE:E('Inside each area, the more important checks count more.','داخل كل جانب، تُحتسب الفحوصات الأهم بوزن أكبر.'),
+  SC_TEAM:E('Shelf Check by salesman','فحص الرف حسب المندوب'),
+  SC_COL_STORES:E('Stores checked','محلات تم فحصها'),SC_COL_PHOTOS:E('Photos OK','صور واضحة'),SC_PAIRED:E('{n} stores with Before and After','{n} محلات بصورتي قبل وبعد'),SC_NO_TEAM:E('No Shelf Checks in this period','لا توجد فحوصات للرف في هذه الفترة')
  });
- const pg=st=>st.planogram||{assessments:[],observations:[],columnPrefs:{}};
- const kindId=k=>({GROUP_FAMILY:'PG_GROUP_FAMILY',IMPROVE_VISIBILITY:'PG_IMPROVE_VISIBILITY',REPAIR_TRAY:'PG_REPAIR_TRAY',CHECK_PRICE:'PG_CHECK_PRICE',CHECK_AVAILABILITY:'PG_CHECK_AVAILABILITY',COMPETITOR_PRESENCE:'PG_COMPETITOR_PRESENCE'})[k]||'PG_REVIEW_GENERIC';
- FD.pgKindText=kindId;
+ const pg=st=>st.planogram||{assessments:[],columnPrefs:{}};
+ // Three scored areas. Inside an area each check has a fixed importance (sums to 100); only the area weights are configurable.
+ FD.SC_AREAS=[['FULL',[['FULL_EMPTY_SPACE',50],['FULL_NOT_FORWARD',30],['FULL_EMPTY_CARTON',20]]],['FIND',[['FIND_WRONG_AREA',35],['FIND_HIDDEN',30],['FIND_FACING',20],['FIND_MIXED',15]]],['COND',[['COND_DAMAGED_PACK',40],['COND_CARTON',30],['COND_ROTATION',30]]]]
+  .map(([id,checks])=>({id,checks:checks.map(([check,weight])=>({check,weight}))}));
+ FD.SC_CHECKS=FD.SC_AREAS.flatMap(a=>a.checks.map(c=>c.check));
+ FD.SC_DEFAULT_WEIGHTS={FULL:40,FIND:35,COND:25};
+ FD.SC_MIN_COVERAGE=80; // ponytail: fixed threshold for showing a score; make it a rule if supervisors need to tune it
+ const PRIORITY=['COND_DAMAGED_PACK','FULL_EMPTY_SPACE','FULL_EMPTY_CARTON','FIND_WRONG_AREA','FIND_HIDDEN','COND_ROTATION','FULL_NOT_FORWARD','COND_CARTON','FIND_FACING','FIND_MIXED'];
+ FD.scClass=c=>c==='FIND_WRONG_AREA'?'ASK':'FIX';
+ FD.SC_OUTCOMES={FIX:['DONE','PARTLY_DONE','NOT_IN_VAN','OWNER_NO','NEED_HELP'],ASK:['OWNER_YES','OWNER_NO','OWNER_AWAY']};
+ const BLOCKERS=['NOT_IN_VAN','OWNER_NO','NEED_HELP','OWNER_AWAY'];
+ FD.scWeights=st=>Object.assign({},FD.SC_DEFAULT_WEIGHTS,st.rules.shelfWeights||{});
+ FD.scResult=ref=>(ref!=null&&FD.SHELF_RESULTS&&FD.SHELF_RESULTS.photos[ref]||{}).result||null;
+ FD.scLookup=name=>{const ps=(FD.SHELF_RESULTS||{}).photos||{};const k=Object.keys(ps).find(k=>ps[k].file===name);return k==null?null:+k;};
+ FD.scUsable=r=>!!r&&r.scope==='AMBIENT_SHELF'&&(r.photo.status==='OK'||r.photo.status==='PARTLY');
+ const met=c=>!c?null:c.result==='PASS'?1:c.result==='FAIL'?0:c.result==='PARTLY'?Math.min(1,Math.max(0,+c.met||0)):null;
+ // Photos of one phase: the worst value seen for each check; 'NA' only when every photo says the check cannot exist.
+ FD.scCombine=(results,dismissed={})=>Object.fromEntries(FD.SC_CHECKS.map(id=>{
+  if(dismissed[id])return [id,null];const cs=results.map(r=>r.checks[id]).filter(Boolean),vs=cs.map(met).filter(v=>v!=null);
+  return [id,vs.length?Math.min(...vs):cs.length&&cs.every(c=>c.result==='NOT_APPLICABLE')?'NA':null];}));
+ // Shelf Score = earned / assessed budget; coverage = assessed / applicable budget. Unclear checks never count as pass or fail.
+ FD.scScore=(vals,weights)=>{let got=0,seen=0,all=0;const areas={};
+  for(const a of FD.SC_AREAS){let ag=0,as=0,aa=0;
+   for(const c of a.checks){const v=vals[c.check];if(v==='NA')continue;const p=(weights[a.id]||0)*c.weight/100;aa+=p;if(v!=null){as+=p;ag+=p*v;}}
+   areas[a.id]={score:as?100*ag/as:null,coverage:aa?100*as/aa:null};got+=ag;seen+=as;all+=aa;}
+  const coverage=all?100*seen/all:0;return {score:seen?100*got/seen:null,coverage,final:seen>0&&coverage>=FD.SC_MIN_COVERAGE,none:!all,areas};};
+ const sameDisplay=(i,j)=>i===j||((FD.SHELF_RESULTS||{}).groups||[]).some(g=>g.includes(i)&&g.includes(j));
+ FD.scSummary=(st,id)=>{
+  const a=FD.pgAssessment(st,id);if(!a)return null;
+  const photos=FD.pgPhotos(st,id).map(p=>{const r=FD.scResult(p.ref);return {p,r,status:r?r.photo.status:'NONE',reasons:r&&r.photo.status!=='OK'?r.photo.reasons||[]:[]};});
+  const done=photos.filter(x=>x.r);if(!done.length)return {analysed:false,photos};
+  const W=a.weights||FD.scWeights(st),phase=ph=>done.filter(x=>x.p.phase===ph&&FD.scUsable(x.r));
+  const B=phase('BEFORE'),A=phase('AFTER'),bv=FD.scCombine(B.map(x=>x.r),a.dismissed),av=A.length?FD.scCombine(A.map(x=>x.r),a.dismissed):null;
+  const comparable=!!(B.length&&A.length&&A.every(x=>B.some(y=>sameDisplay(x.p.ref,y.p.ref))));
+  const before=B.length?FD.scScore(bv,W):null,after=A.length?FD.scScore(av,W):null;
+  const change=comparable&&before.final&&after.final?after.score-before.score:null;
+  const mark=(list,check)=>{for(const x of list){const f=(x.r.findings||[]).find(f=>f.check===check);if(f)return {photoId:x.p.id,box:f.box_2d};}return null;};
+  const findings=PRIORITY.filter(c=>typeof bv[c]==='number'&&bv[c]<1).map(c=>{
+   const v=av&&av[c],status=!A.length?'OPEN':!comparable||v==null||v==='NA'?'CANT_CHECK':v>=1?'FIXED':v>bv[c]?'PARTLY_FIXED':'STILL';
+   return {check:c,met:bv[c],cls:FD.scClass(c),outcome:(a.actions||{})[c]||null,status,mark:mark(B,c),urgent:c==='COND_DAMAGED_PACK'};});
+  const fresh=comparable?PRIORITY.filter(c=>typeof av[c]==='number'&&av[c]<1&&bv[c]===1).map(c=>({check:c,met:av[c],cls:FD.scClass(c),status:'NEW',mark:mark(A,c)})):[];
+  const fix=findings.filter(f=>f.cls==='FIX'&&!BLOCKERS.includes(f.outcome));
+  const fixes={verified:fix.filter(f=>f.status==='FIXED').length,total:fix.length,waiting:fix.filter(f=>f.status==='OPEN'&&f.outcome==='DONE').length};
+  const blockers=findings.filter(f=>BLOCKERS.includes(f.outcome)&&f.status!=='FIXED');
+  // A Before and an After of one display are one sighting each, not two to add up.
+  const comp=new Map();for(const x of done.filter(x=>FD.scUsable(x.r)))for(const c of x.r.competition||[])if(c.signal!=='COMP_NONE')comp.set(c.signal+'|'+(c.brand||'UNKNOWN'),{signal:c.signal,brand:c.brand||'UNKNOWN'});
+  return {analysed:true,photos,weights:W,before,after,comparable,mismatch:!!(B.length&&A.length&&!comparable),change,findings,fresh,fixes,blockers,
+   open:findings.filter(f=>f.status!=='FIXED').length+fresh.length,competition:[...comp.values()],seen:[...new Set(done.flatMap(x=>FD.scUsable(x.r)?x.r.americana_seen||[]:[]))],
+   urgent:findings.some(f=>f.urgent&&f.status!=='FIXED'),current:after||before,good:!!(before&&before.final&&!findings.length)};
+ };
+ const avg=xs=>xs.reduce((s,x)=>s+x,0)/xs.length;
+ // One row per salesman: the latest analysed check at each store they visited in the period. No rank.
+ FD.scTeam=(st,from,to,ids)=>ids.map(vsr=>{
+  const latest=new Map();for(const a of pg(st).assessments.filter(a=>a.vsr===vsr&&a.date>=from&&a.date<=to)){const s=FD.scSummary(st,a.id);if(!s||!s.analysed||!s.current)continue;const o=latest.get(a.store);if(!o||o.a.date+o.a.time<a.date+a.time)latest.set(a.store,{a,s});}
+  const sums=[...latest.values()].map(x=>x.s),finals=sums.filter(s=>s.current.final),paired=sums.filter(s=>s.change!=null),shots=sums.flatMap(s=>s.photos.filter(x=>['OK','PARTLY','RETAKE'].includes(x.status)));
+  const n=k=>sums.reduce((t,s)=>t+s.fixes[k],0);
+  return {vsr,stores:sums.length,finalStores:finals.length,score:finals.length?avg(finals.map(s=>s.current.score)):null,change:paired.length?avg(paired.map(s=>s.change)):null,paired:paired.length,
+   fixes:{verified:n('verified'),total:n('total'),waiting:n('waiting')},open:sums.reduce((t,s)=>t+s.open,0),blockers:sums.reduce((t,s)=>t+s.blockers.length,0),photosOk:shots.filter(x=>x.status!=='RETAKE').length,photos:shots.length,stores_:[...latest.values()]};
+ });
  FD.pgAssortment=(st,store,date)=>{
   const purchased=FD.storeSkuStats(st,store,date), recurring=purchased.filter(x=>st.orders.filter(o=>o.store===store&&o.sku===x.code&&o.date<=date&&o.units>0).map(o=>o.date).filter((d,i,a)=>a.indexOf(d)===i).length>=2);
   const gaps=FD.recommend(st,store,date).recs.filter(x=>x.type==='GAP'||x.type==='UPGRADE');
-  return {purchased,recurring,gaps,returns:st.returns.filter(r=>r.store===store&&r.date<=date),observed:pg(st).observations.filter(o=>o.store===store&&o.observedAt.date<=date)};
+  return {purchased,recurring,gaps};
  };
- FD.pgAdvice=(st,store,sku,date,rec)=>{
-  if(rec&&(rec.outcome!==null&&rec.outcome!==undefined||!['SENT','VIEWED',undefined,null].includes(rec.stage)))return [];
-  return pg(st).observations.filter(o=>o.store===store&&(!o.sku||o.sku===sku)&&['CONFIRMED','CORRECTED'].includes(o.review)&&o.observedAt.date<=date&&(o.phase!=='AFTER'||o.observedAt.date<date)&&(!o.analysisAt||o.analysisAt.slice(0,10)<=date))
-   .filter(o=>o.kind!=='COMPETITOR_PRESENCE').map(o=>({observationId:o.id,assessmentId:o.assessmentId,dimension:o.dimension,textId:kindId(o.kind),value:o.review==='CORRECTED'?o.value:null,slots:{},phase:o.phase}));
+ // Supervisor work from yesterday and today: blockers the salesman cannot clear alone, and damaged packs.
+ FD.pgFollowUps=st=>pg(st).assessments.filter(a=>a.date<=st.clock.date&&a.date>=FD.addDays(st.clock.date,-1)).map(a=>{
+  const s=FD.scSummary(st,a.id);if(!s||!s.analysed)return null;const n=s.blockers.length+(s.urgent&&!s.blockers.some(f=>f.urgent)?1:0);if(!n)return null;
+  return {key:'F_PLANOGRAM|'+a.id,tpl:'F_PLANOGRAM',pri:2,at:a.date,slots:{storeId:a.store,vsrId:a.vsr,n},action:{kind:'planogram',type:'PLANOGRAM_REVIEW',label:'ACT_PLANOGRAM',store:a.store,assessmentId:a.id}};}).filter(Boolean);
+ // Seed: field photos already placed at stores become that visit's Before check; same-display groups supply real After photos.
+ FD.scSeed=st=>{
+  if(!FD.SHELF_RESULTS)return;const P=st.planogram||(st.planogram={assessments:[],columnPrefs:{}}),by=new Map();
+  const last={};for(const p of st.photos.filter(p=>p.seeded))if(!last[p.store]||p.date>last[p.store])last[p.store]=p.date;
+  for(const p of st.photos.filter(p=>p.seeded&&p.date===last[p.store]&&FD.scUsable(FD.scResult(p.ref)))){const k=p.store+'|'+p.date;if(!by.has(k))by.set(k,[]);by.get(k).push(p);}
+  let n=0;
+  for(const ps of by.values()){const f=ps[0],id='SC'+(++n);
+   P.assessments.push({id,store:f.store,vsr:f.vsr,visitId:null,date:f.date,time:f.time,photoIds:ps.map(p=>p.id),weights:{...FD.SC_DEFAULT_WEIGHTS},actions:{},dismissed:{},seeded:true});
+   for(const p of ps){p.assessmentId=id;p.phase='BEFORE';}
+   const partner=((FD.SHELF_RESULTS.groups||[]).find(g=>g[0]===f.ref)||[])[1];
+   if(partner!=null&&!ps.some(p=>p.ref===partner)){const ph={id:id+'-after',src:FD.PHOTOS[partner],store:f.store,vsr:f.vsr,date:f.date,time:f.time,assessmentId:id,phase:'AFTER',ref:partner,seeded:true};st.photos.push(ph);P.assessments.at(-1).photoIds.push(ph.id);}
+   const a=P.assessments.at(-1),s=FD.scSummary(st,id);
+   s.findings.forEach((x,k)=>{const o=FD.SC_OUTCOMES[x.cls];a.actions[x.check]=x.cls==='ASK'?o[(n+k)%o.length]:['DONE','DONE','DONE','DONE','PARTLY_DONE','DONE','NOT_IN_VAN','DONE','DONE','OWNER_NO','DONE','NEED_HELP'][(n+k)%12];});}
  };
- FD.pgFollowUps=st=>{
-  const by=new Map();for(const o of pg(st).observations.filter(o=>o.review==='NEEDS_REVIEW'&&o.observedAt.date<=st.clock.date)){if(!by.has(o.assessmentId))by.set(o.assessmentId,[]);by.get(o.assessmentId).push(o);}
-  return [...by].map(([id,os])=>({key:'F_PLANOGRAM|'+id,tpl:'F_PLANOGRAM',pri:2,at:os[0].observedAt.date,slots:{storeId:os[0].store,vsrId:os[0].vsr,n:os.length},action:{kind:'planogram',type:'PLANOGRAM_REVIEW',label:'ACT_PLANOGRAM',store:os[0].store,assessmentId:id,observationIds:os.map(o=>o.id)}}));
- };
- FD.pgDemoResult=(st,id)=>{const a=FD.pgAssessment(st,id);if(!a||!a.demo||!a.photoIds.length)return null;const rec=st.recs.find(r=>r.store===a.store&&r.date===a.date&&!r.outcome);return {id,source:'demo',observations:[{id:id+'-visibility',store:a.store,fixtureId:'display',dimension:'visibility',sku:rec?rec.sku:null,kind:'GROUP_FAMILY',evidence:[{photoId:a.photoIds[0]}]},{id:id+'-competitor',store:a.store,dimension:'placement',kind:'COMPETITOR_PRESENCE',evidence:[{photoId:a.photoIds[0]}]}]};};
 })();
 
 ;
@@ -4432,13 +4573,13 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       on: { input: e => { const v = e.target.value, pos = e.target.selectionStart; clearTimeout(tm); tm = setTimeout(() => { refocus = { key, pos }; onChange(v); }, 160); } } });
     return h('div', { class: 'search', style }, I('search', 's16'), inp); };
   FD.restoreSearchFocus = () => { if (!refocus) return; const el = document.querySelector('[data-sk="' + refocus.key + '"]'); if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(refocus.pos, refocus.pos); } catch (e) { } } refocus = null; };
-  FD.stepper = (value, min, max, onChange, label) => {
+  FD.stepper = (value, min, max, onChange, label, step = 1) => {
     const out = h('output', { 'aria-live': 'polite' }, FD.fmt.num(value));
     const set = v => { onChange(v); };
     return h('div', { class: 'stepper', role: 'group', 'aria-label': label || '' },
-      h('button', { type: 'button', 'aria-label': '−', disabled: value <= min, on: { click: () => set(value - 1) } }, I('minus')),
+      h('button', { type: 'button', 'aria-label': '−', disabled: value <= min, on: { click: () => set(Math.max(min, value - step)) } }, I('minus')),
       out,
-      h('button', { type: 'button', 'aria-label': '+', disabled: value >= max, on: { click: () => set(value + 1) } }, I('plus')));
+      h('button', { type: 'button', 'aria-label': '+', disabled: value >= max, on: { click: () => set(Math.min(max, value + step)) } }, I('plus')));
   };
   FD.toggle = (on, onChange, label) => h('button', { type: 'button', role: 'switch', 'aria-checked': on ? 'true' : 'false', 'aria-label': label || '', class: 'switch' + (on ? ' on' : ''), on: { click: () => onChange(!on) } });
   // The selected button owns its background, including under zoom and RTL.
@@ -4797,7 +4938,6 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     PG_PHOTO_OPTIONS:E('Photo tips and options','نصائح التصوير وخياراته'),
     PG_CAPTURE_HINT:E('Face the full display straight on. Keep packs and prices clear.','صوّر منطقة العرض كاملة من الأمام مع إظهار العبوات والأسعار بوضوح.'),
     PG_MATCH_ANGLE:E('Match this angle for the after photo.','التقط الصورة بعد الترتيب من الزاوية نفسها.'),
-    PG_NO_ANALYSIS:E('No photo analysis yet.','لا يوجد تحليل للصور بعد.'),
     L_CHANGE_INCREASE:E('Increase','زيادة'), L_CHANGE_DECREASE:E('Decrease','انخفاض'),
     L_NO_PRIOR_UPSELL:E('No earlier comparison','لا توجد مقارنة سابقة'),
     L_SHELF_SHOWING:E('{n} of {m} products','{n} من {m} منتجاً'),
@@ -4805,6 +4945,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     PG_CAMERA_BEFORE:E('Before','قبل'), PG_CAMERA_AFTER:E('After','بعد'),
     PG_CAPTURE_BEFORE:E('Take before photo','التقاط صورة قبل الترتيب'),
     PG_CAPTURE_AFTER:E('Take after photo','التقاط صورة بعد الترتيب'),
+    PG_TAKEN:E('Taken','تم التقاطها'),
     PF_CATEGORIES:E('All categories','كل الفئات'), PF_FAMILIES:E('All families','كل العائلات'),
     PF_FLAVOURS:E('All flavours','كل النكهات'), PF_PACKS:E('All pack sizes','كل أحجام العبوات'),
     L_ORDER_DAYS:E('Order days','أيام الطلب'), L_PERIOD_4W:E('4 weeks','٤ أسابيع'),
@@ -5076,23 +5217,23 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     L_RESOLVE: E('Mark resolved', 'تم الحل'), L_RESOLVED: E('Alert resolved', 'تم حل التنبيه'),
     L_STOP_UP: E('Move up', 'تحريك لأعلى'), L_STOP_DOWN: E('Move down', 'تحريك لأسفل'),
     L_RETURNS_TODAY: E('Returns today', 'المرتجعات اليوم'),
-    M_VISITS: E('Visits per Salesman per Selling Day', 'الزيارات لكل مندوب في يوم البيع'),
+    M_VISITS: E('Visits', 'الزيارات'),
     M_WITH_SALE: E('Visits with a Sale (%)', 'الزيارات التي تمت فيها عملية بيع (%)'),
     M_AVG_SALE: E('Average Sale Value', 'متوسط قيمة البيع'),
     M_UPSELL: E('Upsell Sales at Existing Stores', 'مبيعات البيع الإضافي في المحلات الحالية'),
     M_RETURNS: E('Returns (% of Sales)', 'المرتجعات (% من المبيعات)'),
-    MI_VISITS: E('Store visits made by each salesman, per day he worked (a day with at least one visit). A second visit to the same store on the same day counts once.', 'زيارات المحلات لكل مندوب في كل يوم عمل فيه (يوم فيه زيارة واحدة على الأقل). الزيارة الثانية لنفس المحل في نفس اليوم تُحسب مرة واحدة.'),
-    MI_WITH_SALE: E('Share of visits that ended with an order.', 'نسبة الزيارات التي انتهت بطلب.'),
-    MI_AVG_SALE: E('Order value per visit with a sale, before returns (returns have their own metric).', 'قيمة الطلب لكل زيارة تمت فيها عملية بيع، قبل المرتجعات (للمرتجعات مقياس خاص).'),
+    MI_VISITS: E('Completed store visits per salesman per selling day.', 'زيارات المحلات المكتملة لكل مندوب في يوم البيع.'),
+    MI_WITH_SALE: E('Share of completed visits that end in a posted order.', 'نسبة الزيارات المكتملة التي تنتهي بطلب مسجل.'),
+    MI_AVG_SALE: E('Sales value per visit with a sale, including refills and extra lines.', 'قيمة المبيعات لكل زيارة تمت فيها عملية بيع، وتشمل إعادة التزويد والأصناف الإضافية.'),
     MI_UPSELL: E('Value of recommended products sold, in full, partly or as an alternative, at existing stores.', 'قيمة المنتجات الموصى بها التي بيعت، كاملة أو جزئياً أو كبديل، في المحلات الحالية.'),
-    MI_RETURNS: E('Value of returns as a share of sales value. Lower is better.', 'قيمة المرتجعات كنسبة من قيمة المبيعات. الأقل أفضل.'),
-    L_NET_RESULT: E('Net sales', 'صافي المبيعات'), L_NET_RESULT_D: E('What the five metrics add up to: sales minus returns.', 'محصلة المقاييس الخمسة: المبيعات ناقص المرتجعات.'),
+    MI_RETURNS: E('Returns deducted as a share of sales.', 'المرتجعات المخصومة كنسبة من المبيعات.'),
+    L_NET_RESULT: E('Net sales', 'صافي المبيعات'), L_NET_RESULT_D: E('Total sales minus returns for the selected period.', 'إجمالي المبيعات ناقص المرتجعات للفترة المحددة.'),
     L_METRIC_MOVES: E('Actions to grow sales', 'خطوات لزيادة المبيعات'), L_METRIC_MOVES_NONE: E('Nothing open for this metric.', 'لا شيء مفتوح لهذا المقياس.'),
     L_TARGET_V: E('Target {money}', 'الهدف {money}'), L_BEFORE_V: E('Before {money}', 'قبل {money}'), L_LOWER_BETTER: E('Lower is better', 'الأقل أفضل'),
     L_METRICS_DAY: E('Latest day', 'آخر يوم'), L_FIVE_METRICS: E('The five sales metrics', 'مقاييس المبيعات الخمسة'),
     L_TREND_DAYS: E('Upsell Sales at Existing Stores, last 8 selling days', 'مبيعات البيع الإضافي في المحلات الحالية، آخر ٨ أيام بيع'),
     L_TREND_WEEKS: E('Upsell Sales at Existing Stores, last 8 weeks', 'مبيعات البيع الإضافي في المحلات الحالية، آخر ٨ أسابيع'),
-    I_TEAM: E('Salesmen ranked by score from the five sales metrics (weights are set in Rules). Small figures show the change against the comparison period. The trend line is Upsell Sales at Existing Stores.', 'المندوبون مرتبون حسب الدرجة من مقاييس المبيعات الخمسة (الأوزان في القواعد). الأرقام الصغيرة تبين التغير مقارنة بفترة المقارنة. خط الاتجاه هو مبيعات البيع الإضافي في المحلات الحالية.'),
+    I_TEAM: E('Pilot KPIs use the deck definitions. Rank and score are illustrative operational diagnostics with draft weights, not the pilot success measure. The trend line is Upsell Sales at Existing Stores.', 'تستخدم مؤشرات التجربة تعريفات العرض. الترتيب والدرجة أدوات تشغيلية توضيحية بأوزان مبدئية وليسا مقياس نجاح التجربة. يعرض خط الاتجاه مبيعات البيع الإضافي في المحلات الحالية.'),
     L_G_AVG: E('Average Sale Value', 'متوسط قيمة البيع'),
     Q_CUE_VISITS: E('You are making fewer visits a day than usual. Start on time and follow the plan order to fit every stop in.', 'زياراتك اليومية أقل من المعتاد. ابدأ في الوقت وتابع ترتيب الخطة لتغطي كل المحطات.'),
     Q_CUE_UPSELL: E('Upsell sales are below target. At every stop, offer the top card first: it is a product the store already sells.', 'مبيعات البيع الإضافي أقل من الهدف. في كل محطة اعرض البطاقة الأولى أولاً: إنه منتج يبيعه المحل أصلاً.'),
@@ -5123,6 +5264,55 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     O_S1: E('Each van moves through its day here. Check a plan, then release it. Vans release themselves when the first visit starts.', 'تمر كل سيارة بيومها هنا. راجع الخطة ثم أرسلها. تُرسل الخطة تلقائيًا عند بدء أول زيارة.'),
     O_S2: E('Alerts show what went off plan, one row per van, each with one action.', 'التنبيهات تعرض ما خرج عن الخطة، صف لكل سيارة ولكل صف إجراء واحد.'),
     O_S3: E('Analytics holds what Today does not show: the team ranking, why things did not sell, and the journey plan review.', 'صفحة التحليلات فيها ما لا تعرضه صفحة اليوم: ترتيب الفريق وأسباب عدم البيع ومراجعة خطة الزيارات.'),
+  });
+  // English contract text is verbatim from the approved deck, slides 2 and 8.
+  Object.assign(FD.CATALOG, {
+    M_PRIMARY: E('Net Sales per Salesman per Selling Day', 'صافي المبيعات لكل مندوب في يوم البيع'),
+    MI_PRIMARY: E('Net sales after returns, per salesman per selling day.', 'صافي المبيعات بعد المرتجعات لكل مندوب في يوم البيع.'),
+    MF_PRIMARY: E('Visits × Visits with a Sale × Average Sale Value × (1 − Returns)', 'الزيارات × الزيارات ببيع × متوسط قيمة البيع × (١ − المرتجعات)'),
+    MF_VISITS: E('Completed visits ÷ selling days', 'الزيارات المكتملة ÷ أيام البيع'),
+    MF_WITHSALE: E('Visits with sale ÷ completed visits', 'الزيارات ببيع ÷ الزيارات المكتملة'),
+    MF_AVGSALE: E('Sales value ÷ visits with sale', 'قيمة المبيعات ÷ الزيارات ببيع'),
+    MF_RETURNS: E('Return value ÷ sales value', 'قيمة المرتجعات ÷ قيمة المبيعات'),
+    L_PILOT_MEASURES: E('Pilot metrics & adoption', 'مؤشرات التجربة والاستخدام'),
+    L_PILOT_KPIS: E('Primary Success KPI & 4 Supporting KPIs', 'مؤشر النجاح الرئيسي و٤ مؤشرات داعمة'),
+    L_PILOT_ADOPTION: E('Field Adoption Metrics & Support Needed', 'مقاييس الاستخدام الميداني والدعم المطلوب'),
+    L_PILOT_TARGETS_NOTE: E('Pilot targets, not measured results. This mockup does not yet calculate these adoption rates.', 'أهداف للتجربة وليست نتائج مقاسة. لا يحسب النموذج هذه النسب حتى الآن.'),
+    L_PILOT_SUPERVISOR: E('SUPERVISOR USAGE', 'استخدام المشرف'), L_PILOT_SALESMAN: E('SALESMAN USAGE', 'استخدام المندوب'),
+    L_PILOT_DIAGNOSTIC: E('Upsell Sales at Existing Stores is an additional diagnostic. The illustrative score and its draft targets do not define pilot success.', 'مبيعات البيع الإضافي في المحلات الحالية مقياس تشخيصي إضافي. الدرجة التوضيحية وأهدافها المبدئية لا تحددان نجاح التجربة.'),
+    L_PILOT_DENOMINATOR: E('Definition to confirm: the mockup counts one visit per store per day and uses days with a completed visit as selling days. Credit and relief-coverage exclusions need agreement.', 'تعريف يحتاج اعتمادًا: يحسب النموذج زيارة واحدة لكل محل يوميًا ويعتبر أيام البيع هي الأيام بزيارة مكتملة. تحتاج استثناءات الائتمان والتغطية البديلة إلى اتفاق.'),
+    L_PILOT_COHORTS: E('Pilot and control route groups are not configured in this mockup. Finance evaluation after mature returns remains a launch requirement.', 'لم تُحدد مجموعتا مسارات التجربة والمقارنة في النموذج. يظل تقييم المالية بعد اكتمال فترة المرتجعات من متطلبات الإطلاق.'),
+    L_PILOT_DELIVERY: E('This mockup demonstrates workflows using local demo state. Daily data feeds, official invoicing and printing are not connected.', 'يعرض النموذج سير العمل ببيانات توضيحية محلية. تغذيات البيانات اليومية والفوترة الرسمية والطباعة غير متصلة.'),
+    S_SB_OPENING: E('Preview only. Open your official order app to invoice, print and record cash or returns.', 'معاينة فقط. افتح تطبيق الطلبات الرسمي لإصدار الفواتير وطباعتها وتسجيل النقد أو المرتجعات.'),
+    L_PILOT_VALUE: E('Value', 'القيمة'),
+    L_ANALYTICS_TREND: E('Net Sales per Salesman per Selling Day', 'صافي المبيعات لكل مندوب في يوم البيع'),
+    L_FIVE_METRICS: E('Operational score factors', 'عوامل التقييم التشغيلي'),
+    PA_QUEUE: E('Morning queue action rate', 'معدل معالجة قائمة الصباح'), PAT_QUEUE: E('100% of alerts', '١٠٠٪ من التنبيهات'),
+    PAI_QUEUE: E('Daily KPI 1-4 alerts approved, adjusted or held before departure.', 'اعتماد تنبيهات المؤشرات ١–٤ اليومية أو تعديلها أو تعليقها قبل الانطلاق.'),
+    PA_FOLLOWUP: E('Low-usage route follow-up', 'متابعة المسارات منخفضة الاستخدام'), PAT_FOLLOWUP: E('Same-day call', 'اتصال في اليوم نفسه'),
+    PAI_FOLLOWUP: E('Supervisor calls any pilot route with an unopened daily plan.', 'يتصل المشرف بأي مسار تجريبي لم تُفتح خطته اليومية.'),
+    PA_OPEN: E('Daily plan open rate', 'معدل فتح الخطة اليومية'), PAT_OPEN: E('≥95% before first stop', '٩٥٪ على الأقل قبل أول زيارة'),
+    PAI_OPEN: E('Salesman opens the route plan before departing.', 'يفتح المندوب خطة المسار قبل الانطلاق.'),
+    PA_EXECUTION: E('Store action execution rate', 'معدل تنفيذ إجراءات المحلات'), PAT_EXECUTION: E('≥80% by Week 4', '٨٠٪ على الأقل بحلول الأسبوع الرابع'),
+    PAI_EXECUTION: E('Share of approved store actions completed and invoiced.', 'نسبة إجراءات المحلات المعتمدة التي نُفذت وأُصدرت فواتيرها.'),
+    PA_PITCH: E('Upsell offer pitch rate', 'معدل عرض البيع الإضافي'), PAT_PITCH: E('100% of target stores', '١٠٠٪ من المحلات المستهدفة'),
+    PAI_PITCH: E('Sold or Not suitable logged for recommended extra lines.', 'تسجيل تم البيع أو غير مناسب للأصناف الإضافية الموصى بها.'),
+    PA_REASON: E('Reason & stock-out capture', 'تسجيل الأسباب ونفاد المخزون'), PAT_REASON: E('Reasons ≥90%; stock-outs 100%', 'الأسباب ٩٠٪ على الأقل؛ نفاد المخزون ١٠٠٪'),
+    PAI_REASON: E('Logs no-sale reasons, quantity overrides and van stock-outs.', 'يسجل أسباب عدم البيع وتعديلات الكمية ونفاد مخزون السيارة.'),
+    PAS_NOT_MEASURED: E('Not measured: alert approval, adjustment and hold events are incomplete.', 'غير مقاس: أحداث اعتماد التنبيهات وتعديلها وتعليقها غير مكتملة.'),
+    PAS_PLAN_EVENTS: E('Not measured: plan-open timing and same-day call tracking are missing.', 'غير مقاس: لا يوجد تتبع لوقت فتح الخطة والاتصال في اليوم نفسه.'),
+    PAS_INVOICE_EVENTS: E('Not measured: approved store actions are not linked to posted invoices.', 'غير مقاس: إجراءات المحلات المعتمدة غير مرتبطة بالفواتير المسجلة.'),
+    PAS_PITCH_EVENTS: E('Not measured: recommendation outcomes exist, but the target-store pitch rate is not calculated.', 'غير مقاس: توجد نتائج التوصيات لكن نسبة العرض على المحلات المستهدفة غير محسوبة.'),
+    PAS_REASON_PARTIAL: E('Partial: recommendation reasons exist; visit reasons, overrides and stock-out capture do not share a complete measure.', 'جزئي: توجد أسباب للتوصيات لكن أسباب الزيارات وتعديلات الكمية ونفاد المخزون ليس لها مقياس موحد مكتمل.'),
+    PS_TITLE: E('SUPPORT NEEDED FROM AMERICANA', 'الدعم المطلوب من أمريكانا'),
+    PS_SPONSOR: E('Sponsor & daily operations contact', 'الراعي ومسؤول العمليات اليومية'),
+    PSI_SPONSOR: E('One project sponsor and one field operations contact to drive daily team usage.', 'راعٍ واحد للمشروع ومسؤول للعمليات الميدانية لدعم الاستخدام اليومي للفريق.'),
+    PS_ANSWERS: E('Timely answers to open questions', 'الإجابة على الأسئلة المفتوحة في الوقت المناسب'),
+    PSI_ANSWERS: E('Sign-off on van-stock access, promotion rules, route lock timing and credit release.', 'اعتماد الوصول إلى مخزون السيارة وقواعد العروض ووقت تثبيت المسار ورفع قيود الائتمان.'),
+    PS_TIME: E('Protected time for trial & training', 'وقت مخصص للتجربة والتدريب'),
+    PSI_TIME: E('Time for the supervisor workshop, route trial and salesman training around depot loading.', 'وقت لورشة المشرف وتجربة المسار وتدريب المندوبين بما يناسب التحميل في المستودع.'),
+    PS_CONTROL: E('Control routes: business as usual', 'مسارات المقارنة: العمل كالمعتاد'),
+    PSI_CONTROL: E('Lock 5-6 pilot and 5-6 control routes. No stock shifts, extra attention or new targets for control routes.', 'تثبيت ٥–٦ مسارات للتجربة و٥–٦ للمقارنة دون نقل مخزون أو اهتمام إضافي أو أهداف جديدة لمسارات المقارنة.')
   });
 })();
 
@@ -5570,6 +5760,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   };
 
   // ---------- shared bits ----------
+  V.area = route => FD.nameOf(route).split(' · ').pop(); // route names lead with an internal code
   V.statusChip = v => {
     const m = { PLANNED: ['L_STATUS_PLANNED', ''], ARRIVED: ['L_STATUS_ARRIVED', 'info'], DONE: ['L_STATUS_DONE', 'good'], SKIPPED: ['L_STATUS_SKIPPED', ''] }[v.status] || ['L_STATUS_PLANNED', ''];
     return FD.chip(t(v.moved && v.status === 'PLANNED' ? 'L_STATUS_MOVED' : m[0]), m[1]);
@@ -5740,7 +5931,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       h('div', { class: 'small muted', style: { marginBottom: '6px' } }, t('L_PROGRESS', { n: FD.fmt.num(done), qty: FD.fmt.num(plan.stops.length), got: FD.fmt.num(ups) })),
       h('div', { class: 'progress', role: 'progressbar', 'aria-label': tx('L_STOPS_DONE', { n: done, m: plan.stops.length }), 'aria-valuenow': done, 'aria-valuemax': plan.stops.length }, h('i', { style: { width: (100 * done / plan.stops.length) + '%' } })),
       h('div', { style: { marginTop: '12px' } }, mode === 'map' ? V.map(plan, vsr) : [mode === 'map' ? h('div', { class: 'banner warn', style: { marginBottom: '10px' } }, I('wifi-off'), h('span', null, t('S_MAP_OFFLINE'))) : null, h('div', { class: 'v-card' }, plan.stops.map(stop => V.stopRow(stop, plan, vsr)))])));
-    return { title: tx(hour < 12 ? 'L_GOOD_MORNING' : 'L_GOOD_DAY', { vsrId: vsr.id }), sub: FD.fmt.dateLong(d) + ' · ' + FD.nameOf(route), body };
+    return { title: tx(hour < 12 ? 'L_GOOD_MORNING' : 'L_GOOD_DAY', { vsrId: vsr.id }), sub: FD.fmt.dateLong(d) + ' · ' + V.area(route), body };
   });
 
   V.stopRow = function (stop, plan, vsr) {
@@ -5757,7 +5948,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     return h('div', { class: 'stop ' + stop.status },
       h('button', { type: 'button', class: 'stop-main', on: { click: open } }, h('span', { class: 'seq' }, stop.status === 'DONE' ? I('check', 's16') : FD.fmt.num(plan.stops.indexOf(stop) + 1)),
       h('div', { class: 'grow' }, h('div', { class: 'nm row', style: { gap: '6px' } }, FD.sizeIcon(s.size), h('span', null, FD.nameOf(s))),
-        h('div', { class: 'meta' }, t('LBL_' + s.label) + ' · ' + s.id + ' · ' + s.tags.map(x => t('TAGN_' + x.slice(4))).join(FD.lang === 'ar' ? '، ' : ', ')),
+        h('div', { class: 'meta' }, t('LBL_' + s.label) + ' · ' + s.tags.map(x => t('TAGN_' + x.slice(4))).join(FD.lang === 'ar' ? '، ' : ', ')),
         stop.status === 'SKIPPED' ? h('div', { class: 'meta' }, t(stop.skipReason)) : null,
         h('div', { class: 'row wrap', style: { marginTop: '6px', gap: '6px' } }, V.statusChip(stop), stop.revisit ? FD.chip([I('repeat', 's14'), t('L_REVISIT')], 'warn') : null, st().preorders.some(p => p.store === stop.store && p.forDate === stop.date && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, stop.reassigned || stop.supAdded ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, stop.offPlan ? FD.chip(t('SK_OFFPLAN'), 'info') : null,
           plan.carried && plan.carried.some(r => r.store === stop.store) ? FD.chip(t('L_OPEN_SHORT'), 'warn') : null,
@@ -5827,7 +6018,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const tab = ['offer','profile'].includes(L['vsr:storeTab'])?L['vsr:storeTab']:'offer';
     const lastOrder = FD.SKUS.map(k => FD.lastOrder(s, storeId, k.code, d)).filter(Boolean).sort().pop();
     const head = h('div', { class: 'stack s8', style: { marginTop: '2px' } },
-      h('div', { class: 'row wrap', style: { gap: '6px' } }, FD.chip(t('LBL_' + store.label), 'info'), FD.chip([FD.sizeIcon(store.size), t('SIZE_' + store.size)]), FD.chip(store.id, 'outline'), store.tags.map(x => FD.chip(t('TAGN_' + x.slice(4)), 'outline')),
+      h('div', { class: 'row wrap', style: { gap: '6px' } }, FD.chip(t('LBL_' + store.label), 'info'), FD.chip([FD.sizeIcon(store.size), t('SIZE_' + store.size)]), store.tags.map(x => FD.chip(t('TAGN_' + x.slice(4)), 'outline')),
         store.credit !== 'OK' ? FD.creditChip(store.credit, true) : null),
       h('div', { class: 'row between' }, h('span', { class: 'small muted' }, lastOrder ? t('L_LAST_VISIT', { date: FD.fmt.date(lastOrder) }) : ''), visit ? V.statusChip(visit) : null),
       h('div', { class: 'row' }, FD.btn(t('L_MSG_SUP'), () => FD.threadSheet({ type: 'store', id: storeId }, 'VSR'), 'secondary sm', 'message'),
@@ -5835,10 +6026,9 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       h('div',{class:'store-tabs-row'},
         h('div',{class:'tabs store-tabs',style:{padding:0}},[['offer','L_OFFER'],['profile','L_PROFILE']].map(([id,lb])=>
           h('button',{type:'button',class:tab===id?'on':'',on:{click:()=>{L['vsr:storeTab']=id;FD.render();}}},t(lb)))),
-        tab==='offer'?h('div',{class:'offer-photo-actions','aria-label':t('L_PHOTOS')},['BEFORE','AFTER'].map(phase=>
-          h('button',{type:'button',class:'offer-camera-action','aria-label':t('PG_CAPTURE_'+phase),title:t('PG_CAPTURE_'+phase),
-            on:{click:()=>FD.pgCaptureSheet({store:storeId,visitId:visit?.id,phase})}},I('camera','s14'),h('span',null,t('PG_CAMERA_'+phase))))):null));
+));
     const body = [head];
+    if (tab === 'offer') { const sc = FD.scVisitCard({ store: storeId, visitId: visit?.id }); if (sc) body.push(sc); }
     s.preorders.filter(p => p.store === storeId && p.status !== 'DONE' && (!p.forDate || p.forDate === d)).forEach(p => body.push(h('div', { class: 'banner info', style: { marginTop: '12px', alignItems: 'flex-start' } }, I('inbox'),
       h('div', { class: 'grow', style: { minWidth: 0 } }, h('b', null, t('L_PREORDER_FROM_OWNER')), h('div', { dir: 'auto' }, FD.txtOf(p.text)), h('div', { class: 'small muted' }, t('L_VIA_WHATSAPP') + ' · ' + FD.fmt.time(p.at.time))),
       p.photo ? h('img', { src: p.photo, alt: '', style: { width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', cursor: 'zoom-in' }, on: { click: () => FD.lightbox(p.photo) } }) : null)));
@@ -5858,7 +6048,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       const openVisit = (plan.stops || []).some(x => x.store === storeId && x.status !== 'DONE' && x.status !== 'SKIPPED');
       if (openVisit && (live.some(x => x.outcome === null) || FD.openTemps(s, storeId, d).length)) cta = FD.btn(t('L_OPEN_SB'), () => V.salesBuzz(), 'primary lg block', 'external');
     } else body.push(V.profile(storeId));
-    return { title: FD.nameOf(store), sub: FD.lang === 'ar' ? FD.HOOD_AR[store.hood] : store.hood, back: r.id ? () => FD.go('#/vsr/' + vsr.id + (onPlan ? '/today' : '/store')) : null, body, cta };
+    return { title: FD.nameOf(store), sub: FD.lang === 'ar' ? FD.HOOD_AR[store.hood] : store.hood, tools: FD.scCameraButton({ store: storeId, visitId: visit?.id }), back: r.id ? () => FD.go('#/vsr/' + vsr.id + (onPlan ? '/today' : '/store')) : null, body, cta };
   });
 
   // every store assigned to this salesman: today's plan first, then the rest (off-plan visits are tracked)
@@ -5960,7 +6150,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   V.salesBuzz = function () {
     const screen = document.querySelector('.phone-screen'); if (!screen) return;
     const el = h('div', { class: 'sb-hand', role: 'dialog', 'aria-modal': 'true' }, h('div', null,
-      h('div', { class: 'sb-logo', 'aria-hidden': 'true' }, I('package', 's24')), h('b', { style: { fontSize: '18px' } }, t('L_ORDERS')), h('div', { class: 'spinner', 'aria-hidden': 'true' }),
+      h('div', { class: 'sb-logo', 'aria-hidden': 'true' }, I('package', 's24')), h('b', { style: { fontSize: '18px' } }, t('L_ORDERS')),
       h('p', { class: 'muted', style: { maxWidth: '260px', margin: '0 auto 20px' } }, t('S_SB_OPENING')),
       FD.btn(t('L_BACK_FD'), () => el.remove(), 'secondary lg', 'arrow-left')));
     screen.appendChild(el); el.querySelector('button').focus();
@@ -5978,6 +6168,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       FD.sup.glance(storeId, true),
       h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('L_SHELF')), FD.shelfView(shelf, { compact: true, filterKey: 'vsr:' + storeId })),
       h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('L_STORE_PRODUCTS')), V.skuStats(storeId)),
+      h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('SC_HISTORY')), FD.scHistory(storeId)),
       h('section', null, h('div', { class: 'row between', style: { marginBottom: '8px' } }, h('h3', { class: 'small muted', style: { margin: 0 } }, t('L_PHOTOS')), FD.btn(t('PG_TAKE_PHOTOS'),()=>FD.pgCaptureSheet({store:storeId}),'secondary sm')), FD.photoTimeline(storeId, 6)),
       FD.ownerThread(s, storeId).length ? h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('L_OWNER_WA')), FD.sup.ownerChat(storeId, FD.render, true)) : null,
       h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('L_LAST_8')), recent),
@@ -6115,8 +6306,9 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const moveTxt = rank.move > 0 ? t('L_MOVE_UP', { n: FD.fmt.num(rank.move) }) : rank.move < 0 ? t('L_MOVE_DOWN', { n: FD.fmt.num(-rank.move) }) : t('L_MOVE_SAME');
     const off = s.rules.metricsOff || {};
     // the same five metrics the supervisor sees, against his own level before recommendations
-    const rows = FD.METRICS.filter(mt => sees[mt.k] !== false && !off[mt.k]);
-    const weakest = rows.length ? rows.slice().sort((a, b2) => m.score[a.k] - m.score[b2.k])[0].k : 'upsell';
+    const scoringRows = FD.METRICS.filter(mt => sees[mt.k] !== false && !off[mt.k]);
+    const rows = FD.PILOT_METRICS.filter(mt => mt.k === 'primary' || sees[mt.k] !== false && !off[mt.k]);
+    const weakest = scoringRows.length ? scoringRows.slice().sort((a, b2) => m.score[a.k] - m.score[b2.k])[0].k : 'upsell';
     const cue = { visits: ['Q_CUE_VISITS', {}], withSale: ['Q_CUE_PVR', {}], avgSale: ['Q_CUE_DROP', {}], upsell: ['Q_CUE_UPSELL', {}], returns: ['Q_CUE_XSELL', { unit: unitText(FD.SKUS[0].code, 1) }] }[weakest];
     const filt = L['vsr:upsFilter'] || 'ALL';
     const ups = s.recs.filter(x => x.vsr === vsr.id && SOLD.includes(x.outcome)).filter(x => filt === 'ALL' || x.maturity === filt).sort((a, b2) => b2.date.localeCompare(a.date));
@@ -6125,14 +6317,14 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const setRow = (label, ctl) => h('div', { class: 'metric-row', style: { gridTemplateColumns: '1fr auto' } }, h('span', null, t(label)), ctl);
     const spark = rank.spark;
     const body = [
-      !sees.upval ? null : h('div', { class: 'v-card', style: { padding: '16px', marginTop: '4px', background: 'linear-gradient(135deg, var(--navy), var(--navy-2))', color: '#fff', border: 0 } },
-        h('div', { class: 'small', style: { color: '#A9BDDC' } }, t('M_UPSELL')),
-        h('div', { style: { fontSize: '30px', fontWeight: 600, letterSpacing: '-.02em' } }, FD.fmt.money0(m.upsellSales)),
-        h('div', { class: 'row', style: { marginTop: '4px', color: '#A9BDDC', fontSize: '13px' } }, t('L_KPI_FOOT_UPS', { n: FD.fmt.num(m.sold), pct: FD.fmt.num(Math.round(m.upsellConv)) }))),
+      h('div', { class: 'v-card', style: { padding: '16px', marginTop: '4px', background: 'linear-gradient(135deg, var(--navy), var(--navy-2))', color: '#fff', border: 0 } },
+        h('div', { class: 'small', style: { color: '#A9BDDC' } }, t('M_PRIMARY')),
+        h('div', { style: { fontSize: '30px', fontWeight: 600, letterSpacing: '-.02em' } }, FD.metricText('primary', m.lev.primary)),
+        h('div', { class: 'row', style: { marginTop: '4px', color: '#A9BDDC', fontSize: '13px' } }, t('MI_PRIMARY'))),
       h('section', { class: 'v-section' }, h('h3', null, t('L_MY_SCORE')),
         h('div', { class: 'v-card' }, h('div', { class: 'row', style: { padding: '16px', gap: '16px' } },
           h('div', { class: 'score-ring' }, FD.ring(m.composite), h('b', null, FD.fmt.num(Math.round(m.composite)))),
-          h('div', { class: 'grow stack s8' }, sees.rank ? h('b', { style: { fontSize: '18px' } }, tx('Q_RANK', { rank: rank.rank, n: s.world.vsrs.filter(x => x.kind === 'sales').length, move: moveTxt })) : null, FD.spark(spark, 160, 34), h('div', { class: 'small muted' }, t('Q_WEIGHTS') + ' · ' + FD.METRIC_KEYS.map(k => FD.fmt.num(FD.weights(s)[k])).join('/')))),
+          h('div', { class: 'grow stack s8' }, sees.rank ? h('b', { style: { fontSize: '18px' } }, tx('Q_RANK', { rank: rank.rank, n: s.world.vsrs.filter(x => x.kind === 'sales').length, move: moveTxt })) : null, FD.spark(spark, 160, 34), h('div', { class: 'small muted' }, t('L_PILOT_DIAGNOSTIC')))),
           h('div', { style: { borderTop: '1px solid var(--line)' } }, rows.map(mt => h('div', { class: 'metric-row' }, h('span', null, t(mt.label)), h('b', { class: 'tabular' }, FD.metricText(mt.k, m.lev[mt.k])), mt.k === 'upsell' ? h('span', { class: 'small muted' }, t('L_TARGET_V', { money: FD.fmt.money0(m.target.upsell) })) : FD.sup.leverDelta(mt.k, m.lev[mt.k], m.base[mt.k])))),
           h('div', { class: 'tipbox', style: { margin: '0 14px 14px' } }, I('bulb', 's16'), h('span', null, tx(cue[0], cue[1]))))),
       h('section', { class: 'v-section' }, h('h3', null, t('L_TIPS_RECEIVED')), tips.length ? h('div', { class: 'v-card' }, tips.slice(0, 10).map(x => h('button', { type: 'button', class: 'list-row click', style: { width: '100%', textAlign: 'start' }, on: { click: () => V.tipSheet(x.id) } },
@@ -6151,7 +6343,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
           FD.btn(t('L_HELP'), () => V.help(), 'secondary', 'help')),
         h('div', { style: { padding: '8px 14px 14px' } }, FD.btn(t('L_LOG_OUT'), () => FD.signOut(), 'ghost block', 'arrow-left')))),
     ];
-    return { title: FD.nameOf(vsr), sub: FD.nameOf(s.world.routes.find(x => x.id === vsr.route)), body };
+    return { title: FD.nameOf(vsr), sub: V.area(s.world.routes.find(x => x.id === vsr.route)), body };
   });
   V.help = () => FD.sheet.open({ title: t('L_HELP'), render: () => h('div', { class: 'stack s16' },
     h('div', { class: 'stack s8' }, ['O_V1', 'O_V2', 'O_V3'].map((k, i) => h('div', { class: 'row', style: { alignItems: 'flex-start' } }, h('span', { class: 'seq' }, FD.fmt.num(i + 1)), h('span', null, t(k))))),
@@ -6166,18 +6358,68 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
  FD.pgReadPhotos=async files=>{const savedInputs=[],failed=[];for(const file of Array.from(files||[])){try{if(!file.type.startsWith('image/'))throw Error('image');savedInputs.push({id:'pg-photo-'+FD.key(),name:file.name,src:await FD.readPhoto(file)});}catch(e){failed.push(file.name);}}return {savedInputs,failed};};
  if(typeof document==='undefined')return;
  const h=FD.h,t=(...a)=>FD.t(...a),st=()=>FD.state;
- const phaseLabel=p=>t('PG_'+p);
  const current=(store,visitId)=>FD.pgAssessments(st(),store).find(a=>a.date===st().clock.date&&a.visitId===(visitId||null));
+ const TONE={FIXED:'good',PARTLY_FIXED:'warn',STILL:'bad',NEW:'bad',WAIT:'info',OPEN:'',CANT_CHECK:''};
+ const BRAND={LUSINE:'BR_LUSINE',SEVEN_DAYS:'BR_SEVEN_DAYS',SWITZ:'BR_SWITZ',SABAHOO:'BR_SABAHOO',ALMARAI:'BR_ALMARAI',SUNBULAH:'BR_SUNBULAH',AL_KABEER:'BR_AL_KABEER',OTHER:'BR_OTHER'};
+ const pts=v=>t('SC_OF_100',{n:FD.fmt.num(v,1)});
+ const signed=v=>(v>0?'+':v<0?'−':'')+FD.fmt.num(Math.abs(v),1);
+ const boxStyle=b=>({top:b[0]/10+'%',left:b[1]/10+'%',width:(b[3]-b[1])/10+'%',height:(b[2]-b[0])/10+'%'});
+ FD.scScoreText=s=>s&&s.final?pts(s.score):s&&s.none?t('SC_NO_OURS'):'—';
+ // Lists show the score as a chip, like other statuses in the app.
+ FD.scChip=s=>!s?null:s.final?FD.chip(FD.fmt.num(Math.round(s.score)),s.score>=90?'good':s.score>=70?'warn':'bad'):FD.chip(t(s.none?'SC_NOT_IN_PHOTO':'SC_PENDING_SHORT'),'outline');
+ // One panel for both roles. `editable` lets the salesman record what happened on today's visit.
+ FD.scPanel=(id,{role='VSR',editable=false,redraw=()=>FD.render()}={})=>{
+  const S=FD.scSummary(st(),id);if(!S||!S.photos.length)return null;
+  const listed=S.analysed?S.findings.concat(S.fresh).map((f,i)=>({...f,n:i+1})):[];
+  const marksOn=pid=>listed.filter(f=>f.mark&&f.mark.photoId===pid);
+  const photos=h('div',{class:'sc-photos'},S.photos.map(x=>h('figure',{class:'sc-figure'},
+   h('div',{class:'sc-photo'},FD.photoButton({src:x.p.src,label:t('PG_PHOTO_LABEL')}),marksOn(x.p.id).map(f=>h('span',{class:'sc-mark'+(f.urgent?' urgent':''),style:boxStyle(f.mark.box),'aria-hidden':'true'},h('b',null,FD.fmt.num(f.n))))),
+   h('figcaption',{class:'small'},h('b',null,t('PG_'+x.p.phase)),' · ',t('SC_PHOTO_'+x.status)),
+   x.reasons.length?h('p',{class:'small muted'},x.reasons.map(r=>t('SC_WHY_'+r)).join(' ')):null)));
+  if(!S.analysed)return h('div',{class:'stack s12 sc-panel'},photos);
+  const box=(label,s)=>h('div',{class:'sc-score'},h('span',{class:'small muted'},label),h('b',null,FD.scScoreText(s)));
+  const pending=[S.before,S.after].some(s=>s&&!s.final&&!s.none),none=[S.before,S.after].some(s=>s&&s.none);
+  const head=S.before||S.after?h('div',{class:'sc-head'},h('span',{class:'small muted sc-head-label'},t('SC_SCORE')),
+   h('div',{class:'row wrap'},S.before?box(t('PG_BEFORE'),S.before):null,S.after?box(t('PG_AFTER'),S.after):null,
+    S.change!=null?FD.chip(t('SC_CHANGE',{change:signed(S.change)}),S.change>0?'good':S.change<0?'bad':''):null),
+   pending?h('p',{class:'small muted'},t('SC_PENDING')):null,none?h('p',{class:'small muted'},t('SC_NO_OURS')):null):null;
+  const cur=S.current,areas=cur?h('div',{class:'sc-areas'},FD.SC_AREAS.map(a=>{const v=cur.areas[a.id].score;
+   return h('div',{class:'sc-area'},h('span',null,t('SC_AREA_'+a.id)),h('span',{class:'sc-meter'},h('i',{style:{width:(v==null?0:v)+'%'}})),h('span',{class:'small tabular'},v==null?'—':FD.fmt.num(v,0)));})):null;
+  const outcomes=f=>f.status==='NEW'?null:h('div',{class:'row wrap sc-outcomes'},FD.chip(t('SC_CLASS_'+f.cls),'outline'),
+   editable?FD.SC_OUTCOMES[f.cls].map(o=>h('button',{type:'button',class:'sc-out'+(f.outcome===o?' on':''),'aria-pressed':String(f.outcome===o),
+     on:{click:()=>{FD.dx('SC_ACTION_SET',{id,check:f.check,outcome:f.outcome===o?null:o});redraw();}}},t('SC_OUT_'+o))):f.outcome?FD.chip(t('SC_OUT_'+f.outcome)):null);
+  const card=f=>{const s=f.status==='OPEN'&&f.outcome==='DONE'?'WAIT':f.status;
+   return h('article',{class:'sc-finding'+(f.urgent?' urgent':'')},
+    h('div',{class:'row between wrap'},h('span',{class:'row'},h('span',{class:'sc-num'},FD.fmt.num(f.n)),h('b',null,t('SC_CHK_'+f.check))),FD.chip(t('SC_ST_'+s),TONE[s])),
+    h('p',{class:'small'},t('SC_DO_'+f.check)),outcomes(f),
+    role==='SUP'&&f.status!=='NEW'?FD.btn(t('SC_NOT_CORRECT'),()=>{FD.dx('SC_DISMISS',{id,check:f.check});redraw();},'ghost sm'):null);};
+  const main=listed.filter(f=>f.status!=='NEW'),fresh=listed.filter(f=>f.status==='NEW'),first=role==='VSR'?main.slice(0,3):main,rest=role==='VSR'?main.slice(3):[];
+  const fx=S.fixes,fixes=fx.total?h('p',{class:'small'},h('b',null,t('SC_FIXES')),' ',t('SC_N_OF_M',{n:FD.fmt.num(fx.verified),m:FD.fmt.num(fx.total)}),fx.waiting?' · '+t('SC_WAITING',{n:FD.fmt.num(fx.waiting)}):null):null;
+  const comp=h('section',{class:'stack s8'},h('h4',null,t('SC_COMPETITION')),
+   S.competition.length?h('div',{class:'row wrap sc-chips'},S.competition.map(c=>FD.chip([t('SC_'+c.signal),BRAND[c.brand]?' · '+t(BRAND[c.brand]):''],'outline'))):h('p',{class:'small muted'},t('SC_COMP_NONE')));
+  return h('div',{class:'stack s12 sc-panel'},
+   S.urgent?h('div',{class:'banner bad'},FD.icon('alert'),h('span',null,t('SC_URGENT'))):null,
+   S.mismatch?h('div',{class:'banner info'},FD.icon('info'),h('span',null,t('SC_NOT_SAME'))):null,
+   head,areas,photos,
+   S.good?FD.chip(t('SC_GOOD'),'good'):null,
+   main.length?h('section',{class:'stack s8'},h('h4',null,t(role==='VSR'&&editable?'SC_TODO':'SC_ISSUES')),first.map(card),
+    rest.length?(FD.ui.local['sc:more:'+id]?rest.map(card):FD.btn(t('SC_MORE_TODO',{n:FD.fmt.num(rest.length)}),()=>{FD.ui.local['sc:more:'+id]=true;redraw();},'ghost sm')):null):null,
+   fresh.length?h('section',{class:'stack s8'},h('h4',null,t('SC_NEW_ISSUES')),fresh.map(card)):null,
+   fixes,
+   role==='VSR'&&editable&&S.before&&!S.after&&main.length?h('p',{class:'small muted'},t('SC_TAKE_AFTER')):null,
+   S.seen.length?h('p',{class:'small'},h('b',null,t('SC_SEEN')),' ',S.seen.map(x=>t('SC_FAM_'+x)).join(FD.lang==='ar'?'، ':', ')):null,
+   comp);
+ };
  FD.pgCaptureSheet=({store,visitId,assessmentId,phase='BEFORE'})=>{
-  let id=assessmentId||current(store,visitId)?.id,fixture='display',busy=false,status='',pending=[],failures=[],optionsOpen=false;
-  if(id&&phase==='AFTER')fixture=FD.pgPhotos(st(),id).filter(p=>p.phase==='BEFORE').at(-1)?.fixtureId||'display';
+  let id=assessmentId||current(store,visitId)?.id,busy=false,status='',failures=[],optionsOpen=false;
   const save=async files=>{
-   if(busy)return;const capturedPhase=phase,capturedFixture=fixture.trim()||'display';busy=true;status=t('PG_SAVING');FD.sheet.redraw();
-   const result=await FD.pgReadPhotos(files);failures=result.failed.slice();pending=result.savedInputs.map(p=>({...p,phase:capturedPhase,fixtureId:capturedFixture}));
+   if(busy)return;const capturedPhase=phase;busy=true;status=t('PG_SAVING');FD.sheet.redraw();
+   const result=await FD.pgReadPhotos(files);failures=result.failed.slice();
+   // Known field photos carry their analysis by file name, so the result appears as soon as the photo is saved.
+   const pending=result.savedInputs.map(p=>({id:p.id,src:p.src,phase:capturedPhase,ref:FD.scLookup(p.name),name:p.name}));
    if(pending.length){
     if(!id){id='pg-'+FD.key();FD.dx('PG_START',{id,store,visitId,vsr:st().vsrId});}
-    const saved=FD.tryPhotoBatch({key:FD.key(),id,photos:pending});
-    if(saved&&capturedPhase==='AFTER')FD.dx('PG_OUTCOME_SET',{id,fixtureId:capturedFixture,outcome:'CHANGED'});
+    const saved=FD.tryPhotoBatch({key:FD.key(),id,photos:pending.map(({name,...p})=>p)});
     status=saved?t('PG_SAVED'):t('PG_NOT_SAVED');if(!saved)failures.push(...pending.map(p=>p.name));
    }else status='';
    if(result.failed.length)status+=' '+t('PG_FAILED',{n:FD.fmt.num(result.failed.length)});
@@ -6185,44 +6427,50 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   };
   FD.sheet.open({title:t('PG_TAKE'),render:()=>{
    const input=h('input',{id:'pg-files',type:'file',accept:'image/*',multiple:true,capture:'environment',hidden:true,on:{change:e=>save(e.target.files)}});
-   const photos=id?FD.pgPhotos(st(),id):[],before=photos.filter(p=>p.phase==='BEFORE'&&p.fixtureId===fixture).at(-1);
-   const reference=phase==='AFTER'&&before&&!photos.some(p=>p.phase==='AFTER'&&p.fixtureId===fixture);
+   const photos=id?FD.pgPhotos(st(),id):[],before=photos.filter(p=>p.phase==='BEFORE').at(-1);
+   const reference=phase==='AFTER'&&before&&!photos.some(p=>p.phase==='AFTER');
+   const editable=!!id&&FD.pgAssessment(st(),id).date===st().clock.date;
    return h('div',{class:'stack s12 pg-capture'},
-    FD.seg(['BEFORE','AFTER','CONTEXT'].map(p=>({id:p,label:phaseLabel(p)})),phase,v=>{phase=v;FD.sheet.redraw();}),
+    FD.seg(['BEFORE','AFTER'].map(p=>({id:p,label:t('PG_'+p)})),phase,v=>{phase=v;FD.sheet.redraw();}),
     h('p',{class:'small muted'},t('PG_CAPTURE_HINT')),
     reference?h('div',{class:'capture-reference'},FD.photoButton({src:before.src,label:t('PG_BEFORE')}),h('span',{class:'small muted'},t('PG_MATCH_ANGLE'))):null,
     input,h('button',{class:'btn primary block',type:'button',disabled:busy,on:{click:()=>input.click()}},t('PG_ADD')),
     h('div',{role:'status','aria-live':'polite',class:'small'},status,failures.length?h('ul',null,failures.map(name=>h('li',null,name))):null),
     h('details',{class:'capture-options',open:optionsOpen,on:{toggle:e=>{optionsOpen=e.currentTarget.open;}}},h('summary',null,t('PG_PHOTO_OPTIONS')),
-      h('div',{class:'stack s8'},h('p',{class:'small muted'},t('PG_GUIDE')),h('p',{class:'small muted'},t('PG_TIPS')),
-        phase!=='CONTEXT'?h('label',{class:'field'},h('span',null,t('PG_DISPLAY_LABEL')),h('input',{class:'input',value:fixture==='display'?t('PG_DISPLAY'):fixture,'data-focus':'pg-fixture',disabled:busy,on:{input:e=>{fixture=e.target.value;}}}),h('small',{class:'muted'},t('PG_DISPLAY_HINT'))):null,
-        id&&phase!=='CONTEXT'?h('div',{class:'row wrap'},FD.btn(t('PG_NO_CHANGE'),()=>{FD.dx('PG_OUTCOME_SET',{id,fixtureId:fixture.trim()||'display',outcome:'UNCHANGED'});FD.sheet.redraw();},'secondary sm'),FD.btn(t('PG_CHANGED'),()=>{FD.dx('PG_OUTCOME_SET',{id,fixtureId:fixture.trim()||'display',outcome:'CHANGED'});FD.sheet.redraw();},'secondary sm')):null)),
-    id?h('details',{class:'capture-saved'},h('summary',null,t('PG_PHOTOS_COUNT',{n:FD.fmt.num(photos.length)})),FD.pgEvidence(id)):null);
-  },footer:()=>[FD.btn(t('L_DONE'),()=>FD.sheet.close(),'secondary block')]});
+      h('div',{class:'stack s8'},h('p',{class:'small muted'},t('PG_GUIDE')),h('p',{class:'small muted'},t('PG_TIPS')))),
+    id?FD.scPanel(id,{role:'VSR',editable,redraw:()=>FD.sheet.redraw()}):null);
+  },footer:()=>[FD.btn(t('L_DONE'),()=>{FD.sheet.close();FD.render();},'secondary block')]});
  };
- FD.pgEvidence=id=>{
-  const a=FD.pgAssessment(st(),id);if(!a)return null;const ps=FD.pgPhotos(st(),id),cs=FD.pgCaptureState(st(),id);
-  return h('div',{class:'stack s8'},h('div',{class:'row wrap'},FD.chip(t('PG_'+a.processing)),h('span',{class:'small muted'},t('PG_CAPTURED',{date:FD.fmt.date(a.date)}))),a.demo?FD.chip(t('PG_SOURCE_DEMO'),'outline'):null,
-   h('div',{class:'pg-evidence'},['BEFORE','AFTER','CONTEXT'].map(phase=>{const photos=ps.filter(p=>p.phase===phase);return photos.length?h('section',null,h('h4',null,phaseLabel(phase)),h('div',{class:'photo-day'},photos.map(p=>h('figure',null,FD.photoButton({src:p.src,label:phaseLabel(phase)+' · '+(p.fixtureId||t('PG_CONTEXT'))}),h('figcaption',{class:'small muted'},p.fixtureId==='display'?t('PG_DISPLAY'):p.fixtureId||t('PG_CONTEXT'),(p.regions||[]).map(r=>h('span',{style:{display:'block'}},(r.label||r.id)+' ? '+t(r.confirmed?'PG_CONFIRMED':'PG_REVIEW_PENDING')))))))):null;})),
-   cs.incomplete?h('div',{class:'banner info'},t('PG_NEEDS_AFTER')):cs.worked?FD.chip(t('PG_PAIR'),'good'):cs.unchanged?FD.chip(t('PG_NO_CHANGE')):null);
+ // App-bar camera: Before or After from one button; a phase that already has photos shows a tick and stays usable.
+ FD.scCameraButton=({store,visitId})=>{
+  const a=current(store,visitId),has=ph=>!!a&&FD.pgPhotos(st(),a.id).some(p=>p.phase===ph),done=has('BEFORE')||has('AFTER');
+  return h('button',{type:'button',class:'icon-btn sc-camera'+(done?' has':''),'aria-label':t('PG_TAKE_PHOTOS'),title:t('PG_TAKE_PHOTOS'),'aria-haspopup':'menu',
+   on:{click:e=>FD.menu(e.currentTarget,['BEFORE','AFTER'].map(phase=>({icon:has(phase)?'check-circle':'camera',label:t('PG_CAPTURE_'+phase)+(has(phase)?' · '+t('PG_TAKEN'):''),onClick:()=>FD.pgCaptureSheet({store,visitId,phase})})))}},
+   FD.icon('camera'),done?h('span',{class:'sc-camera-tick','aria-hidden':'true'},FD.icon('check','s12')):null);
  };
- FD.pgRequestCard=({store,visitId})=>{
-  const a=current(store,visitId),deferred=st().planogram?.deferred[(visitId||store)+'|'+st().clock.date];
-  if(deferred&&!a)return null;
-  return h('section',{class:'v-card pg-request'},h('div',{class:'row'},FD.icon('camera'),h('b',null,t('PG_TAKE'))),h('p',{class:'small muted'},a?t('PG_PHOTOS_COUNT',{n:FD.fmt.num(a.photoIds.length)}):t('PG_TAKE_SUB')),
-   h('div',{class:'row wrap'},FD.btn(t(a?'PG_ADD':'PG_TAKE_PHOTOS'),()=>FD.pgCaptureSheet({store,visitId,assessmentId:a?.id}),'secondary sm'),!a?FD.btn(t('PG_LATER'),()=>FD.dx('PG_DEFER',{store,visitId}),'ghost sm'):null));
+ // Read-only (or today: editable) view of one check, opened from Offer and Profile.
+ FD.scSheet=id=>{const a=FD.pgAssessment(st(),id);if(!a)return;
+  FD.sheet.open({title:t('SC_TITLE')+' · '+FD.fmt.date(a.date),render:()=>FD.scPanel(id,{role:'VSR',editable:a.date===st().clock.date,redraw:()=>FD.sheet.redraw()}),
+   footer:()=>[FD.btn(t('L_DONE'),()=>{FD.sheet.close();FD.render();},'secondary block')]});};
+ // Offer tab: this visit's check in one line, with the first thing to do.
+ FD.scVisitCard=({store,visitId})=>{
+  const a=current(store,visitId),S=a&&FD.scSummary(st(),a.id);if(!S||!S.analysed||!S.current)return null;
+  const next=S.findings.find(f=>f.status!=='FIXED'&&!f.outcome);
+  return h('button',{type:'button',class:'v-card sc-visit'+(S.urgent?' urgent':''),on:{click:()=>FD.scSheet(a.id)}},
+   h('div',{class:'row between'},h('b',null,t('SC_TITLE')),h('b',{class:'tabular'},FD.scScoreText(S.current))),
+   h('div',{class:'small muted'},S.good?t('SC_GOOD'):t('SC_OPEN')+' · '+FD.fmt.num(S.open)),
+   next?h('div',{class:'small'},t('SC_DO_'+next.check)):null);
  };
- FD.pgSalesmanView=({store,visitId})=>{
-  const assessments=FD.pgAssessments(st(),store),a=current(store,visitId),advice=FD.pgAdvice(st(),store,null,st().clock.date);
-  const legacy=st().photos.filter(p=>p.store===store&&!p.assessmentId);
-  return h('div',{class:'stack s16 pg-view'},FD.pgRequestCard({store,visitId})||FD.btn(t('PG_TAKE_PHOTOS'),()=>FD.pgCaptureSheet({store,visitId}),'secondary'),a?FD.pgEvidence(a.id):null,
-   advice.length?h('section',{class:'v-card'},h('h3',null,t('PG_INSIGHTS')),advice.map(x=>h('p',null,x.value||t(x.textId)))):null,
-   h('section',null,h('h3',null,t('PG_PREVIOUS')),assessments.filter(x=>x.id!==a?.id).map(x=>FD.pgEvidence(x.id)),legacy.length?h('div',{class:'photo-day'},legacy.map(p=>FD.photoButton({src:p.src,label:t('PG_CAPTURED',{date:FD.fmt.date(p.date)})}))):null,!assessments.length&&!legacy.length?h('p',{class:'muted'},t('PG_NONE')):null));
+ FD.scHistory=(store,open=FD.scSheet)=>{
+  const rows=FD.pgAssessments(st(),store).map(a=>({a,s:FD.scSummary(st(),a.id)})).filter(x=>x.s&&x.s.analysed&&x.s.current);
+  if(!rows.length)return h('p',{class:'small muted'},t('SC_NONE'));
+  return h('div',{class:'card'},rows.map(({a,s})=>h('button',{type:'button',class:'list-row click',style:{width:'100%',textAlign:'start'},on:{click:()=>open(a.id)}},
+   h('span',{class:'grow'},FD.fmt.date(a.date)),h('span',{class:'small muted'},t('SC_OPEN')+' · '+FD.fmt.num(s.open)),FD.scChip(s.current))));
  };
  FD.pgOfferAdvice=rec=>{
-  const advice=FD.pgAdvice(st(),rec.store,rec.sku,st().clock.date,rec),candidate=FD.productPrice(rec.sku);
+  const candidate=FD.productPrice(rec.sku);
   const smaller=FD.SKUS.map(k=>FD.productPrice(k.code)).find(p=>FD.packValueComparison(p,candidate));const value=smaller&&FD.packValueComparison(smaller,candidate);
-  return h('div',{class:'pg-offer-advice'},advice.map(a=>h('p',{class:'small'},a.value||t(a.textId))),value?h('details',null,h('summary',null,t('PG_VALUE')),h('p',null,FD.nameOf(FD.sku(smaller.code))+' → '+FD.nameOf(FD.sku(rec.sku))),h('b',null,t('PG_VALUE_CHEAPER',{n:FD.fmt.num(value.savingPct,1)})),h('p',{class:'small muted'},t('PG_PRICE_BASIS'))):null);
+  return value?h('div',{class:'pg-offer-advice'},h('details',null,h('summary',null,t('PG_VALUE')),h('p',null,FD.nameOf(FD.sku(smaller.code))+' → '+FD.nameOf(FD.sku(rec.sku))),h('b',null,t('PG_VALUE_CHEAPER',{n:FD.fmt.num(value.savingPct,1)})),h('p',{class:'small muted'},t('PG_PRICE_BASIS')))):null;
  };
 })();
 
@@ -6257,11 +6505,15 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
 
   // ---------- layout ----------
   const NAV = [['today', 'truck', 'L_NAV_TODAY'], ['team', 'users', 'L_NAV_TEAM'], ['stores', 'store', 'L_NAV_STORES'], ['msgs', 'message', 'L_MESSAGES'], ['weekly', 'chart', 'L_NAV_WEEKLY'], ['skus', 'package', 'L_NAV_SKUS'], ['opps', 'target', 'L_NAV_OPPS'], ['rules', 'sliders', 'L_NAV_RULES']];
+  const FILTERS = { today: ['sup', 'route'], home: ['sup', 'route'], weekly: ['sup', 'route', 'period'], team: ['sup', 'period'], learn: ['route', 'period'], stores: ['sup', 'route'], opps: ['sup', 'route'] };
   const pinned = () => { try { return localStorage.getItem('fd.navPinned') === '1'; } catch (e) { return !!L['nav:pinned']; } };
   const setPinned = v => { L['nav:pinned'] = v; try { localStorage.setItem('fd.navPinned', v ? '1' : '0'); } catch (e) { } FD.render(); };
   S.layout = function (r, viewFn) {
     const s = st();
-    const view = viewFn(r);
+    const uses = r.page === 'stores' && r.id ? [] : FILTERS[r.page] || []; // only the filters a page shows
+    // a filter set on another page must not narrow a page that does not show it
+    const kept = S.f; S.f = Object.assign({}, kept, uses.includes('route') ? null : { route: '' }, uses.includes('sup') ? null : { sup: '' });
+    let view; try { view = viewFn(r); } finally { S.f = kept; }
     const counts=FD.supervisorBadgeCounts(s,S.vans().map(v=>v.id)); const badge=id=>counts[id]||0;
     const nav = NAV.map(([id, icon, label]) => { const n = badge(id); return h('a', { class: 'nav-item' + (r.page === id || (id === 'today' && r.page === 'home') ? ' on' : ''), href: '#/sup/' + id, 'aria-current': r.page === id ? 'page' : null, title: t(label), 'data-tour': id === 'weekly' ? 'sup3' : null },
       I(icon), h('span', null, t(label)), n ? h('span', { class: 'badge' }, FD.fmt.num(n)) : null); });
@@ -6287,7 +6539,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
         h('header', { class: 'topbar' },
           h('div', { class: 'tb-title' }, view.back ? FD.iconBtn('arrow-left', t('L_BACK'), view.back) : null, h('div', null, h('h1', r.page==='stores'?{'aria-live':'polite'}:null, view.title), h('div', { class: 'date' }, FD.fmt.dateLong(today()) + ' · ' + (FD.liveData(s) ? t('L_UPDATED', { time: FD.fmt.time(s.clock.time.slice(0, 3) + '00') }) : tx('L_DATA_UPTO', { date: FD.dataDay(s) }))))),
           h('div', { class: 'spacer' }), S.search(),
-          r.page === 'stores' && r.id ? null : h('div', { class: 'filters', style: { flexBasis: '100%' } }, supSel, routeSel, r.page === 'today' || r.page === 'home' ? null : periodSeg, custom, view.bar ? h('button', { type: 'button', class: 'btn secondary sm filters-btn', on: { click: () => S.filtersSheet(view) } }, I('filter', 's16'), t('L_FILTERS')) : null),
+          !uses.length && !view.bar ? null : h('div', { class: 'filters', style: { flexBasis: '100%' } }, uses.includes('sup') ? supSel : null, uses.includes('route') ? routeSel : null, uses.includes('period') ? periodSeg : null, uses.includes('period') ? custom : null, view.bar ? h('button', { type: 'button', class: 'btn secondary sm filters-btn', on: { click: () => S.filtersSheet(view) } }, I('filter', 's16'), t('L_FILTERS')) : null),
           view.bar ? h('div', { class: 'page-bar' }, view.bar()) : null),
         h('main', { class: 'page' + (view.full ? ' page-full' : ''), id: 'sup-page' }, view.body)),
       h('nav', { class: 'mobile-nav', 'aria-label': 'Main' }, NAV.slice(0, 4).map(([id, icon, label]) => h('a', { href: '#/sup/' + id, class: r.page === id ? 'on' : '', 'aria-current': r.page === id ? 'page' : null }, I(icon), t(label), badge(id) ? h('span', { class: 'mn-dot' }, FD.fmt.num(badge(id))) : null)),
@@ -6302,7 +6554,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   S.moreSheet = function (r) {
     const s = st();
     FD.sheet.open({ title: t('L_MORE'), render: () => h('div', { class: 'stack s16' },
-      h('div', { class: 'stack s8' }, NAV.slice(4).map(([id, icon, label]) => h('a', { class: 'list-row click', href: '#/sup/' + id, style: { border: '1px solid var(--line)', borderRadius: '12px' }, on: { click: () => FD.sheet.close() } }, I(icon), h('span', { class: 'grow' }, t(label)), I('chevron-right', 's16')))),
+      h('div', { class: 'stack s8' }, NAV.slice(4).map(([id, icon, label]) => h('a', { class: 'list-row click', href: '#/sup/' + id, style: { border: '1px solid var(--line)', borderRadius: '12px' }, on: { click: e => { e.preventDefault(); FD.sheet.close(); FD.go('#/sup/' + id); } } }, I(icon), h('span', { class: 'grow' }, t(label)), I('chevron-right', 's16')))),
       h('div', { class: 'field' }, h('label', null, t('L_ROUTE')), FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.route, v => { S.f.route = v; FD.render(); })),
       h('div', { class: 'field' }, h('label', null, t('L_THEME')), FD.seg([{ id: 'auto', label: t('L_AUTO') }, { id: 'light', label: t('L_LIGHT') }, { id: 'dark', label: t('L_DARK') }], s.theme, v => { FD.dx('SET_THEME', { theme: v }); FD.sheet.redraw(); })),
       FD.btn(t('L_REPLAY_TOUR'), () => { FD.sheet.close(); FD.dx('TOUR_RESET'); FD.go('#/sup/today'); setTimeout(() => FD.tour('sup'), 300); }, 'secondary block', 'play'),
@@ -6413,10 +6665,10 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const step=Math.max(1,Math.ceil((FD.daysBetween(from,to)+1)/28)),labels=[],values=[];
     for(let date=from;date<=to;date=FD.addDays(date,step)){
       const end=FD.addDays(date,step-1),last=end<to?end:to;
-      labels.push(FD.fmt.date(date));values.push(FD.teamLevers(st(),ids,date,last).net);
+      labels.push(FD.fmt.date(date));values.push(FD.teamLevers(st(),ids,date,last).primary);
     }
     return card(t('L_ANALYTICS_TREND'),FD.fmt.date(from)+' - '+FD.fmt.date(to),
-      FD.line([{name:t('L_NET_RESULT'),values}],labels,{h:190,fmt:FD.fmt.money0,label:t('L_ANALYTICS_TREND')}));
+      FD.line([{name:t('M_PRIMARY'),values}],labels,{h:190,fmt:FD.fmt.money0,label:t('M_PRIMARY')}));
   };
 
   // ================= HOME =================
@@ -6460,8 +6712,8 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
         h('span', { class: 'grow' }, h('span', { class: 'b' + (j ? ' o' : ''), style: { display: 'block', width: (100 * v / Math.max(...i.chart.values)) + '%' } })), h('span', { class: 'small tabular' }, FD.fmt.num(v, 1)))))))), { icon: 'bulb', info: t('I_INSIGHTS') });
     // read top-down the way a supervisor asks: how are we doing, what needs me, how is the team, where to act, what sells
     const sec = id => h('h3', { class: 'sec-h rules-sec' }, t(id));
-    return { title: t('L_NAV_WEEKLY'), body: [kpis, S.analyticsTrend({ids:S.vsrs().map(v=>v.id),from,to}),
-      sec('L_SEC_TEAM'), h('div', { class: 'grid-eq wide-first' }, team, why),
+    return { title: t('L_NAV_WEEKLY'), body: [h('h2', { class: 'sec-h' }, t('L_PILOT_KPIS')), kpis, S.analyticsTrend({ids:S.vsrs().map(v=>v.id),from,to}),
+      sec('L_SEC_TEAM'), h('div', { class: 'grid-eq wide-first' }, team, h('div', { class: 'stack s16' }, why, S.scTeamCard(S.vsrs().map(v => v.id), from, to, true))),
       sec('L_SEC_ACT'), h('div', { class: 'grid-eq wide-first' }, oppCard, storeCard),
       sec('L_SEC_SELLS'), h('div', { class: 'grid-eq' }, skuCard, insCard), sec('L_JOURNEY_REVIEW'), S.journeyReview()] };
   });
@@ -6712,11 +6964,10 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       const respRows = s.world.stores.filter(x => x.vsr === vsrId).map(x => Object.assign({ s: x }, FD.storeResponse(s, x.id, vsrId))); const quiet = respRows.filter(x => !x.offered).length;
       body = h('div', { class: 'stack s16' },
         h('div', { class: 'grid-3 metric-grid' },
-          // the five sales metrics against this salesman's own level before recommendations; each opens its panel
-          FD.METRICS.map(mt => h('button', { type: 'button', class: 'card lever-card', title: t(mt.info), on: { click: () => S.metricDrawer(mt.k, { ids: [vsrId], from, to, prev: { from: FD.BASE_START, to: FD.addDays(FD.PILOT_START, -1) } }) } },
+          // Primary pilot KPI and four supporting KPIs, matching the approved deck.
+          FD.PILOT_METRICS.map(mt => h('button', { type: 'button', class: 'card lever-card', title: t(mt.info), on: { click: () => S.metricDrawer(mt.k, { ids: [vsrId], from, to, prev: { from: FD.BASE_START, to: FD.addDays(FD.PILOT_START, -1) } }) } },
             h('div', { class: 'metric-label small muted' }, t(mt.label)), h('b', {class:'metric-value'}, FD.metricText(mt.k, m.lev[mt.k])),
-              mt.k === 'upsell' ? h('div', { class: 'metric-reference small muted' }, t('L_TARGET_V', { money: FD.fmt.money0(m.target.upsell) })) : h('div', { class: 'metric-reference small muted' }, S.leverDelta(mt.k, m.lev[mt.k], m.base[mt.k]), h('span', null, t('L_KPI_VS_BASE'))))),
-          metric(t('L_NET_RESULT'), FD.fmt.money0(m.net), null, m.vsBaseline)),
+              mt.k === 'upsell' ? h('div', { class: 'metric-reference small muted' }, t('L_TARGET_V', { money: FD.fmt.money0(m.target.upsell) })) : h('div', { class: 'metric-reference small muted' }, S.leverDelta(mt.k, m.lev[mt.k], m.base[mt.k]), h('span', null, t('L_KPI_VS_BASE')))))),
         h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, t('L_REC_RESPONSE_STORES'))), FD.table({ id: 'vsrResp' + (full ? 'P' : 'D'), rows: respRows.filter(x => x.offered || L['vsrResp:all']), onRow: x => S.storeDrawer(x.s.id), defaultSort: ['conv', 'desc'], columns: [
           { key: 'st', label: t('L_COL_STORE'), render: x => h('span', { class: 'ellipsis', style: { display: 'block', maxWidth: '190px' } }, FD.nameOf(x.s)) },
           { key: 'off', label: t('L_COL_ATTEMPTS'), num: true, sort: (a, c) => a.offered - c.offered, render: x => FD.fmt.num(x.offered) },
@@ -6832,7 +7083,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   // Store drawer / page content
   S.storeContent = function (storeId, focusSku, full) {
     const s = st(); const store = storeOf(storeId); const shelf = FD.shelf(s, storeId, today());
-    const tab = L['store:tab'] || 'overview';
+    const tab = ['overview', 'products', 'timeline', 'whatsapp'].includes(L['store:tab']) ? L['store:tab'] : 'overview';
     const ba = FD.blocksAt(s, storeId); const blocked = ba.store;
     const refresh = () => full ? FD.render() : FD.drawer.refresh();
     const blockedCard = () => { const skuBs = Object.entries(ba.skus); if (!skuBs.length) return null;
@@ -6845,19 +7096,18 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       { icon: 'ban', label: t('L_BLOCK_SKU_HERE'), onClick: () => { const n0 = st().blocks.length; FD.dx('BLOCK_ADD', { store: storeId, sku: code }); FD.toast('S_BLOCKED', { vsrId: store.vsr }, { undo: () => { const b = st().blocks[n0]; if (b) FD.dx('BLOCK_REMOVE', { blockId: b.id }); } }); } },
       state === 'DECLINED' ? { icon: 'refresh', label: t('L_OVERRIDE_CD'), onClick: () => { FD.dx('COOLDOWN_OVERRIDE', { store: storeId, sku: code }); FD.toast('S_SAVED'); } } : null,
       { icon: 'package', label: t('L_OPEN') + ' · ' + FD.nameOf(FD.sku(code)), onClick: () => S.skuDrawer(code, !full) }].filter(Boolean));
-    const recs = s.recs.filter(r => r.store === storeId && r.outcome && r.date <= today()).sort((a, b) => b.date.localeCompare(a.date));
-    const photos = recs.filter(r => r.photo);
     const storeMsgs = s.threads.flatMap(x => x.messages.filter(m => m.store === storeId).map(m => ({ m, th: x })));
-    const tabs = h('div', { class: 'tabs store-sections', style: { padding: 0 } }, [['overview', 'L_OVERVIEW'], ['planogram', 'PG_TAB'], ['recs', 'L_RECS'], ['products', 'L_NAV_SKUS'], ['timeline', 'L_TIMELINE'], ['whatsapp', 'L_WHATSAPP']].map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['store:tab'] = id; refresh(); } } }, t(lb))));
+    const tabs = h('div', { class: 'tabs store-sections', style: { padding: 0 } }, [['overview', 'L_OVERVIEW'], ['products', 'L_NAV_SKUS'], ['timeline', 'L_TIMELINE'], ['whatsapp', 'L_WHATSAPP']].map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['store:tab'] = id; L['store:sc:' + storeId] = null; refresh(); } } }, t(lb))));
     let body;
-    if (tab === 'overview') {
+    if (tab === 'overview' && L['store:sc:' + storeId]) {
+      body = S.scFull(storeId);
+    } else if (tab === 'overview') {
       const pending = s.corrections.filter(c => c.store === storeId && c.status === 'PENDING');
       body = h('div', { class: 'stack s16' },
         pending.map(c => h('div', { class: 'banner info' }, I('edit'), h('span', { class: 'grow' }, tx('F_CORRECTION', { vsrId: c.vsr, storeId }) + ' · ' + t(c.kind)), FD.btn(t('ACT_DECIDE'), () => S.correctionSheet(c.id), 'secondary sm'))),
         blocked ? h('div', { class: 'banner bad' }, I('ban'), h('span', { class: 'grow' }, t('L_BLOCKED_STORE')), FD.btn(t('L_UNBLOCK'), () => FD.dx('BLOCK_REMOVE', { blockId: blocked.id }), 'secondary sm')) : null,
         S.glance(storeId),
-        S.pgSummary(storeId),
-        S.latestPhotos(storeId, () => { L['store:tab'] = 'planogram'; refresh(); }),
+        S.scCard(storeId) || S.latestPhotos(storeId, () => { L['store:tab'] = 'timeline'; refresh(); }),
         blockedCard(),
         S.responseCard(storeId),
         h('div', null, h('h3', { style: { fontSize: '14px', margin: '0 0 8px' } }, t('L_SHELF')), FD.shelfView(shelf, { onTile, blocked: ba.skus, filterKey: 'sup:' + storeId })));
@@ -6880,12 +7130,6 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
         return h('div', { class: 'list-row', style: { alignItems: 'flex-start' } }, h('div', { style: { width: '90px', flex: 'none' } }, h('b', null, FD.fmt.date(v.date)), h('div', { class: 'small muted' }, FD.fmt.money0(sum(lines, l => l.value)))),
           h('div', { class: 'row wrap grow', style: { gap: '4px' } }, lines.map(l => FD.chip([FD.skuIcon(l.sku, 16), FD.nameOf(FD.sku(l.sku)) + ' ×' + FD.fmt.num(l.units)], l.edited ? 'warn' : ''))));
       }));
-    } else if (tab === 'recs') {
-      body = h('div', { class: 'card' }, FD.table({ id: 'storeRecs' + (full ? 'P' : 'D'), rows: recs, onRow: r => S.recDrawer(r.id, !full), limit: 80, columns: [
-        { key: 'd', label: t('L_COL_DATE'), render: r => FD.fmt.date(r.date) }, { key: 'p', label: t('L_COL_PRODUCT'), render: r => FD.skuLabel(r.sku) },
-        { key: 'o', label: t('L_COL_OUTCOME'), render: outcomeChip }, { key: 'r', label: t('L_COL_REASON'), render: reasonCell }, { key: 'm', label: t('L_COL_CHECK2'), render: matChip }] }));
-    } else if (tab === 'photos' || tab==='planogram') {
-      body = S.pgContent(storeId);
     } else {
       body = h('div', { class: 'stack s8' }, FD.btn(tx('L_MSG_VSR', { vsrId: store.vsr }), () => FD.threadSheet({ type: 'store', id: storeId }, 'SUP'), 'primary', 'message'),
         storeMsgs.length ? h('div', { class: 'card' }, storeMsgs.slice(-6).reverse().map(({ m, th }) => h('button', { type: 'button', class: 'list-row click', style: { width: '100%', textAlign: 'start' }, on: { click: () => FD.chatOpen(th.anchor, 'SUP', { store: storeId }) } },
@@ -7032,7 +7276,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const s = st(); const F = L['msgs:f'] = L['msgs:f'] || { kind: 'ALL', q: '' };
     const anchor = r.id && FD.chatAnchor(r.id);
     const q = (F.q || '').trim().toLowerCase();
-    const rows = [{ type: 'team', id: 'ALL' }].concat(s.world.vsrs.filter(v => !S.f.route || v.route === S.f.route).map(v => ({ type: 'vsr', id: v.id })))
+    const rows = [{ type: 'team', id: 'ALL' }].concat(s.world.vsrs.map(v => ({ type: 'vsr', id: v.id })))
       .map(a => ({ a, th: FD.chatFind(a) }))
       .filter(x => F.kind === 'ALL' || (x.th && x.th.unreadSup))
       .filter(x => !q || (FD.chatTitle(x.a, 'SUP') + ' ' + (x.th ? x.th.messages.map(m => (m.text || '') + ' ' + (m.store ? FD.nameOf(storeOf(m.store)) : '')).join(' ') : '')).toLowerCase().includes(q));
@@ -7061,29 +7305,29 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       { key: 'vsr', label: t('L_COL_VSR'), sort: (a, b) => FD.nameOf(vsrOf(a.vsr)).localeCompare(FD.nameOf(vsrOf(b.vsr))), render: x => h('div', null, who(vsrOf(x.vsr)), full && x.context.length ? h('div', { class: 'row wrap', style: { marginTop: '4px', gap: '4px' } }, x.context.slice(0, 2).map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null) },
       full ? num('score', t('L_COL_SCORE'), x => x.composite, x => cmp(h('b', null, FD.fmt.num(Math.round(x.composite))), S.comparisonDelta(x.composite, up(x) ? x.prev.composite : null, v => FD.fmt.num(Math.round(v))))) : null,
       // the five sales metrics, each with its change against the comparison period
-      ...FD.METRICS.map(mt => Object.assign(num(mt.k, t(mt.label), x => x.m.lev[mt.k], x => cmp(h('b', null, FD.metricText(mt.k, x.m.lev[mt.k])), up(x) || mt.k !== 'upsell' ? S.leverDelta(mt.k, x.m.lev[mt.k], x.prev.lev[mt.k]) : null)), { hint: mt.k === 'upsell' && prePilot ? t('L_NO_PRIOR_UPSELL') : null })),
+      ...FD.PILOT_METRICS.map(mt => Object.assign(num(mt.k, t(mt.label), x => x.m.lev[mt.k], x => cmp(h('b', null, FD.metricText(mt.k, x.m.lev[mt.k])), up(x) || mt.k !== 'upsell' ? S.leverDelta(mt.k, x.m.lev[mt.k], x.prev.lev[mt.k]) : null)), { hint: mt.k === 'upsell' && prePilot ? t('L_NO_PRIOR_UPSELL') : null })),
       { key: 'trend', label: t('L_COL_TREND'), render: x => h('span', { title: t(x.trendStep === 1 ? 'L_TREND_DAYS' : 'L_TREND_WEEKS') }, FD.spark(x.spark)) }].filter(Boolean)
       // nothing synced from SalesBuzz yet today for this salesman: show a dash, not a fake drop
       .map(c => ['rank', 'vsr', 'trend'].includes(c.key) ? c : Object.assign({}, c, { render: x => x.partial && !x.m.genuine ? h('span', { class: 'small muted', title: t('L_NO_VISITS_YET') }, '—') : c.render(x) })); };
 
   S.teamTable = (id, rows, full) => {
-    const metric = FD.METRIC_KEYS.includes(L['team:metric']) ? L['team:metric'] : 'upsell';
-    const labels = { visits: 'MT_VISITS', withSale: 'MT_WITHSALE', avgSale: 'MT_AVGSALE', upsell: 'MT_UPSELL', returns: 'MT_RETURNS' };
+    const metric = FD.PILOT_METRICS.some(m => m.k === L['team:metric']) ? L['team:metric'] : 'primary';
+    const labels = Object.fromEntries(FD.PILOT_METRICS.map(m => [m.k, m.label]));
     const columns = S.teamColumns(full, rows[0]?.partial, rows[0]?.prePilot);
     const metricColumn = S.teamColumns(true, rows[0]?.partial, rows[0]?.prePilot).find(c => c.key === metric);
     const compact = [
       { key: 'rank', label: t('L_COL_RANK'), width: '34px', nosort: true, render: x => h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)) },
       { key: 'vsr', label: t('L_COL_VSR'), nosort: true, render: x => h('div', { class: 'team-person' }, h('b', null, FD.nameOf(vsrOf(x.vsr))), h('span', { class: 'small muted' }, vsrOf(x.vsr).route)) },
       { key: 'score', label: t('L_COL_SCORE'), width: '44px', num: true, nosort: true, render: x => x.partial && !x.m.genuine ? '—' : h('b', null, FD.fmt.num(Math.round(x.composite))) },
-      Object.assign({}, metricColumn, { label: t(labels[metric]), hint: null, width: '96px' })
+      Object.assign({}, metricColumn, { label: t('L_PILOT_VALUE'), hint: null, width: '96px' })
     ];
     const onRow = x => S.vsrDrawer(x.vsr);
     return h('div', { class: 'team-comparison' },
       h('div', { class: 'team-wide' }, FD.table({ id, rows, onRow, defaultSort: null, columns })),
       h('div', { class: 'team-compact' },
         h('label', { class: 'team-metric-control' }, h('span', { class: 'small muted' }, t('L_COMPARE_METRIC')),
-          FD.select(FD.METRICS.map(m => ({ id: m.k, label: t(labels[m.k]) })), metric, value => { L['team:metric'] = value; FD.render(); }, { 'aria-label': t('L_CHOOSE_METRIC'), 'data-focus': 'team-metric:' + id })),
-        FD.table({ id: id + 'Compact', rows, onRow, defaultSort: null, columns: compact })));
+          FD.select(FD.PILOT_METRICS.map(m => ({ id: m.k, label: t(labels[m.k]) })), metric, value => { L['team:metric'] = value; FD.render(); }, { 'aria-label': t('L_CHOOSE_METRIC'), 'data-focus': 'team-metric:' + id })),
+        h('div', { class: 'small muted team-selected-metric' }, t(labels[metric])), FD.table({ id: id + 'Compact', rows, onRow, defaultSort: null, columns: compact })));
   };
 
   // ================= TEAM =================
@@ -7141,7 +7385,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
         { key: 'v', label: t('L_COL_VSR'), render: o => FD.nameOf(vsrOf(storeOf(o.store).vsr)) },
         { key: 'p', label: t('L_COL_PRODUCT'), sort: (a, b) => FD.nameOf(FD.sku(a.sku)).localeCompare(FD.nameOf(FD.sku(b.sku))), render: o => FD.skuLabel(o.sku) },
         { key: 't', label: t('L_COL_TYPE'), sort: (a, b) => a.type.localeCompare(b.type), render: o => FD.chip(t('TYPE_' + o.type), o.type === 'PROMO' ? 'warn' : 'info') },
-        { key: 'why', label: t('L_WHY'), render: o => h('span', { class: 'small muted', style: { display: 'block', maxWidth: '320px' } }, tx(o.reasonId, Object.assign({ skuCode: o.sku }, o.slots, { unitOf: o.sku }))) },
+        { key: 'why', label: t('L_WHY'), render: o => h('span', { class: 'small muted', style: { display: 'block', minWidth: '200px', maxWidth: '320px' } }, tx(o.reasonId, Object.assign({ skuCode: o.sku }, o.slots, { unitOf: o.sku }))) },
         { key: 'q', label: t('L_COL_QTY'), num: true, sort: (a, b) => a.qty - b.qty, render: o => FD.fmt.num(o.qty) },
         { key: 'ev', label: t('L_EST_MARGIN'), num: true, sort: (a, b) => a.ev - b.ev, render: o => h('b', null, FD.fmt.money0(o.ev)) }] }))] };
     }
@@ -7242,7 +7486,9 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
             return h('div', { class: 'list-row click', on: { click: e => { if (!e.target.closest('button')) S.skuDrawer(c); } } }, h('div', { class: 'grow', style: { minWidth: 0 } }, FD.skuLabel(c, t('L_COL_SINCE') + ' ' + FD.fmt.date(w.since) + ' · ' + FD.fmt.pct(w.before) + ' → ' + (w.after == null ? '—' : FD.fmt.pct(w.after)))), S.watchChip(w), FD.btn(t('L_REMOVE'), () => FD.dx('WATCH_REMOVE', { sku: c }), 'ghost sm')); })) : FD.empty('L_NONE_YET', null, 'alert'),
           { flush: true, icon: 'alert', right: FD.btn(t('L_ADD'), addWatch, 'secondary sm', 'plus') })),
       h('div', { class: 'grid-eq' },
-        card(t('L_SCORECARD_SETUP'), t('L_W_NOTE'), (() => { const w = FD.weights(s); const off = R.metricsOff || {}; const sees = R.vsrSees || {};
+        (() => { const shelf = L['rules:score'] === 'shelf'; // one card: the scorecard by default, Shelf Score weights on the switch
+          const sw = FD.seg([{ id: 'card', label: t('L_SCORECARD_SETUP') }, { id: 'shelf', label: t('SC_SCORE') }], shelf ? 'shelf' : 'card', v => { L['rules:score'] = v; FD.render(); });
+          return card(t(shelf ? 'SC_SETTINGS' : 'L_SCORECARD_SETUP'), t(shelf ? 'SC_SETTINGS_D' : 'L_W_NOTE'), shelf ? S.scWeightsBody() : (() => { const w = FD.weights(s); const off = R.metricsOff || {}; const sees = R.vsrSees || {};
             const total = FD.METRIC_KEYS.reduce((a, k) => a + (off[k] ? 0 : w[k]), 0);
             const setW = (k, v) => FD.dx('WEIGHTS_SET', { weights: Object.assign({}, w, { [k]: Math.max(0, Math.min(100, v)) }), off });
             const setOff = (k, isOff) => FD.dx('WEIGHTS_SET', { weights: w, off: Object.assign({}, off, { [k]: isOff }) });
@@ -7257,7 +7503,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
             return h('div', null, h('div', { class: 'table-wrap' }, h('table', { class: 't' }, h('thead', null, h('tr', null, h('th', null, t('L_COL_IN_SCORE')), h('th', { class: 'n' }, t('L_COL_WEIGHT')), h('th', { class: 'n' }, t('L_COL_SEES')))), h('tbody', null, rows, extra))),
               h('div', { class: 'row between', style: { marginTop: '10px' } }, FD.chip(t('L_W_TOTAL', { pct: FD.fmt.num(total) }), total === 100 ? 'good' : 'warn'),
                 FD.btn(t('L_RESET'), () => FD.dx('WEIGHTS_SET', { weights: Object.assign({}, FD.DEFAULT_WEIGHTS), off: {} }), 'ghost sm', 'undo')));
-          })(), { icon: 'chart' }),
+          })(), { icon: shelf ? 'camera' : 'chart', right: sw, flush: shelf }); })(),
         card(t('L_R_CODES'), t('L_REASONS_NOTE'), S.reasonCodes(), { flush: true, icon: 'message' })),
       card(t('L_AREA_ASSORT'), t('L_AREA_ASSORT_D'), h('div', { class: 'stack s16' }, h('div', { class: 'row wrap' }, h('select', { class: 'select', style: { maxWidth: '280px' }, 'aria-label': t('L_R_MUST'), on: { change: e => { L['rules:mgroup'] = e.target.value; FD.render(); } } },
           h('optgroup', { label: t('L_STORE_TYPE') }, FD.LABELS.map(l => h('option', { value: l, selected: l === mgroup }, t('LBL_' + l)))),
@@ -7671,7 +7917,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   if (typeof document === 'undefined') return;
   const h = FD.h, I = FD.icon, t = (...a) => FD.t(...a), tx = FD.tx; const S = FD.sup; const L = FD.ui.local;
   const st = () => FD.state; const vsrOf = id => st().world.vsrs.find(v => v.id === id);
-  const meta = k => FD.METRICS.find(m => m.k === k);
+  const meta = k => FD.PILOT_METRICS.find(m => m.k === k) || FD.METRICS.find(m => m.k === k);
   // change against an earlier value; green means better (for returns, lower is better)
   S.comparisonDelta = (now, before, format, lowerBetter = false) => {
     const d = FD.relativeChange(now, before);
@@ -7693,15 +7939,14 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   }, meta(k).lowerBetter);
   S.leverChip = k => k ? h('span', { class: 'chip lever lv-' + k, title: t(meta(k).info) }, I(meta(k).icon, 's14'), t(meta(k).label)) : null;
 
-  // one row of tiles: net sales (the result) and the five metrics, each opening its panel
+  // The same primary KPI and four supporting KPIs as the approved deck.
   S.leverStrip = ({ ids, from, to, prev, onOpen }) => {
     const s = st(); const now = FD.teamLevers(s, ids, from, to); const was = prev ? FD.teamLevers(s, ids, prev.from, prev.to) : null;
     const open = k => onOpen ? onOpen(k) : S.metricDrawer(k, { ids, from, to, prev });
     const tile = (k, label, val, foot, cls, info) => h('button', { type: 'button', class: 'card kpi ' + (cls || ''), title: info, 'aria-label': label, on: { click: () => open(k) } },
       h('span', { class: 'lbl' }, k === 'net' ? I('chart', 's16') : I(meta(k).icon, 's16'), label), h('span', { class: 'val' }, val), h('span', { class: 'foot' }, foot));
-    return h('div', { class: 'kpis levers' },
-      tile('net', t('L_NET_RESULT'), FD.fmt.money0(now.net), was && was.days ? [S.leverDelta('avgSale', now.net / (now.days || 1), was.net / was.days), ' ', t('L_COL_CHANGE')] : t('L_NET_RESULT_D'), 'hero', t('L_NET_RESULT_D')),
-      FD.METRICS.map(m => tile(m.k, t(m.label), FD.metricText(m.k, now[m.k]), was ? [S.leverDelta(m.k, now[m.k], was[m.k]), ' ', t('L_COL_CHANGE')] : (m.lowerBetter ? t('L_LOWER_BETTER') : ''), '', t(m.info))));
+    return h('div', { class: 'kpis levers pilot-kpis' },
+      FD.PILOT_METRICS.map(m => tile(m.k, t(m.label), FD.metricText(m.k, now[m.k]), was && was.days ? [S.leverDelta(m.k, now[m.k], was[m.k]), ' ', t('L_COL_CHANGE')] : (m.lowerBetter ? t('L_LOWER_BETTER') : ''), m.k === 'primary' ? 'hero' : '', t(m.info))));
   };
 
   // open items that move one metric: today's alerts and checks, and follow-ups
@@ -7721,7 +7966,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   };
 
   S.metricDrawer = (k, ctx) => FD.drawer.open({ title: t(k === 'net' ? 'L_NET_RESULT' : meta(k).label), render: () => {
-    const s = st(); const ids = ctx.ids; const lk = k === 'net' ? null : k;
+    const s = st(); const ids = ctx.ids; const lk = k === 'net' || k === 'primary' ? null : k;
     const now = FD.teamLevers(s, ids, ctx.from, ctx.to); const was = ctx.prev ? FD.teamLevers(s, ids, ctx.prev.from, ctx.prev.to) : null;
     const fmt = v => k === 'net' ? FD.fmt.money0(v) : FD.metricText(k, v);
     const days = []; for (let d = FD.addDays(ctx.to, -20); d <= ctx.to; d = FD.addDays(d, 1)) if (FD.isSellingDay(d) && d >= FD.BASE_START) days.push(d);
@@ -7732,7 +7977,8 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       h('div', { class: 'card', style: { padding: '14px' } },
         h('div', { class: 'row between wrap' }, h('div', null, h('div', { class: 'kpi-big' }, fmt(now[k])), was ? h('div', { class: 'small muted row', style: { gap: '6px' } }, S.leverDelta(lk || 'avgSale', now[k], was[k]), t('PG_PREVIOUS_PERIOD'), ': ', fmt(was[k])) : null),
           lk && meta(lk).lowerBetter ? FD.chip(t('L_LOWER_BETTER'), 'outline') : null),
-        h('p', { class: 'small muted', style: { margin: '8px 0 0' } }, t(k === 'net' ? 'L_NET_RESULT_D' : meta(k).info))),
+        h('p', { class: 'small muted', style: { margin: '8px 0 0' } }, t(k === 'net' ? 'L_NET_RESULT_D' : meta(k).info)),
+        k !== 'net' && meta(k).formula ? h('p', { class: 'small', style: { margin: '8px 0 0' } }, t(meta(k).formula)) : null),
       h('div', { class: 'card', style: { padding: '14px' } }, FD.line([{ name: t(k === 'net' ? 'L_NET_RESULT' : meta(k).label), values: series }], days.map(d => FD.fmt.date(d)), { h: 170, fmt, label: t(k === 'net' ? 'L_NET_RESULT' : meta(k).label) })),
       lk ? h('section', null, h('h3', { class: 'sec-h' }, t('L_METRIC_MOVES')),
         acts.rows.length || acts.fus.length ? h('div', { class: 'card', style: { padding: 0 } },
@@ -7741,52 +7987,75 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       h('section', null, h('h3', { class: 'sec-h' }, t('L_BY_VSR')),
         FD.bars(rows.sort((a, b) => meta(lk || 'avgSale').lowerBetter ? a.v - b.v : b.v - a.v).map(r => ({ label: FD.nameOf(vsrOf(r.id)), value: r.v, display: fmt(r.v) + (r.base != null && r.base ? ' · ' + t('L_BEFORE_V', { money: fmt(r.base) }) : ''), onClick: () => S.vsrDrawer(r.id, true) })))));
   } });
+
 })();
 
 ;
 (function(){
  const FD=globalThis.FD;if(typeof document==='undefined')return;
  const S=FD.sup,h=FD.h,t=(...a)=>FD.t(...a),st=()=>FD.state,L=FD.ui.local;
- const dims=['availability','assortment','placement','visibility','price','condition'];
+ const analysed=store=>FD.pgAssessments(st(),store).filter(a=>{const s=FD.scSummary(st(),a.id);return s&&s.photos.length;});
+ // Coaching tip from the fixed "what to do" lines of the open issues; the supervisor edits it before sending.
  S.pgCoach=(store,request=false,assessmentId)=>{
-  const so=st().world.stores.find(s=>s.id===store),a=FD.pgAssessments(st(),store).find(x=>x.id===(assessmentId||L['pg:assessment:'+store]))||FD.pgAssessments(st(),store)[0],os=(st().planogram?.observations||[]).filter(o=>o.assessmentId===a?.id&&o.review!=='DISMISSED');
-  const tip=os.map(o=>o.value||t(FD.pgKindText(o.kind))).join(' '),text=request?t('PG_NEXT_CHECK',{store:FD.nameOf(so),tip:tip||t('PG_GROUP_FAMILY')}):tip||t('PG_GROUP_FAMILY');
-  S.tipComposer(FD.routeOwner(st(),so.route,st().clock.date)||so.vsr,'K_CUSTOM',{storeId:store},null,null,{title:t('PG_TAB')+' · '+FD.nameOf(so),text});
+  const so=st().world.stores.find(s=>s.id===store),a=FD.pgAssessment(st(),assessmentId||L['pg:assessment:'+store])||analysed(store)[0],sum=a&&FD.scSummary(st(),a.id);
+  const tip=sum&&sum.analysed?sum.findings.concat(sum.fresh).filter(f=>f.status!=='FIXED').map(f=>t('SC_DO_'+f.check)).join(' '):'';
+  const text=request?t('PG_NEXT_CHECK',{store:FD.nameOf(so),tip:tip||t('SC_TAKE_AFTER')}):tip||t('SC_GOOD');
+  S.tipComposer(FD.routeOwner(st(),so.route,st().clock.date)||so.vsr,'K_CUSTOM',{storeId:store},null,null,{title:t('SC_TITLE')+' · '+FD.nameOf(so),text});
  };
- S.pgMatch=(assessmentId,photo)=>{
-  let region=photo.regions[0]?.id||'whole',fixture=photo.regions[0]?.fixtureId||photo.fixtureId||'display',label=photo.regions[0]?.label||'';
-  FD.sheet.open({center:true,title:t('PG_MATCH'),render:()=>h('div',{class:'stack s16'},FD.photoButton({src:photo.src,label:t('PG_PHOTO_LABEL')}),h('p',{class:'small muted'},t('PG_MATCH_HINT')),
-   photo.regions.length?FD.select(photo.regions.map(r=>({id:r.id,label:r.label||r.id})),region,v=>{region=v;const r=photo.regions.find(r=>r.id===v);fixture=r.fixtureId||'';label=r.label||'';FD.sheet.redraw();}):null,
-   h('label',{class:'field'},t('PG_REGION'),h('input',{class:'input',value:region,on:{input:e=>{region=e.target.value;}}})),
-   h('label',{class:'field'},t('PG_DISPLAY_LABEL'),h('input',{class:'input',value:fixture,on:{input:e=>{fixture=e.target.value;}}})),
-   h('label',{class:'field'},t('PG_REVIEW_NOTE'),h('input',{class:'input',value:label,on:{input:e=>{label=e.target.value;}}}))),footer:()=>[FD.btn(t('PG_CONFIRM'),()=>{if(!region.trim()||!fixture.trim())return;FD.dx('PG_REGION_REVIEW',{id:assessmentId,photoId:photo.id,regionId:region.trim(),fixtureId:fixture.trim(),label});FD.sheet.close();FD.drawer.refresh(false);},'primary block')]});
+ // Shelf Check lives in the store Overview: a short card there, the full check in place of the Overview until Back.
+ S.pgOpen=(store,id)=>{L['store:tab']='overview';L['store:sc:'+store]=id||'latest';S.storeDrawer(store);};
+ const refresh=()=>{FD.drawer.refresh(false);FD.render();};
+ S.scCard=store=>{const a=analysed(store)[0],s=a&&FD.scSummary(st(),a.id);if(!s||!s.analysed||!s.current)return null;
+  const open=()=>{L['store:sc:'+store]=a.id;refresh();},issues=s.findings.concat(s.fresh).filter(f=>f.status!=='FIXED').slice(0,3);
+  return h('section',{class:'card sc-card'},
+   h('div',{class:'row between wrap'},h('div',null,h('h3',null,t('SC_TITLE')),h('div',{class:'small muted'},FD.fmt.date(a.date)+' · '+FD.nameOf(st().world.vsrs.find(v=>v.id===a.vsr)))),
+    h('div',{class:'row'},s.before&&s.after?[FD.scChip(s.before),FD.icon('arrow-right','s14'),FD.scChip(s.after)]:FD.scChip(s.current))),
+   s.urgent?FD.chip(t('SC_URGENT'),'bad'):null,
+   issues.length?h('ul',{class:'sc-lines'},issues.map(f=>h('li',null,h('span',null,t('SC_CHK_'+f.check)),FD.chip(t('SC_ST_'+(f.status==='OPEN'&&f.outcome==='DONE'?'WAIT':f.status)))))):s.good?h('p',{class:'small'},t('SC_GOOD')):null,
+   h('div',{class:'row between wrap'},h('div',{class:'sc-thumbs'},s.photos.slice(0,4).map(x=>h('img',{src:x.p.src,alt:'',loading:'lazy'}))),FD.btn(t('ACT_PLANOGRAM'),open,'secondary sm')));};
+ S.scFull=store=>{
+  const all=analysed(store),want=L['store:sc:'+store],a=all.find(x=>x.id===want)||all[0];
+  const back=FD.btn(t('L_OVERVIEW'),()=>{L['store:sc:'+store]=null;refresh();},'ghost sm','arrow-left');
+  if(!a)return h('div',{class:'stack s12'},back,h('p',{class:'muted'},t('SC_NONE')));
+  const label=x=>FD.fmt.date(x.date)+' · '+FD.nameOf(st().world.vsrs.find(v=>v.id===x.vsr));
+  return h('div',{class:'stack s16 pg-view'},h('div',{class:'row between wrap'},back,all.length>1?FD.select(all.map(x=>({id:x.id,label:label(x)})),a.id,v=>{L['store:sc:'+store]=v;refresh();}):h('span',{class:'small muted'},label(a))),
+   FD.scPanel(a.id,{role:'SUP',redraw:refresh}),
+   h('div',{class:'row wrap'},FD.btn(t('PG_COACH'),()=>S.pgCoach(store,false,a.id),'secondary','message'),FD.btn(t('PG_REQUEST'),()=>S.pgCoach(store,true,a.id),'secondary','camera')));
  };
- S.pgOpen=(store,id)=>{L['store:tab']='planogram';L['pg:assessment:'+store]=id;S.storeDrawer(store);};
- S.pgSummary=store=>{const a=FD.pgAssessments(st(),store)[0];return a?h('section',{class:'pg-summary'},h('div',{class:'row between wrap'},h('h3',null,t('PG_TAB')),FD.btn(t('PG_VIEW'),()=>S.pgOpen(store,a.id),'secondary sm')),h('p',{class:'small muted'},t('PG_CAPTURED',{date:FD.fmt.date(a.date)})+' · '+t('PG_'+a.processing))):null;};
- const review=(o,decision)=>{FD.dx('PG_REVIEW',{id:o.id,decision});FD.drawer.refresh(false);};
- S.pgCorrect=o=>{
-  let sku=o.sku||'',dimension=o.dimension,value=o.value||'',note=o.confirmation?.note||'';
-  FD.sheet.open({center:true,title:t('PG_EDIT_OBS'),render:()=>h('div',{class:'stack s16'},
-   h('label',{class:'field'},t('L_COL_PRODUCT'),FD.select([{id:'',label:'—'}].concat(FD.SKUS.map(k=>({id:k.code,label:FD.nameOf(k)}))),sku,v=>{sku=v;})),
-   h('label',{class:'field'},t('PG_INSIGHTS'),FD.select(dims.map(d=>({id:d,label:t('PG_DIM_'+d.toUpperCase())})),dimension,v=>{dimension=v;})),
-   h('label',{class:'field'},t('PG_REVIEW_NOTE'),h('textarea',{class:'textarea',value,rows:3,on:{input:e=>{value=e.target.value;}}})),
-   h('label',{class:'field'},t('L_NOTE'),h('textarea',{class:'textarea',value:note,on:{input:e=>{note=e.target.value;}}}))),
-   footer:()=>[FD.btn(t('L_SAVE'),()=>{FD.dx('PG_REVIEW',{id:o.id,decision:'CORRECTED',patch:{sku:sku||null,dimension,value},note});FD.sheet.close();FD.drawer.refresh(false);},'primary block')]});
+ S.pgContent=(store,{assessmentId}={})=>{L['store:sc:'+store]=assessmentId||L['store:sc:'+store]||'latest';return S.scFull(store);};
+ // Analytics: shelf condition and follow-through per salesman. Sorted by name, never ranked.
+ S.scTeamCard=(ids,from,to,narrow)=>{
+  const rows=FD.scTeam(st(),from,to,ids).filter(r=>r.stores).sort((a,b)=>FD.nameOf(st().world.vsrs.find(v=>v.id===a.vsr)).localeCompare(FD.nameOf(st().world.vsrs.find(v=>v.id===b.vsr))));
+  const paired=rows.some(r=>r.change!=null),nm=id=>FD.nameOf(st().world.vsrs.find(v=>v.id===id));
+  const cols=[{key:'v',label:t('L_COL_SALESMAN'),render:r=>h('b',null,nm(r.vsr))},
+   {key:'n',label:t('SC_COL_STORES'),num:true,render:r=>FD.fmt.num(r.stores)},
+   {key:'s',label:t('SC_SCORE'),num:true,render:r=>r.score==null?'—':h('span',{title:t('SC_N_OF_M',{n:FD.fmt.num(r.finalStores),m:FD.fmt.num(r.stores)})},FD.fmt.num(r.score,1))},
+   paired?{key:'c',label:t('L_COL_CHANGE'),num:true,render:r=>r.change==null?'—':h('span',{title:t('SC_PAIRED',{n:FD.fmt.num(r.paired)})},t('SC_CHANGE',{change:(r.change>0?'+':r.change<0?'−':'')+FD.fmt.num(Math.abs(r.change),1)}))}:null,
+   {key:'f',label:t('SC_FIXES'),num:true,render:r=>r.fixes.total?t('SC_N_OF_M',{n:FD.fmt.num(r.fixes.verified),m:FD.fmt.num(r.fixes.total)}):'—'},
+   {key:'o',label:t('SC_OPEN'),num:true,render:r=>FD.fmt.num(r.open)},
+   {key:'b',label:t('SC_BLOCKERS'),num:true,render:r=>FD.fmt.num(r.blockers)},
+   {key:'p',label:t('SC_COL_PHOTOS'),num:true,render:r=>r.photos?t('SC_N_OF_M',{n:FD.fmt.num(r.photosOk),m:FD.fmt.num(r.photos)}):'—'}].filter(Boolean);
+  // Phone: name, score, fixes and open issues; the row drawer carries the rest.
+  const compact=cols.filter(c=>['v','s','f','o'].includes(c.key)),facts=r=>h('dl',{class:'sc-facts'},cols.filter(c=>c.key!=='v').flatMap(c=>[h('dt',null,c.label),h('dd',null,c.render(r))]));
+  const so=id=>st().world.stores.find(x=>x.id===id),val=x=>x.s.current.final?x.s.current.score:-1;
+  const open=r=>FD.drawer.open({title:t('SC_TITLE')+' · '+nm(r.vsr),render:()=>h('div',{class:'stack s12'},facts(r),h('div',{class:'card'},FD.table({id:'scStores',rows:r.stores_,onRow:x=>S.pgOpen(x.a.store,x.a.id),defaultSort:['sc','asc'],columns:[
+   {key:'st',label:t('L_COL_STORE'),sort:(x,y)=>FD.nameOf(so(x.a.store)).localeCompare(FD.nameOf(so(y.a.store))),render:x=>h('div',null,h('div',null,FD.nameOf(so(x.a.store))),h('div',{class:'small muted'},FD.fmt.date(x.a.date)))},
+   {key:'sc',label:t('SC_SCORE'),num:true,firstDir:'asc',sort:(x,y)=>val(x)-val(y),render:x=>FD.scChip(x.s.current)},
+   {key:'op',label:t('SC_OPEN'),num:true,sort:(x,y)=>x.s.open-y.s.open,render:x=>FD.fmt.num(x.s.open)}]}))) });
+  // narrow: the card sits beside Team on Analytics, so it always uses the short columns
+  return S.card(t('SC_TEAM'),null,!rows.length?FD.empty('SC_NO_TEAM'):narrow?FD.table({id:'scTeamCompact',rows,columns:compact,onRow:open}):h('div',{class:'team-comparison'},h('div',{class:'team-wide'},FD.table({id:'scTeam',rows,columns:cols,onRow:open})),h('div',{class:'team-compact'},FD.table({id:'scTeamCompact',rows,columns:compact,onRow:open}))),{flush:true,icon:'camera'});
  };
- S.pgContent=(store,{assessmentId}={})=>{
-  const all=FD.pgAssessments(st(),store),wanted=assessmentId||L['pg:assessment:'+store],a=all.find(x=>x.id===wanted)||all[0],os=(st().planogram?.observations||[]).filter(o=>o.assessmentId===a?.id),assort=FD.pgAssortment(st(),store,st().clock.date);
-  const stats=[['PG_PURCHASED',assort.purchased],['PG_RECURRING',assort.recurring],['PG_GAPS',assort.gaps]];
-  return h('div',{class:'stack s16 pg-view'},
-   all.length?FD.select(all.map(x=>({id:x.id,label:FD.fmt.date(x.date)+' '+FD.fmt.time(x.time)+' · '+t('PG_'+x.processing)})),a.id,v=>{L['pg:assessment:'+store]=v;FD.render();}):h('p',{class:'muted'},t('PG_NO_ANALYSIS')),
-   a?FD.pgEvidence(a.id):null,
-   a?h('div',{class:'row wrap'},FD.pgPhotos(st(),a.id).map((p,i)=>FD.btn(t('PG_MATCH')+' ? '+FD.fmt.num(i+1),()=>S.pgMatch(a.id,p),'secondary sm'))):null,
-   a?h('section',null,h('h3',null,t('PG_INSIGHTS')),h('p',{class:'small muted'},t('PG_MATCH_HINT')),a.analysisAt?h('p',{class:'small muted'},t('PG_UPDATED',{time:a.analysisAt})):null,
-    dims.map(d=>{const items=os.filter(o=>o.dimension===d);return h('section',{class:'pg-dimension'},h('h4',null,t('PG_DIM_'+d.toUpperCase())),items.length?items.map(o=>h('article',{class:'pg-finding'},h('div',{class:'row between wrap'},FD.chip(t(o.review==='NEEDS_REVIEW'?'PG_REVIEW_PENDING':'PG_'+o.review),o.review==='NEEDS_REVIEW'?'warn':'outline'),h('span',{class:'small muted'},t(o.source==='demo'?'PG_SOURCE_DEMO':'PG_SOURCE_PHOTO'))),o.sku?FD.skuLabel(o.sku):null,h('p',null,o.value||t(FD.pgKindText(o.kind))),
-     h('div',{class:'photo-day'},o.evidence.map(e=>{const p=st().photos.find(x=>x.id===e.photoId);return p?h('figure',null,FD.photoButton({src:p.src,label:t('PG_PHOTO_LABEL')}),e.regionId?h('figcaption',{class:'small muted'},e.regionId):null):null;})),
-     h('div',{class:'row wrap'},FD.btn(t('PG_CONFIRM'),()=>review(o,'CONFIRMED'),'secondary sm'),FD.btn(t('PG_CORRECT'),()=>S.pgCorrect(o),'secondary sm'),FD.btn(t('PG_DISMISS'),()=>review(o,'DISMISSED'),'ghost sm')))):h('p',{class:'small muted'},t('PG_NO_OBSERVATION')));}),
-    h('div',{class:'row wrap'},FD.btn(t('PG_COACH'),()=>S.pgCoach(store,false,a.id),'secondary','message'),FD.btn(t('PG_REQUEST'),()=>S.pgCoach(store,true,a.id),'secondary','camera'))):null,
-   h('section',{class:'pg-assortment'},h('h3',null,t('PG_ASSORTMENT')),h('p',{class:'small muted'},t('PG_HISTORY_SOURCE')),stats.map(([label,items])=>h('details',null,h('summary',null,t(label)+' · '+FD.fmt.num(items.length)),items.map(x=>h('div',{class:'list-row'},FD.skuLabel(x.code||x.sku)))))),
-   h('section',null,h('h3',null,t('PG_PREVIOUS')),FD.photoTimeline(store)));
+ // Settings: the three area weights. Check importance inside each area is fixed and shown read-only.
+ S.scWeightsBody=()=>{
+  const saved=FD.scWeights(st()),draft=L['sc:weights']=L['sc:weights']||{...saved},keys=Object.keys(FD.SC_DEFAULT_WEIGHTS),total=keys.reduce((s,k)=>s+draft[k],0);
+  const changed=keys.some(k=>draft[k]!==saved[k]),pct=n=>FD.fmt.pct(n);
+  return h('div',null,
+   keys.map(k=>h('div',{class:'list-row'},h('div',{class:'grow'},h('div',null,t('SC_AREA_'+k)),h('div',{class:'small muted'},FD.SC_AREAS.find(a=>a.id===k).checks.map(c=>t('SC_CHK_'+c.check)+' '+pct(c.weight)).join(' · '))),
+    FD.stepper(draft[k],0,100,v=>{if(v>=0&&v<=100){draft[k]=v;FD.render();}},t('SC_AREA_'+k),5))),
+   h('div',{class:'list-row'},h('b',{class:'grow',style:total===100?null:{color:'var(--bad)'}},t('SC_TOTAL',{pct:pct(total)})),
+    FD.btn(t('SC_RESET'),()=>{FD.dx('SC_WEIGHTS_SET',{weights:null});L['sc:weights']=null;FD.toast('S_SAVED');FD.render();},'ghost sm'),
+    h('button',{type:'button',class:'btn primary sm',disabled:total!==100||!changed,on:{click:()=>{FD.dx('SC_WEIGHTS_SET',{weights:{...draft}});FD.toast('S_SAVED');FD.render();}}},t('L_SAVE'))),
+   h('p',{class:'small muted',style:{padding:'8px 14px'}},t('SC_INSIDE')));
  };
 })();
 
@@ -7868,9 +8137,16 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
         !here ? h('div', { class: 'small muted' }, 'Arrive at a store to simulate its order') : null,
         h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: s.delaySync, on: { change: e => FD.dx('SB_ORDER_DELAY', { on: e.target.checked }) } }), 'Delay data sync'),
         row(btn('Deliver delayed order' + (waiting ? ' (' + waiting + ')' : ''), () => { FD.dx('SB_DELIVER_DELAYED', {}); note('delayed order delivered'); }, 'secondary', !waiting), btn('Edit last order', () => { FD.dx('SB_ORDER_EDIT', {}); note('order edited, outcome re-graded'); }, 'secondary', !s.lastOrder))),
-      h('section',null,h('h5',null,'SHELF PHOTOS · EXAMPLE DATA'),
-        row(btn('Add example shelf photos',()=>{const store=here||nextStop?.store;if(!store)return;const id='pg-demo-'+FD.key();FD.dx('PG_START',{id,store,vsr:v,demo:true});FD.dx('PG_PHOTOS_ADD',{id,photos:[{id:id+'-before',src:FD.PHOTOS[0],phase:'BEFORE',fixtureId:'display'}]});note('Example evidence saved; awaiting analysis');},'secondary',!here&&!nextStop)),
-        row(btn('Deliver example analysis',()=>{const a=st().planogram.assessments.filter(x=>x.demo&&x.processing==='AWAITING').slice(-1)[0];if(a){FD.dx('PG_ANALYSIS_SET',FD.pgDemoResult(st(),a.id));note('Example analysis ready for supervisor review');}},'secondary',!s.planogram.assessments.some(x=>x.demo&&x.processing==='AWAITING')))),
+      (()=>{const refs=Object.keys((FD.SHELF_RESULTS||{}).photos||{}).map(Number).filter(r=>FD.scUsable(FD.scResult(r)));if(!refs.length)return null;
+        if(!refs.includes(+D.scRef))D.scRef=refs[0];D.scPhase=D.scPhase||'BEFORE';
+        // presenter shortcut: the same as the salesman picking that field photo in the capture sheet
+        const add=()=>{const visit=st().visits.find(x=>x.date===st().clock.date&&x.store===here&&x.vsr===v);let a=FD.pgAssessments(st(),here).find(x=>x.date===st().clock.date&&x.visitId===(visit?visit.id:null));
+          const id=a?a.id:'pg-'+FD.key();if(!a)FD.dx('PG_START',{id,store:here,visitId:visit?visit.id:null,vsr:v});
+          const ok=FD.tryPhotoBatch({key:FD.key(),id,photos:[{id:'pg-photo-'+FD.key(),src:FD.PHOTOS[D.scRef],phase:D.scPhase,ref:+D.scRef}]});note(ok?D.scPhase.toLowerCase()+' photo checked at '+nm(here):'photo not saved (storage full)');};
+        return h('section',null,h('h5',null,'SHELF CHECK · FIELD PHOTOS'),
+          sel(refs.map(r=>[String(r),'Photo '+(r+1)]),String(D.scRef),x=>{D.scRef=+x;}),
+          sel([['BEFORE','Before'],['AFTER','After']],D.scPhase,x=>{D.scPhase=x;}),
+          row(btn('Add shelf photo',add,'secondary',!here)),!here?h('div',{class:'small muted'},'Arrive at a store to add a shelf photo'):null);})(),
       h('section', null, h('h5', null, 'AFTER THE VISIT'),
         row(btn('Simulate WhatsApp pre-order', () => { const mine = s.world.stores.filter(x => x.vsr === v); const pick = mine[(s.preorders.length * 7 + 3) % mine.length];
           const txt = ['Please bring 2 cartons of rolls tomorrow', 'Need cake bars, shelf is empty', 'Send 1 carton of slice cake with the next visit', 'Out of cupcakes, please add to my order'][s.preorders.length % 4];
