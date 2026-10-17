@@ -1170,6 +1170,9 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
 .tl-kids { margin-block-start:8px;padding-inline-start:10px;border-inline-start:2px solid var(--line);display:grid;gap:2px; }
 .tl-item.nested { padding-block:6px;grid-template-columns:24px 1fr; }
 .tl-item.nested .tl-ic { width:24px;height:24px; }
+/* row buttons fill their list and read from the start; the trailing chevron always sits at the end */
+button.list-row { width:100%;text-align:start; }
+button.list-row > .grow { text-align:start; }
 </style>
 </head>
 <body>
@@ -7366,7 +7369,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
             last ? h('span', { class: 'small muted nowrap' }, last.at.date === today() ? FD.fmt.time(last.at.time) : FD.fmt.date(last.at.date)) : null),
           h('div', { class: 'row between', style: { gap: '8px' } }, h('span', { class: 'small ellipsis', dir: 'auto', style: { color: un ? 'var(--ink)' : 'var(--ink-3)' } }, last ? (last.store ? FD.nameOf(storeOf(last.store)) + ': ' : '') + FD.chatSnippet(last, 'SUP') : FD.chatSub(a, 'SUP')), un ? h('span', { class: 'unread-dot', 'aria-label': t('L_UNREAD') }) : null))); };
     const listPane = h('div', { class: 'chat-list' },
-      h('div', { class: 'chat-list-h' }, h('b', null, t('L_MESSAGES')),
+      h('div', { class: 'chat-list-h' }, // the page title already says Messages
         FD.searchBox('supChats', t('L_SEARCH_CHATS'), F.q, x => { F.q = x; FD.render(); }),
         FD.seg([{ id: 'ALL', label: t('L_F_ALL') }, { id: 'UNREAD', label: t('L_F_UNREAD') }], F.kind, x => { F.kind = x; FD.render(); })),
       h('div', { class: 'chat-list-b' }, rows.length ? rows.map(item) : FD.empty('X_FILTER')));
@@ -8048,13 +8051,18 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
           lk && meta(lk).lowerBetter ? FD.chip(t('L_LOWER_BETTER'), 'outline') : null),
         h('p', { class: 'small muted', style: { margin: '8px 0 0' } }, t(k === 'net' ? 'L_NET_RESULT_D' : meta(k).info)),
         k !== 'net' && meta(k).formula ? h('p', { class: 'small', style: { margin: '8px 0 0' } }, t(meta(k).formula)) : null),
-      h('div', { class: 'card', style: { padding: '14px' } }, FD.line([{ name: t(k === 'net' ? 'L_NET_RESULT' : meta(k).label), values: series }], days.map(d => FD.fmt.date(d)), { h: 170, fmt, label: t(k === 'net' ? 'L_NET_RESULT' : meta(k).label) })),
+      // one card: the trend or each salesman, switched in place so nothing sits far below
+      (() => { const by = FD.ui.local['metric:view'] === 'vsr', lb = t(k === 'net' ? 'L_NET_RESULT' : meta(k).label);
+        const sw = FD.seg([{ id: 'trend', label: t('L_COL_TREND') }, { id: 'vsr', label: t('L_BY_VSR') }], by ? 'vsr' : 'trend', v => { FD.ui.local['metric:view'] = v; FD.drawer.refresh(false); });
+        return h('div', { class: 'card', style: { padding: '14px' } }, h('div', { class: 'row', style: { marginBottom: '10px' } }, sw),
+          by ? FD.bars(rows.sort((a, b) => meta(lk || 'avgSale').lowerBetter ? a.v - b.v : b.v - a.v).map(r => ({ label: FD.nameOf(vsrOf(r.id)), value: r.v,
+              display: h('span', { class: 'row', style: { gap: '6px', justifyContent: 'flex-end' } }, fmt(r.v), r.base ? S.leverDelta(lk || 'avgSale', r.v, r.base) : null), onClick: () => S.vsrDrawer(r.id, true) })))
+            : FD.line([{ name: lb, values: series }], days.map(d => FD.fmt.date(d)), { h: 170, fmt, label: lb })); })(),
       lk ? h('section', null, h('h3', { class: 'sec-h' }, t('L_METRIC_MOVES')),
         acts.rows.length || acts.fus.length ? h('div', { class: 'card', style: { padding: 0 } },
           acts.rows.map(a => h('button', { type: 'button', class: 'list-row click lever-act', on: { click: a.open } }, h('span', { class: 'fu-ic ' + a.tone }, I(a.icon, 's16')), h('span', { class: 'grow' }, a.text), I('chevron-right', 's16'))),
           acts.fus.slice(0, 6).map(S.fuRow)) : FD.empty('L_METRIC_MOVES_NONE', null, 'check-circle')) : null,
-      h('section', null, h('h3', { class: 'sec-h' }, t('L_BY_VSR')),
-        FD.bars(rows.sort((a, b) => meta(lk || 'avgSale').lowerBetter ? a.v - b.v : b.v - a.v).map(r => ({ label: FD.nameOf(vsrOf(r.id)), value: r.v, display: fmt(r.v) + (r.base != null && r.base ? ' · ' + t('L_BEFORE_V', { money: fmt(r.base) }) : ''), onClick: () => S.vsrDrawer(r.id, true) })))));
+      null);
   } });
 
 })();
