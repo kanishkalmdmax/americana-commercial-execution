@@ -1173,6 +1173,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
 /* row buttons fill their list and read from the start; the trailing chevron always sits at the end */
 button.list-row { width:100%;text-align:start; }
 button.list-row > .grow { text-align:start; }
+@media (min-width:769px) { body:has(.drawer.on) .live-stack { top:auto;bottom:16px;inset-inline-end:auto;inset-inline-start:88px; } } /* never over an open drawer */
 </style>
 </head>
 <body>
@@ -7262,7 +7263,7 @@ button.list-row > .grow { text-align:start; }
     s.returns.filter(x => x.store === storeId && x.date >= from && x.date <= today()).forEach(x => ev.push({ d: x.date, tm: '13:00', ic: 'undo', tone: 'bad', sku: x.sku, text: t('E_RETURNED') + ' · ' + FD.nameOf(FD.sku(x.sku)), sub: FD.fmt.money0(x.value) }));
     // a Shelf Check shows as its result; other photos stay a photo strip
     FD.pgAssessments(s, storeId).filter(a => a.date >= from).forEach(a => { const x = FD.scSummary(s, a.id); if (!x || !x.analysed || !x.current) return;
-      ev.push({ d: a.date, tm: a.time, ic: 'camera', text: t('SC_TITLE') + ' · ' + t('SC_OPEN') + ' ' + FD.fmt.num(x.open), chips: x.before && x.after ? [FD.scChip(x.before), I('arrow-right', 's14'), FD.scChip(x.after)] : [FD.scChip(x.current)], open: () => { L['store:tab'] = 'overview'; L['store:sc:' + storeId] = a.id; FD.drawer.refresh(false); FD.render(); } }); });
+      ev.push({ d: a.date, tm: a.time, ic: 'camera', text: t('SC_TITLE') + ' · ' + (x.current.none ? t('SC_NO_OURS') : t('SC_OPEN') + ' ' + FD.fmt.num(x.open)), chips: x.current.none ? null : x.before && x.after ? [FD.scChip(x.before), I('arrow-right', 's14'), FD.scChip(x.after)] : [FD.scChip(x.current)], open: () => { L['store:tab'] = 'overview'; L['store:sc:' + storeId] = a.id; FD.drawer.refresh(false); FD.render(); } }); });
     const ph = s.photos.filter(p => p.store === storeId && p.date >= from && !(p.assessmentId && FD.scSummary(s, p.assessmentId)?.current)); [...new Set(ph.map(p => p.date))].forEach(d => ev.push({ d, tm: '12:10', ic: 'camera', text: t('L_PHOTOS') + ' · ' + FD.fmt.num(ph.filter(p => p.date === d).length), photos: ph.filter(p => p.date === d) }));
     s.threads.forEach(th => th.messages.filter(m => m.store === storeId && m.at.date >= from).forEach(m => ev.push({ d: m.at.date, tm: m.at.time, ic: 'message', text: (m.by === 'SUP' ? FD.nameOf(s.world.supervisor) : FD.nameOf(vsrOf(m.by))) + ': ' + (m.text || t('L_PHOTO')) })));
     ev.sort((a, b) => (b.d + b.tm).localeCompare(a.d + a.tm));
@@ -8087,7 +8088,8 @@ button.list-row > .grow { text-align:start; }
   const open=()=>{L['store:sc:'+store]=a.id;refresh();},issues=s.findings.concat(s.fresh).filter(f=>f.status!=='FIXED').slice(0,3);
   return h('section',{class:'card sc-card'},
    h('div',{class:'row between wrap'},h('div',null,h('h3',null,t('SC_TITLE')),h('div',{class:'small muted'},FD.fmt.date(a.date)+' · '+FD.nameOf(st().world.vsrs.find(v=>v.id===a.vsr)))),
-    h('div',{class:'row'},s.before&&s.after?[FD.scChip(s.before),FD.icon('arrow-right','s14'),FD.scChip(s.after)]:FD.scChip(s.current))),
+    h('div',{class:'row'},s.current.none?null:s.before&&s.after?[FD.scChip(s.before),FD.icon('arrow-right','s14'),FD.scChip(s.after)]:FD.scChip(s.current))),
+   s.current.none?h('p',{class:'small muted'},t('SC_NO_OURS')):null,
    s.urgent?FD.chip(t('SC_URGENT'),'bad'):null,
    issues.length?h('ul',{class:'sc-lines'},issues.map(f=>h('li',null,h('span',null,t('SC_CHK_'+f.check)),FD.chip(t('SC_ST_'+(f.status==='OPEN'&&f.outcome==='DONE'?'WAIT':f.status)))))):s.good?h('p',{class:'small'},t('SC_GOOD')):null,
    h('div',{class:'row between wrap'},h('div',{class:'sc-thumbs'},s.photos.slice(0,4).map(x=>h('img',{src:x.p.src,alt:'',loading:'lazy'}))),FD.btn(t('ACT_PLANOGRAM'),open,'secondary sm')));};
