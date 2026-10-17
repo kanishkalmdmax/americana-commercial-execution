@@ -1162,6 +1162,9 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
 .sc-visit .row b:last-child { font-variant-numeric:tabular-nums; }
 .card-h > .grow { flex:1 1 200px;min-width:0; } /* the title keeps room; a switch or button wraps below it */
 .grid-eq:has(.empty) { align-items:start; }
+.van-head { padding-inline-end:26px; } /* clear the locate pin in the corner */
+.team-wide table.t th.n { min-width:0; }
+@media (max-width:768px) { .watch-card .list-row { flex-wrap:wrap; } .watch-card .list-row>.grow { flex-basis:100%; } }
 </style>
 </head>
 <body>
@@ -6094,7 +6097,8 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
       const openVisit = (plan.stops || []).some(x => x.store === storeId && x.status !== 'DONE' && x.status !== 'SKIPPED');
       if (openVisit && (live.some(x => x.outcome === null) || FD.openTemps(s, storeId, d).length)) cta = FD.btn(t('L_OPEN_SB'), () => V.salesBuzz(), 'primary lg block', 'external');
     } else body.push(V.profile(storeId));
-    return { title: FD.nameOf(store), sub: FD.lang === 'ar' ? FD.HOOD_AR[store.hood] : store.hood, tools: FD.scCameraButton({ store: storeId, visitId: visit?.id }), back: r.id ? () => FD.go('#/vsr/' + vsr.id + (onPlan ? '/today' : '/store')) : null, body, cta };
+    const hood = FD.lang === 'ar' ? FD.HOOD_AR[store.hood] : store.hood;
+    return { title: FD.nameOf(store), sub: hood && !FD.nameOf(store).includes(hood) ? hood : null, tools: FD.scCameraButton({ store: storeId, visitId: visit?.id }), back: r.id ? () => FD.go('#/vsr/' + vsr.id + (onPlan ? '/today' : '/store')) : null, body, cta };
   });
 
   // every store assigned to this salesman: today's plan first, then the rest (off-plan visits are tracked)
@@ -6365,8 +6369,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
     const body = [
       h('div', { class: 'v-card', style: { padding: '16px', marginTop: '4px', background: 'linear-gradient(135deg, var(--navy), var(--navy-2))', color: '#fff', border: 0 } },
         h('div', { class: 'small', style: { color: '#A9BDDC' } }, t('M_PRIMARY')),
-        h('div', { style: { fontSize: '30px', fontWeight: 600, letterSpacing: '-.02em' } }, FD.metricText('primary', m.lev.primary)),
-        h('div', { class: 'row', style: { marginTop: '4px', color: '#A9BDDC', fontSize: '13px' } }, t('MI_PRIMARY'))),
+        h('div', { style: { fontSize: '30px', fontWeight: 600, letterSpacing: '-.02em' } }, FD.metricText('primary', m.lev.primary))),
       h('section', { class: 'v-section' }, h('h3', null, t('L_MY_SCORE')),
         h('div', { class: 'v-card' }, h('div', { class: 'row', style: { padding: '16px', gap: '16px' } },
           h('div', { class: 'score-ring' }, FD.ring(m.composite), h('b', null, FD.fmt.num(Math.round(m.composite)))),
@@ -6508,7 +6511,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
   const a=current(store,visitId),S=a&&FD.scSummary(st(),a.id);if(!S||!S.analysed||!S.current)return null;
   const next=S.findings.find(f=>f.status!=='FIXED'&&!f.outcome);
   return h('button',{type:'button',class:'v-card sc-visit'+(S.urgent?' urgent':''),on:{click:()=>FD.scSheet(a.id)}},
-   h('div',{class:'row between'},h('b',null,t('SC_TITLE')),h('b',{class:'tabular'},FD.scScoreText(S.current))),
+   h('div',{class:'row between'},h('b',null,t('SC_TITLE')),h('span',{class:'row'},FD.scChip(S.current),FD.icon('chevron-right','s16'))),
    h('div',{class:'small muted'},S.good?t('SC_GOOD'):t('SC_OPEN')+' · '+FD.fmt.num(S.open)),
    next?h('div',{class:'small'},t('SC_DO_'+next.check)):null);
  };
@@ -6637,7 +6640,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
   // ---------- small helpers ----------
   // "?" next to a card title opens a short explanation (hover shows it too)
   S.info = text => { const b = h('button', { type: 'button', class: 'info-btn', 'aria-label': t('L_WHAT_IS_THIS'), title: text, on: { click: e => { e.stopPropagation(); FD.popover(b, text); } } }, I('help', 's14')); return b; };
-  const card = (title, sub, body, opts = {}) => h('section', { class: 'card', 'data-tour': opts.tour || null },
+  const card = (title, sub, body, opts = {}) => h('section', { class: 'card' + (opts.cls ? ' ' + opts.cls : ''), 'data-tour': opts.tour || null },
     h('div', { class: 'card-h' }, opts.icon ? h('span', { class: 'fu-ic', style: { width: '32px', height: '32px' } }, I(opts.icon, 's16')) : null,
       h('div', { class: 'grow' }, h('h2', null, opts.link ? h('a', { href: opts.link[1] }, title) : title, opts.info ? S.info(opts.info) : null), sub ? h('div', { class: 'sub' }, sub) : null), opts.right || null),
     h('div', { class: opts.flush ? '' : 'card-b' }, body),
@@ -7535,7 +7538,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
           { flush: true, icon: 'pin', info: t('I_PINS'), right: FD.btn(t('L_ADD'), addPin, 'secondary sm', 'plus') }),
         card(t('L_R_WATCH'), t('L_WATCH_HOW'), s.watchlist.length ? h('div', null, s.watchlist.map(c => { const w = FD.watchStats(s, c);
             return h('div', { class: 'list-row click', on: { click: e => { if (!e.target.closest('button')) S.skuDrawer(c); } } }, h('div', { class: 'grow', style: { minWidth: 0 } }, FD.skuLabel(c, t('L_COL_SINCE') + ' ' + FD.fmt.date(w.since) + ' · ' + FD.fmt.pct(w.before) + ' → ' + (w.after == null ? '—' : FD.fmt.pct(w.after)))), S.watchChip(w), FD.btn(t('L_REMOVE'), () => FD.dx('WATCH_REMOVE', { sku: c }), 'ghost sm')); })) : FD.empty('L_NONE_YET', null, 'alert'),
-          { flush: true, icon: 'alert', right: FD.btn(t('L_ADD'), addWatch, 'secondary sm', 'plus') })),
+          { cls: 'watch-card', flush: true, icon: 'alert', right: FD.btn(t('L_ADD'), addWatch, 'secondary sm', 'plus') })),
       h('div', { class: 'grid-eq' },
         (() => { const shelf = L['rules:score'] === 'shelf'; // one card: the scorecard by default, Shelf Score weights on the switch
           const sw = FD.seg([{ id: 'card', label: t('L_SCORECARD_SETUP') }, { id: 'shelf', label: t('SC_SCORE') }], shelf ? 'shelf' : 'card', v => { L['rules:score'] = v; FD.render(); });
@@ -8078,7 +8081,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
  S.scTeamCard=(ids,from,to,narrow)=>{
   const rows=FD.scTeam(st(),from,to,ids).filter(r=>r.stores).sort((a,b)=>FD.nameOf(st().world.vsrs.find(v=>v.id===a.vsr)).localeCompare(FD.nameOf(st().world.vsrs.find(v=>v.id===b.vsr))));
   const paired=rows.some(r=>r.change!=null),nm=id=>FD.nameOf(st().world.vsrs.find(v=>v.id===id));
-  const cols=[{key:'v',label:t('L_COL_SALESMAN'),render:r=>h('b',null,nm(r.vsr))},
+  const cols=[{key:'v',label:t('L_COL_SALESMAN'),render:r=>nm(r.vsr)},
    {key:'n',label:t('SC_COL_STORES'),num:true,render:r=>FD.fmt.num(r.stores)},
    {key:'s',label:t('SC_SCORE'),num:true,render:r=>r.score==null?'—':h('span',{title:t('SC_N_OF_M',{n:FD.fmt.num(r.finalStores),m:FD.fmt.num(r.stores)})},FD.fmt.num(r.score,1))},
    paired?{key:'c',label:t('L_COL_CHANGE'),num:true,render:r=>r.change==null?'—':h('span',{title:t('SC_PAIRED',{n:FD.fmt.num(r.paired)})},t('SC_CHANGE',{change:(r.change>0?'+':r.change<0?'−':'')+FD.fmt.num(Math.abs(r.change),1)}))}:null,
