@@ -1165,6 +1165,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
 .van-head { padding-inline-end:26px; } /* clear the locate pin in the corner */
 .team-wide table.t th.n { min-width:0; }
 @media (max-width:768px) { .watch-card .list-row { flex-wrap:wrap; } .watch-card .list-row>.grow { flex-basis:100%; } }
+.delta.big { font-size:24px;font-weight:600;display:inline-flex;align-items:center;gap:4px; }
 </style>
 </head>
 <body>
@@ -3686,7 +3687,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
         followedPct: pct(recs.length - recs.filter(r => r.outcome === 'NOT_OFFERED').length, recs.length),
         followed: { withRecs: chg(A), without: chg(B), stores: A.size, pending: pending > 0 },
         reasonsPct: pct(withReason.length, needReason.length), missingReasons: needReason.length - withReason.length,
-        returnRate: pct(c.ret, c.gross), vsBaseline: b.perDay ? pct(c.perDay - b.perDay, b.perDay) : 0,
+        returnRate: pct(c.ret, c.gross), vsBaseline: b.perDay ? pct(c.perDay - b.perDay, b.perDay) : 0, hasBaseline: !!b.perDay && !!c.days,
       };
     });
   };
@@ -3702,14 +3703,14 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
     return cached('rank', st, mode + from + to, () => {
       const lim = to > st.clock.date ? st.clock.date : to;
       const order = (f, t) => st.world.vsrs.filter(v => v.kind === 'sales').map(v => ({ v, m: FD.vsrMetrics(st, v.id, f, t) }))
-        .sort((a, b) => (mode === 'IMP' ? b.m.vsBaseline - a.m.vsBaseline : b.m.composite - a.m.composite) || b.m.net - a.m.net)
+        .sort((a, b) => (b.m.hasBaseline - a.m.hasBaseline) || (b.m.vsBaseline - a.m.vsBaseline) || b.m.net - a.m.net) // both modes: net sales per selling day vs own baseline
         .map((x, i) => ({ vsr: x.v.id, rank: i + 1, m: x.m }));
       const now = order(from, lim);
       const prevTo = FD.addDays(lim, -7);
       const prev = prevTo >= from ? order(from, prevTo) : now;
       return now.map(x => {
         const spark = [];
-        for (let w = 7; w >= 0; w--) { const t = FD.addDays(lim, -7 * w); const f = FD.addDays(t, -6); spark.push(t < FD.PILOT_START ? null : Math.round(FD.vsrMetrics(st, x.vsr, f < FD.PILOT_START ? FD.PILOT_START : f, t).upsellSales)); } // weekly upsell sales (lead metric)
+        for (let w = 7; w >= 0; w--) { const t = FD.addDays(lim, -7 * w); const f = FD.addDays(t, -6); spark.push(t < FD.PILOT_START ? null : Math.round(FD.vsrMetrics(st, x.vsr, f < FD.PILOT_START ? FD.PILOT_START : f, t).perDay || 0)); } // weekly net sales per selling day
         const v = st.world.vsrs.find(q => q.id === x.vsr); const route = st.world.routes.find(r => r.id === v.route);
         const context = [];
         if (route.remote) context.push({ id: 'CTX_REMOTE', slots: { n: st.world.stores.filter(s => s.route === route.id && s.days.includes(3)).length } });
@@ -3734,7 +3735,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
     const step = n === 1 ? 1 : 7;
     return FD.ranking(st, 'ABS', from, to).map(x => { const prev = FD.vsrMetrics(st, x.vsr, p.from, p.to, cut);
       const spark = []; for (let i = 7; i >= 0; i--) { const t2 = n === 1 ? (i ? (() => { let d = lim; for (let k = 0; k < i; k++) d = prevSelling(d); return d; })() : lim) : FD.addDays(lim, -7 * i);
-        const f2 = step === 1 ? t2 : FD.addDays(t2, -6); spark.push(t2 < FD.PILOT_START ? null : Math.round(FD.vsrMetrics(st, x.vsr, f2 < FD.PILOT_START ? FD.PILOT_START : f2, t2).upsellSales)); }
+        const f2 = step === 1 ? t2 : FD.addDays(t2, -6); spark.push(t2 < FD.PILOT_START ? null : Math.round(FD.vsrMetrics(st, x.vsr, f2 < FD.PILOT_START ? FD.PILOT_START : f2, t2).perDay || 0)); }
       return Object.assign({}, x, { prev, prePilot, prevRange: p, partial, spark, trendStep: step, netChg: partial ? (prev.net ? (x.m.net - prev.net) / prev.net * 100 : null) : x.change,
         move: partial ? 0 : prevRank ? prevRank.find(y => y.vsr === x.vsr).rank - x.rank : x.move }); });
   });
@@ -4326,7 +4327,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
   PG_COACH:E('Send coaching tip','إرسال نصيحة'),PG_REQUEST:E('Request a check','طلب التحقق'),
   PG_ASSORTMENT:E('Store assortment','تشكيلة المحل'),PG_PURCHASED:E('Products purchased','المنتجات المشتراة'),PG_RECURRING:E('Recurring products','المنتجات المتكررة'),PG_GAPS:E('Suggested additions','إضافات مقترحة'),PG_HISTORY_SOURCE:E('From order history, not a shelf stock count','من سجل الطلبات، وليس تعداداً لمخزون الرف'),
   PG_READ_ONLY:E('Historical visit — view only','زيارة سابقة — للعرض فقط'),
-  F_PLANOGRAM:E('Shelf Check at {store} needs you','فحص الرف في {store} يحتاجك'),F_PLANOGRAM_C:E('{n} items: owner said no, not in van, help needed or a damaged pack','{n} بنود: رفض صاحب المحل أو غير متوفر في السيارة أو يحتاج مساعدة أو عبوة تالفة'),ACT_PLANOGRAM:E('Open Shelf Check','فتح فحص الرف'),
+  F_PLANOGRAM:E('Shelf Check at {store} needs you','فحص الرف في {store} يحتاجك'),F_PLANOGRAM_C:E('{n} items: not in van, help needed or a damaged pack','{n} بنود: غير متوفر في السيارة أو يحتاج مساعدة أو عبوة تالفة'),ACT_PLANOGRAM:E('Open Shelf Check','فتح فحص الرف'),
   PG_VALUE:E('Compare pack value','مقارنة قيمة العبوات'),PG_VALUE_CHEAPER:E('{n}% lower cost per 100g','تكلفة أقل بنسبة {n}% لكل ١٠٠ غ'),PG_PACK_COST:E('Store pays / pack','تكلفة المحل / عبوة'),PG_100G:E('Store pays / 100g','تكلفة المحل / ١٠٠ غ'),PG_PRICE_BASIS:E('Historical order price, including VAT. Compare the same selling unit.','سعر طلب سابق شامل الضريبة. قارن وحدة البيع نفسها.'),
   PG_COLUMNS:E('Columns','الأعمدة'),PG_SEARCH_PRODUCTS:E('Search products','بحث المنتجات'),PG_BROWSE:E('Browse assortment','تصفح التشكيلة'),PG_ALL_PRODUCTS:E('All products','كل المنتجات'),PG_RESET:E('Clear filters','مسح المرشحات'),PG_PRODUCT_COUNT:E('{n} products','{n} منتجات'),PG_STORE_COUNT:E('Stores · {n}','المحلات · {n}'),PG_SHOWING:E('Showing {n} of {m} stores','عرض {n} من {m} محلاً'),PG_SORT:E('Sort by','ترتيب حسب'),PG_SORT_SALES:E('Highest sales','الأعلى مبيعاً'),PG_SORT_NAME:E('Product name','اسم المنتج'),PG_SORT_RETURNS:E('Highest returns','الأعلى مرتجعات'),PG_SORT_COST:E('Lowest cost per 100g','أقل تكلفة لكل ١٠٠ غ'),
   PG_BASE:E('Before recommendations','قبل التوصيات'),PG_PREVIOUS_PERIOD:E('Previous period','الفترة السابقة'),PG_VIEW:E('View store intelligence','عرض معلومات المحل'),
@@ -4395,6 +4396,8 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
   const done=photos.filter(x=>x.r);if(!done.length)return {analysed:false,photos};
   const W=a.weights||FD.scWeights(st),phase=ph=>done.filter(x=>x.p.phase===ph&&FD.scUsable(x.r));
   const B=phase('BEFORE'),A=phase('AFTER'),bv=FD.scCombine(B.map(x=>x.r),a.dismissed),av=A.length?FD.scCombine(A.map(x=>x.r),a.dismissed):null;
+  // seeded demo checks carry extra conditions on top of the shared photo results, so stores differ
+  for(const [ph,vals] of [[bv,(a.adjust||{}).BEFORE],[av,(a.adjust||{}).AFTER]])if(ph&&vals)for(const c in vals)if(typeof ph[c]==='number')ph[c]=Math.min(ph[c],vals[c]);
   const comparable=!!(B.length&&A.length&&A.every(x=>B.some(y=>sameDisplay(x.p.ref,y.p.ref))));
   const before=B.length?FD.scScore(bv,W):null,after=A.length?FD.scScore(av,W):null;
   const change=comparable&&before.final&&after.final?after.score-before.score:null;
@@ -4428,7 +4431,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
  };
  // Supervisor work from yesterday and today: blockers the salesman cannot clear alone, and damaged packs.
  FD.pgFollowUps=st=>pg(st).assessments.filter(a=>a.date<=st.clock.date&&a.date>=FD.addDays(st.clock.date,-1)).map(a=>{
-  const s=FD.scSummary(st,a.id);if(!s||!s.analysed)return null;const n=s.blockers.length+(s.urgent&&!s.blockers.some(f=>f.urgent)?1:0);if(!n)return null;
+  const s=FD.scSummary(st,a.id);if(!s||!s.analysed)return null;const need=s.blockers.filter(f=>['NEED_HELP','NOT_IN_VAN'].includes(f.outcome)),n=need.length+(s.urgent&&!need.some(f=>f.urgent)?1:0);if(!n)return null; // owner refusals stay on the store, not in the morning queue
   return {key:'F_PLANOGRAM|'+a.id,tpl:'F_PLANOGRAM',pri:2,at:a.date,slots:{storeId:a.store,vsrId:a.vsr,n},action:{kind:'planogram',type:'PLANOGRAM_REVIEW',label:'ACT_PLANOGRAM',store:a.store,assessmentId:a.id}};}).filter(Boolean);
  // Seed: field photos already placed at stores become that visit's Before check; same-display groups supply real After photos.
  FD.scSeed=st=>{
@@ -4442,10 +4445,15 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
    for(const p of ps){p.assessmentId=id;p.phase='BEFORE';}
    const partner=((FD.SHELF_RESULTS.groups||[]).find(g=>g[0]===f.ref)||[])[1];
    if(partner!=null&&!ps.some(p=>p.ref===partner)){const ph={id:id+'-after',src:FD.PHOTOS[partner],store:f.store,vsr:f.vsr,date:f.date,time:f.time,assessmentId:id,phase:'AFTER',ref:partner,seeded:true};st.photos.push(ph);P.assessments.at(-1).photoIds.push(ph.id);}
-   const a=P.assessments.at(-1),s=FD.scSummary(st,id);
+   const a=P.assessments.at(-1),pick=(n*7919)%100;
+   // demo variety: about two in three stores get one to three conditions; damaged packs stay rare
+   if(pick<65){const pool=['FULL_EMPTY_SPACE','FIND_HIDDEN','FULL_NOT_FORWARD','COND_CARTON','FIND_FACING','FIND_MIXED','COND_ROTATION','FIND_WRONG_AREA','FULL_EMPTY_CARTON'].concat(pick%11===0?['COND_DAMAGED_PACK']:[]);
+    const k=1+pick%3,B={},Af={};for(let i=0;i<k;i++){const c=pool[(n*3+i*5)%pool.length];B[c]=[0,0.5,0,0.25][(n+i)%4];Af[c]=[1,1,1,0.75,B[c]][(n+i*2)%5];}
+    a.adjust={BEFORE:B,AFTER:Af};}
+   const s=FD.scSummary(st,id);
    // outcomes agree with what the After photo shows
    s.findings.forEach((x,k)=>{a.actions[x.check]=x.cls==='ASK'?(x.status==='FIXED'?'OWNER_YES':x.status==='STILL'?'OWNER_NO':FD.SC_OUTCOMES.ASK[(n+k)%3])
-    :x.status==='FIXED'?'DONE':x.status==='PARTLY_FIXED'?'PARTLY_DONE':x.status==='STILL'?['NOT_IN_VAN','OWNER_NO','NEED_HELP'][(n+k)%3]:['DONE','DONE','DONE','PARTLY_DONE','DONE','NOT_IN_VAN','DONE','NEED_HELP'][(n+k)%8];});}
+    :x.status==='FIXED'?'DONE':x.status==='PARTLY_FIXED'?'PARTLY_DONE':x.status==='STILL'?(((n+k)%6===0)?'NOT_IN_VAN':'OWNER_NO'):((n+k)%40===7?'NOT_IN_VAN':(n+k)%40===23?'NEED_HELP':(n+k)%9===4?'PARTLY_DONE':'DONE');});}
  };
 })();
 
@@ -5279,8 +5287,8 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
     L_METRIC_MOVES: E('Actions to grow sales', 'خطوات لزيادة المبيعات'), L_METRIC_MOVES_NONE: E('Nothing open for this metric.', 'لا شيء مفتوح لهذا المقياس.'),
     L_TARGET_V: E('Target {money}', 'الهدف {money}'), L_BEFORE_V: E('Before {money}', 'قبل {money}'), L_LOWER_BETTER: E('Lower is better', 'الأقل أفضل'),
     L_METRICS_DAY: E('Latest day', 'آخر يوم'), L_FIVE_METRICS: E('The five sales metrics', 'مقاييس المبيعات الخمسة'),
-    L_TREND_DAYS: E('Upsell Sales at Existing Stores, last 8 selling days', 'مبيعات البيع الإضافي في المحلات الحالية، آخر ٨ أيام بيع'),
-    L_TREND_WEEKS: E('Upsell Sales at Existing Stores, last 8 weeks', 'مبيعات البيع الإضافي في المحلات الحالية، آخر ٨ أسابيع'),
+    L_TREND_DAYS: E('Net sales per selling day, last 8 selling days', 'صافي المبيعات لكل يوم بيع، آخر ٨ أيام بيع'),
+    L_TREND_WEEKS: E('Net sales per selling day, last 8 weeks', 'صافي المبيعات لكل يوم بيع، آخر ٨ أسابيع'),
     I_TEAM: E('Pilot KPIs use the deck definitions. Rank and score are illustrative operational diagnostics with draft weights, not the pilot success measure. The trend line is Upsell Sales at Existing Stores.', 'تستخدم مؤشرات التجربة تعريفات العرض. الترتيب والدرجة أدوات تشغيلية توضيحية بأوزان مبدئية وليسا مقياس نجاح التجربة. يعرض خط الاتجاه مبيعات البيع الإضافي في المحلات الحالية.'),
     L_G_AVG: E('Average Sale Value', 'متوسط قيمة البيع'),
     Q_CUE_VISITS: E('You are making fewer visits a day than usual. Start on time and follow the plan order to fit every stop in.', 'زياراتك اليومية أقل من المعتاد. ابدأ في الوقت وتابع ترتيب الخطة لتغطي كل المحطات.'),
@@ -5324,6 +5332,9 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
     MF_RETURNS: E('Return value ÷ sales value', 'قيمة المرتجعات ÷ قيمة المبيعات'),
     L_PILOT_MEASURES: E('Pilot metrics & adoption', 'مؤشرات التجربة والاستخدام'),
     L_PILOT_KPIS: E('Sales metrics', 'مقاييس المبيعات'),
+    L_COL_VS_BASE: E('vs own baseline', 'مقابل خط الأساس'), L_NO_BASELINE: E('No baseline', 'لا يوجد خط أساس'),
+    L_VS_MY_BASE: E('Net sales per selling day, compared with your own days before recommendations', 'صافي المبيعات لكل يوم بيع مقارنة بأيامك قبل بدء التوصيات'),
+    L_SEES_NOTE: E('Choose what each salesman sees on their scorecard. Ranking uses net sales per selling day against their own baseline.', 'اختر ما يراه كل مندوب في بطاقة أدائه. يعتمد الترتيب على صافي المبيعات لكل يوم بيع مقارنة بخط أساسه.'),
     L_NO_STORE_ORDERS: E('No orders from this store in the last 4 weeks', 'لا توجد طلبات من هذا المحل خلال آخر ٤ أسابيع'),
     L_PITCH_EACH: E('Store sells it at {price} SAR each', 'يبيعه المحل بسعر {price} ريال للقطعة'),
     L_PILOT_ADOPTION: E('Field Adoption Metrics & Support Needed', 'مقاييس الاستخدام الميداني والدعم المطلوب'),
@@ -6372,7 +6383,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
         h('div', { style: { fontSize: '30px', fontWeight: 600, letterSpacing: '-.02em' } }, FD.metricText('primary', m.lev.primary))),
       h('section', { class: 'v-section' }, h('h3', null, t('L_MY_SCORE')),
         h('div', { class: 'v-card' }, h('div', { class: 'row', style: { padding: '16px', gap: '16px' } },
-          h('div', { class: 'score-ring' }, FD.ring(m.composite), h('b', null, FD.fmt.num(Math.round(m.composite)))),
+          h('div', { class: 'stack', style: { gap: '4px', maxWidth: '45%' } }, FD.sup.baseDelta(m, true), h('span', { class: 'small muted' }, t('L_VS_MY_BASE'))),
           h('div', { class: 'grow stack s8' }, sees.rank ? h('b', { style: { fontSize: '18px' } }, tx('Q_RANK', { rank: rank.rank, n: s.world.vsrs.filter(x => x.kind === 'sales').length, move: moveTxt })) : null, FD.spark(spark, 160, 34))),
           h('div', { style: { borderTop: '1px solid var(--line)' } }, rows.map(mt => h('div', { class: 'metric-row' }, h('span', null, t(mt.label)), h('b', { class: 'tabular' }, FD.metricText(mt.k, m.lev[mt.k])), mt.k === 'upsell' ? h('span', { class: 'small muted' }, t('L_TARGET_V', { money: FD.fmt.money0(m.target.upsell) })) : FD.sup.leverDelta(mt.k, m.lev[mt.k], m.base[mt.k])))),
           h('div', { class: 'tipbox', style: { margin: '0 14px 14px' } }, I('bulb', 's16'), h('span', null, tx(cue[0], cue[1]))))),
@@ -7057,7 +7068,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
     }
     return h('div', { class: 'stack s16' },
       h('div', { class: 'row', style: { gap: '14px' } }, FD.avatar(v, 'lg'), h('div', { class: 'grow' }, full ? null : h('div', { style: { fontWeight: 600, fontSize: '17px' } }, FD.nameOf(v)), h('div', { class: full ? '' : 'small muted' }, FD.nameOf(s.world.routes.find(x => x.id === v.route)))),
-        rank ? h('div', { class: 'score-ring', style: { width: '64px', height: '64px' } }, FD.ring(rank.composite, 64, 7), h('b', { style: { fontSize: '16px' } }, FD.fmt.num(Math.round(rank.composite)))) : FD.chip(t(v.kind === 'collection' ? 'ST_COLLECTION' : 'ST_NO_ACTIVITY'), 'outline'),
+        rank ? S.baseDelta(rank.m, true) : FD.chip(t(v.kind === 'collection' ? 'ST_COLLECTION' : 'ST_NO_ACTIVITY'), 'outline'),
         rank ? h('div', { style: { textAlign: 'center' } }, h('span', { class: 'rank r' + rank.rank, style: { width: '36px', height: '36px', fontSize: '15px' } }, '#' + FD.fmt.num(rank.rank))) : null),
       rank && rank.context.length ? h('div', { class: 'row wrap' }, rank.context.map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null,
       h('div', { class: 'row wrap' }, FD.btn(t('L_MESSAGE'), () => FD.threadSheet({ type: 'vsr', id: vsrId }, 'SUP'), 'secondary sm', 'message'),
@@ -7358,7 +7369,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
     return [
       { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => h('div', { class: 'row', style: { gap: '4px' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null) },
       { key: 'vsr', label: t('L_COL_VSR'), sort: (a, b) => FD.nameOf(vsrOf(a.vsr)).localeCompare(FD.nameOf(vsrOf(b.vsr))), render: x => h('div', null, who(vsrOf(x.vsr)), full && x.context.length ? h('div', { class: 'row wrap', style: { marginTop: '4px', gap: '4px' } }, x.context.slice(0, 2).map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null) },
-      full ? num('score', t('L_COL_SCORE'), x => x.composite, x => cmp(h('b', null, FD.fmt.num(Math.round(x.composite))), (up(x) && Number.isFinite(x.prev.composite) ? S.comparisonDelta(x.composite, x.prev.composite, v => FD.fmt.num(Math.round(v))) : null))) : null,
+      full ? num('score', t('L_COL_VS_BASE'), x => x.m.hasBaseline ? x.m.vsBaseline : -Infinity, x => S.baseDelta(x.m)) : null,
       // the five sales metrics, each with its change against the comparison period
       ...FD.PILOT_METRICS.map(mt => Object.assign(num(mt.k, t(SHORT[mt.k] || mt.label), x => x.m.lev[mt.k], x => cmp(h('b', null, FD.metricText(mt.k, x.m.lev[mt.k])), up(x) || mt.k !== 'upsell' ? S.leverDelta(mt.k, x.m.lev[mt.k], x.prev.lev[mt.k]) : null)), { hint: mt.k === 'upsell' && prePilot ? t('L_NO_PRIOR_UPSELL') : null })),
       full && { key: 'trend', label: t('L_COL_TREND'), render: x => (x.spark || []).filter(v => v != null).length < 3 ? null : h('span', { title: t(x.trendStep === 1 ? 'L_TREND_DAYS' : 'L_TREND_WEEKS') }, FD.spark(x.spark)) }].filter(Boolean)
@@ -7373,7 +7384,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
     const compact = [
       { key: 'rank', label: t('L_COL_RANK'), width: '34px', nosort: true, render: x => h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)) },
       { key: 'vsr', label: t('L_COL_VSR'), nosort: true, render: x => h('div', { class: 'team-person' }, h('b', null, FD.nameOf(vsrOf(x.vsr))), h('span', { class: 'small muted' }, FD.routeArea(st().world.routes.find(r => r.id === vsrOf(x.vsr).route)))) },
-      { key: 'score', label: t('L_COL_SCORE'), width: '44px', num: true, nosort: true, render: x => x.partial && !x.m.genuine ? '—' : h('b', null, FD.fmt.num(Math.round(x.composite))) },
+      { key: 'score', label: t('L_COL_VS_BASE'), width: '64px', num: true, nosort: true, render: x => S.baseDelta(x.m) },
       Object.assign({}, metricColumn, { label: t('L_PILOT_VALUE'), hint: null, width: '96px' })
     ];
     const onRow = x => S.vsrDrawer(x.vsr);
@@ -7542,21 +7553,9 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
       h('div', { class: 'grid-eq' },
         (() => { const shelf = L['rules:score'] === 'shelf'; // one card: the scorecard by default, Shelf Score weights on the switch
           const sw = FD.seg([{ id: 'card', label: t('L_SCORECARD_SETUP') }, { id: 'shelf', label: t('SC_SCORE') }], shelf ? 'shelf' : 'card', v => { L['rules:score'] = v; FD.render(); });
-          return card(t(shelf ? 'SC_SETTINGS' : 'L_SCORECARD_SETUP'), t(shelf ? 'SC_SETTINGS_D' : 'L_W_NOTE'), shelf ? S.scWeightsBody() : (() => { const w = FD.weights(s); const off = R.metricsOff || {}; const sees = R.vsrSees || {};
-            const total = FD.METRIC_KEYS.reduce((a, k) => a + (off[k] ? 0 : w[k]), 0);
-            const setW = (k, v) => FD.dx('WEIGHTS_SET', { weights: Object.assign({}, w, { [k]: Math.max(0, Math.min(100, v)) }), off });
-            const setOff = (k, isOff) => FD.dx('WEIGHTS_SET', { weights: w, off: Object.assign({}, off, { [k]: isOff }) });
+          return card(t(shelf ? 'SC_SETTINGS' : 'L_SCORECARD_SETUP'), t(shelf ? 'SC_SETTINGS_D' : 'L_SEES_NOTE'), shelf ? S.scWeightsBody() : (() => { const sees = R.vsrSees || {}; // ranking uses net sales per selling day vs own baseline; only visibility is set here
             const seeT = (k, lb) => FD.toggle(sees[k] !== false, v => FD.dx('VISIBILITY_SET', { sees: { [k]: v } }), t('L_COL_SEES') + ': ' + t(lb));
-            const rows = FD.METRICS.map(mt => [mt.label, mt.k]).map(([lb, k]) => h('tr', { style: { opacity: off[k] ? .55 : 1 } },
-              h('td', null, h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !off[k], 'aria-label': t('L_COL_IN_SCORE') + ': ' + t(lb), on: { change: e => setOff(k, !e.target.checked) } }), h('span', null, t(lb)))),
-              h('td', { class: 'n' }, h('div', { class: 'stepper', role: 'group', 'aria-label': t(lb), style: { display: 'inline-flex' } },
-                h('button', { type: 'button', 'aria-label': '−5', disabled: off[k] || w[k] <= 0, on: { click: () => setW(k, w[k] - 5) } }, I('minus')), h('output', { style: { minWidth: '52px' } }, off[k] ? t('L_METRIC_OFF') : FD.fmt.pct(w[k])),
-                h('button', { type: 'button', 'aria-label': '+5', disabled: off[k] || w[k] >= 100, on: { click: () => setW(k, w[k] + 5) } }, I('plus')))),
-              h('td', { class: 'n' }, seeT(k, lb))));
-            const extra = [['L_SEE_RANK', 'rank']].map(([lb, k]) => h('tr', null, h('td', null, t(lb)), h('td', { class: 'n muted' }, '—'), h('td', { class: 'n' }, seeT(k, lb))));
-            return h('div', null, h('div', { class: 'table-wrap' }, h('table', { class: 't' }, h('thead', null, h('tr', null, h('th', null, t('L_COL_IN_SCORE')), h('th', { class: 'n' }, t('L_COL_WEIGHT')), h('th', { class: 'n' }, t('L_COL_SEES')))), h('tbody', null, rows, extra))),
-              h('div', { class: 'row between', style: { marginTop: '10px' } }, FD.chip(t('L_W_TOTAL', { pct: FD.fmt.num(total) }), total === 100 ? 'good' : 'warn'),
-                FD.btn(t('L_RESET'), () => FD.dx('WEIGHTS_SET', { weights: Object.assign({}, FD.DEFAULT_WEIGHTS), off: {} }), 'ghost sm', 'undo')));
+            return h('div', null, FD.PILOT_METRICS.map(mt => [mt.label, mt.k]).concat([['L_SEE_RANK', 'rank']]).map(([lb, k]) => h('div', { class: 'list-row' }, h('span', { class: 'grow' }, t(lb)), h('span', { class: 'small muted' }, t('L_COL_SEES')), seeT(k, lb))));
           })(), { icon: shelf ? 'camera' : 'chart', right: sw, flush: shelf }); })(),
         card(t('L_R_CODES'), t('L_REASONS_NOTE'), S.reasonCodes(), { flush: true, icon: 'message' })),
       card(t('L_AREA_ASSORT'), t('L_AREA_ASSORT_D'), h('div', { class: 'stack s16' }, h('div', { class: 'row wrap' }, h('select', { class: 'select', style: { maxWidth: '280px' }, 'aria-label': t('L_R_MUST'), on: { change: e => { L['rules:mgroup'] = e.target.value; FD.render(); } } },
@@ -7991,6 +7990,10 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
     }
     return FD.metricText(k, value);
   }, meta(k).lowerBetter);
+  // the ranking measure: change in net sales per selling day against the salesman's own baseline
+  S.baseDelta = (m, big) => !m || !m.hasBaseline ? FD.chip(t('L_NO_BASELINE'), 'outline')
+    : h('span', { class: 'delta ' + (Math.abs(m.vsBaseline) < 0.5 ? 'flat' : m.vsBaseline > 0 ? 'up' : 'down') + (big ? ' big' : ''), title: t('L_VS_MY_BASE') },
+      Math.abs(m.vsBaseline) < 0.5 ? null : I(m.vsBaseline > 0 ? 'arrow-up' : 'arrow-down', big ? 's20' : 's14'), FD.fmt.pct(Math.abs(m.vsBaseline)));
   S.leverChip = k => k ? h('span', { class: 'chip lever lv-' + k, title: t(meta(k).info) }, I(meta(k).icon, 's14'), t(meta(k).label)) : null;
 
   // The same primary KPI and four supporting KPIs as the approved deck.
