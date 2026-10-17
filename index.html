@@ -1148,7 +1148,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
  table.t.t-stack td:empty { display:none; }
 }
 .van-head { gap:6px;min-width:0; }
-.van-head b { font-weight:600; }
+.van-head b { font-weight:600;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25; }
 .van-tile .nowrap { overflow:hidden;text-overflow:ellipsis; }
 .drawer-b .glance { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .metric-grid.grid-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
@@ -7361,7 +7361,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
       full ? num('score', t('L_COL_SCORE'), x => x.composite, x => cmp(h('b', null, FD.fmt.num(Math.round(x.composite))), (up(x) && Number.isFinite(x.prev.composite) ? S.comparisonDelta(x.composite, x.prev.composite, v => FD.fmt.num(Math.round(v))) : null))) : null,
       // the five sales metrics, each with its change against the comparison period
       ...FD.PILOT_METRICS.map(mt => Object.assign(num(mt.k, t(SHORT[mt.k] || mt.label), x => x.m.lev[mt.k], x => cmp(h('b', null, FD.metricText(mt.k, x.m.lev[mt.k])), up(x) || mt.k !== 'upsell' ? S.leverDelta(mt.k, x.m.lev[mt.k], x.prev.lev[mt.k]) : null)), { hint: mt.k === 'upsell' && prePilot ? t('L_NO_PRIOR_UPSELL') : null })),
-      { key: 'trend', label: t('L_COL_TREND'), render: x => (x.spark || []).filter(v => v != null).length < 3 ? null : h('span', { title: t(x.trendStep === 1 ? 'L_TREND_DAYS' : 'L_TREND_WEEKS') }, FD.spark(x.spark)) }].filter(Boolean)
+      full && { key: 'trend', label: t('L_COL_TREND'), render: x => (x.spark || []).filter(v => v != null).length < 3 ? null : h('span', { title: t(x.trendStep === 1 ? 'L_TREND_DAYS' : 'L_TREND_WEEKS') }, FD.spark(x.spark)) }].filter(Boolean)
       // nothing synced from SalesBuzz yet today for this salesman: show a dash, not a fake drop
       .map(c => ['rank', 'vsr', 'trend'].includes(c.key) ? c : Object.assign({}, c, { render: x => x.partial && !x.m.genuine ? h('span', { class: 'small muted', title: t('L_NO_VISITS_YET') }, '—') : c.render(x) })); };
 
