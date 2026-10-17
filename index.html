@@ -5296,7 +5296,7 @@ button.list-row > .grow { text-align:start; }
     L_METRICS_DAY: E('Latest day', 'آخر يوم'), L_FIVE_METRICS: E('The five sales metrics', 'مقاييس المبيعات الخمسة'),
     L_TREND_DAYS: E('Net sales per selling day, last 8 selling days', 'صافي المبيعات لكل يوم بيع، آخر ٨ أيام بيع'),
     L_TREND_WEEKS: E('Net sales per selling day, last 8 weeks', 'صافي المبيعات لكل يوم بيع، آخر ٨ أسابيع'),
-    I_TEAM: E('Pilot KPIs use the deck definitions. Rank and score are illustrative operational diagnostics with draft weights, not the pilot success measure. The trend line is Upsell Sales at Existing Stores.', 'تستخدم مؤشرات التجربة تعريفات العرض. الترتيب والدرجة أدوات تشغيلية توضيحية بأوزان مبدئية وليسا مقياس نجاح التجربة. يعرض خط الاتجاه مبيعات البيع الإضافي في المحلات الحالية.'),
+    I_TEAM: E('Ordered by the change in net sales per selling day against each salesman’s own baseline. Small figures show the change against the comparison period. The trend line is net sales per selling day.', 'مرتبة حسب التغير في صافي المبيعات لكل يوم بيع مقارنة بخط أساس كل مندوب. الأرقام الصغيرة تبين التغير مقارنة بفترة المقارنة. خط الاتجاه هو صافي المبيعات لكل يوم بيع.'),
     L_G_AVG: E('Average Sale Value', 'متوسط قيمة البيع'),
     Q_CUE_VISITS: E('You are making fewer visits a day than usual. Start on time and follow the plan order to fit every stop in.', 'زياراتك اليومية أقل من المعتاد. ابدأ في الوقت وتابع ترتيب الخطة لتغطي كل المحطات.'),
     Q_CUE_UPSELL: E('Upsell sales are below target. At every stop, offer the top card first: it is a product the store already sells.', 'مبيعات البيع الإضافي أقل من الهدف. في كل محطة اعرض البطاقة الأولى أولاً: إنه منتج يبيعه المحل أصلاً.'),
@@ -6374,9 +6374,10 @@ button.list-row > .grow { text-align:start; }
     const moveTxt = rank.move > 0 ? t('L_MOVE_UP', { n: FD.fmt.num(rank.move) }) : rank.move < 0 ? t('L_MOVE_DOWN', { n: FD.fmt.num(-rank.move) }) : t('L_MOVE_SAME');
     const off = s.rules.metricsOff || {};
     // the same five metrics the supervisor sees, against his own level before recommendations
-    const scoringRows = FD.METRICS.filter(mt => sees[mt.k] !== false && !off[mt.k]);
     const rows = FD.PILOT_METRICS.filter(mt => mt.k === 'primary' || sees[mt.k] !== false && !off[mt.k]);
-    const weakest = scoringRows.length ? scoringRows.slice().sort((a, b2) => m.score[a.k] - m.score[b2.k])[0].k : 'upsell';
+    // coaching cue: the pilot driver that moved worst against his own baseline (returns: lower is better)
+    const drift = k => !m.base[k] ? null : (k === 'returns' ? -1 : 1) * (m.lev[k] - m.base[k]) / m.base[k];
+    const weakest = ['visits', 'withSale', 'avgSale', 'returns'].filter(k => sees[k] !== false && drift(k) != null).sort((a, b2) => drift(a) - drift(b2))[0] || 'avgSale';
     const cue = { visits: ['Q_CUE_VISITS', {}], withSale: ['Q_CUE_PVR', {}], avgSale: ['Q_CUE_DROP', {}], upsell: ['Q_CUE_UPSELL', {}], returns: ['Q_CUE_XSELL', { unit: unitText(FD.SKUS[0].code, 1) }] }[weakest];
     const filt = L['vsr:upsFilter'] || 'ALL';
     const ups = s.recs.filter(x => x.vsr === vsr.id && SOLD.includes(x.outcome)).filter(x => filt === 'ALL' || x.maturity === filt).sort((a, b2) => b2.date.localeCompare(a.date));
@@ -6391,7 +6392,7 @@ button.list-row > .grow { text-align:start; }
       h('section', { class: 'v-section' }, h('h3', null, t('L_MY_SCORE')),
         h('div', { class: 'v-card' }, h('div', { class: 'row', style: { padding: '16px', gap: '16px' } },
           h('div', { class: 'stack', style: { gap: '4px', maxWidth: '45%' } }, FD.sup.baseDelta(m, true), h('span', { class: 'small muted' }, t('L_VS_MY_BASE'))),
-          h('div', { class: 'grow stack s8' }, sees.rank ? h('b', { style: { fontSize: '18px' } }, tx('Q_RANK', { rank: rank.rank, n: s.world.vsrs.filter(x => x.kind === 'sales').length, move: moveTxt })) : null, FD.spark(spark, 160, 34))),
+          h('div', { class: 'grow stack s8' }, sees.rank && m.hasBaseline ? h('b', { style: { fontSize: '18px' } }, tx('Q_RANK', { rank: rank.rank, n: s.world.vsrs.filter(x => x.kind === 'sales').length, move: moveTxt })) : null, FD.spark(spark, 160, 34))),
           h('div', { style: { borderTop: '1px solid var(--line)' } }, rows.map(mt => h('div', { class: 'metric-row' }, h('span', null, t(mt.label)), h('b', { class: 'tabular' }, FD.metricText(mt.k, m.lev[mt.k])), mt.k === 'upsell' ? h('span', { class: 'small muted' }, t('L_TARGET_V', { money: FD.fmt.money0(m.target.upsell) })) : FD.sup.leverDelta(mt.k, m.lev[mt.k], m.base[mt.k])))),
           h('div', { class: 'tipbox', style: { margin: '0 14px 14px' } }, I('bulb', 's16'), h('span', null, tx(cue[0], cue[1]))))),
       h('section', { class: 'v-section' }, h('h3', null, t('L_TIPS_RECEIVED')), tips.length ? h('div', { class: 'v-card' }, tips.slice(0, 10).map(x => h('button', { type: 'button', class: 'list-row click', style: { width: '100%', textAlign: 'start' }, on: { click: () => V.tipSheet(x.id) } },
@@ -7076,7 +7077,7 @@ button.list-row > .grow { text-align:start; }
     return h('div', { class: 'stack s16' },
       h('div', { class: 'row', style: { gap: '14px' } }, FD.avatar(v, 'lg'), h('div', { class: 'grow' }, h('div', { class: 'small muted' }, FD.routeArea(s.world.routes.find(x => x.id === v.route)))), // the drawer title already names the salesman
         rank ? S.baseDelta(rank.m, true) : FD.chip(t(v.kind === 'collection' ? 'ST_COLLECTION' : 'ST_NO_ACTIVITY'), 'outline'),
-        rank ? h('div', { style: { textAlign: 'center' } }, h('span', { class: 'rank r' + rank.rank, style: { width: '36px', height: '36px', fontSize: '15px' } }, '#' + FD.fmt.num(rank.rank))) : null),
+        rank && rank.m.hasBaseline ? h('div', { style: { textAlign: 'center' } }, h('span', { class: 'rank r' + rank.rank, style: { width: '36px', height: '36px', fontSize: '15px' } }, '#' + FD.fmt.num(rank.rank))) : null),
       rank && rank.context.length ? h('div', { class: 'row wrap' }, rank.context.map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null,
       h('div', { class: 'row wrap' }, FD.btn(t('L_MESSAGE'), () => FD.threadSheet({ type: 'vsr', id: vsrId }, 'SUP'), 'secondary sm', 'message'),
         h('button', { type: 'button', class: 'btn ghost sm', 'aria-haspopup': 'menu', on: { click: e => FD.menu(e.currentTarget, [
@@ -7382,7 +7383,7 @@ button.list-row > .grow { text-align:start; }
   const SHORT = { primary: 'MT_PRIMARY', visits: 'MT_VISITS', withSale: 'MT_WITHSALE', avgSale: 'MT_AVGSALE', returns: 'MT_RETURNS' };
   S.teamColumns = (full, rowsPartial, prePilot = false) => { const up = x => !x.prePilot; const num = (key, label, get, render) => ({ key, label, num: true, sort: (a, b) => get(a) - get(b), render });
     return [
-      { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => h('div', { class: 'row', style: { gap: '4px' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null) },
+      { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => !x.m.hasBaseline ? null : h('div', { class: 'row', style: { gap: '4px' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null) },
       { key: 'vsr', label: t('L_COL_VSR'), sort: (a, b) => FD.nameOf(vsrOf(a.vsr)).localeCompare(FD.nameOf(vsrOf(b.vsr))), render: x => h('div', null, who(vsrOf(x.vsr)), full && x.context.length ? h('div', { class: 'row wrap', style: { marginTop: '4px', gap: '4px' } }, x.context.slice(0, 2).map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null) },
       full ? num('score', t('L_COL_VS_BASE'), x => x.m.hasBaseline ? x.m.vsBaseline : -Infinity, x => S.baseDelta(x.m)) : null,
       // the five sales metrics, each with its change against the comparison period
@@ -7397,7 +7398,7 @@ button.list-row > .grow { text-align:start; }
     const columns = S.teamColumns(full, rows[0]?.partial, rows[0]?.prePilot);
     const metricColumn = S.teamColumns(true, rows[0]?.partial, rows[0]?.prePilot).find(c => c.key === metric);
     const compact = [
-      { key: 'rank', label: t('L_COL_RANK'), width: '34px', nosort: true, render: x => h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)) },
+      { key: 'rank', label: t('L_COL_RANK'), width: '34px', nosort: true, render: x => x.m.hasBaseline ? h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)) : null }, // no baseline: unranked
       { key: 'vsr', label: t('L_COL_VSR'), nosort: true, render: x => h('div', { class: 'team-person' }, h('b', null, FD.nameOf(vsrOf(x.vsr))), h('span', { class: 'small muted' }, FD.routeArea(st().world.routes.find(r => r.id === vsrOf(x.vsr).route)))) },
       { key: 'score', label: t('L_COL_VS_BASE'), width: '64px', num: true, nosort: true, render: x => S.baseDelta(x.m) },
       Object.assign({}, metricColumn, { label: t('L_PILOT_VALUE'), hint: null, width: '96px' })
