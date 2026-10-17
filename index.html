@@ -974,10 +974,46 @@ summary { cursor:pointer;min-height:44px;align-content:center; }
 /* Labels and sort indicators stay aligned as one header. Periods are explicit subtitles. */
 table.t th { vertical-align:middle; }
 .th-content { display:inline-flex;align-items:center;gap:6px;max-width:100%;vertical-align:middle;text-align:start; }
-:is([data-table="teamFull"],[data-table="homeRank"]) table.t :is(th,td):not(:nth-child(2)) { text-align:center; }
-:is([data-table="teamFull"],[data-table="homeRank"]) th:not(:nth-child(2)) .th-content { justify-content:center;text-align:center; }
-:is([data-table="teamFull"],[data-table="homeRank"]) td:not(:nth-child(2)) .cmp { justify-items:center; }
-:is([data-table="teamFull"],[data-table="homeRank"]) td:not(:nth-child(2))>.row { justify-content:center; }
+.team-comparison table.t :is(th,td):not(:nth-child(2)) { text-align:center; }
+.team-comparison th:not(:nth-child(2)) .th-content { justify-content:center;text-align:center; }
+.team-comparison td:not(:nth-child(2)) .cmp { justify-items:center; }
+.team-comparison td:not(:nth-child(2))>.row { justify-content:center; }
+.team-compact { display:none; }
+.team-metric-control { display:flex;align-items:center;gap:8px;padding:0 12px 10px; }
+.team-metric-control .select { height:34px;min-width:0;max-width:190px;font-size:12px; }
+.team-person { display:flex;flex-direction:column;gap:3px;min-width:0; }
+.team-person b { font-size:12px;line-height:1.4;font-weight:500;overflow-wrap:anywhere; }
+.team-person .small { font-size:10px; }
+.store-summary { display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap; }
+.store-owner { display:flex;flex:1 1 100px;flex-direction:column;gap:3px;min-width:0; }
+.store-owner b { font-size:13px;font-weight:500; }
+.store-actions { display:flex;align-items:center;gap:4px; }
+.store-actions .btn { min-height:32px;padding-inline:8px; }
+.store-details { font-size:12px;color:var(--ink-3); }
+.store-details>summary,.capture-options>summary,.capture-saved>summary { cursor:pointer;width:fit-content; }
+.store-details .kv { margin-block:8px 0;color:var(--ink); }
+.store-sections { gap:8px; }
+.store-sections button { padding-inline:8px;font-size:13px; }
+.delta.has-baseline { display:inline-grid;grid-template-columns:auto auto;justify-content:center;column-gap:2px;row-gap:2px;white-space:normal; }
+.delta-baseline { grid-column:1/-1;font-size:11px;font-weight:400;color:var(--ink-3);line-height:1.35; }
+.pg-capture>p { margin:0; }
+.capture-options,.capture-saved { font-size:12px;color:var(--ink-3); }
+.capture-options[open]>.stack,.capture-saved[open]>.stack { margin-block-start:12px; }
+.capture-options p { margin:0; }
+.capture-reference { display:flex;align-items:center;gap:12px; }
+.capture-reference .photo-open { width:72px;flex-shrink:0; }
+.capture-reference .photo-open img { width:72px;height:54px;object-fit:cover;border-radius:6px; }
+@media(max-width:768px) {
+ .team-wide { display:none; }
+ .team-compact { display:block; }
+ .team-compact table.t { table-layout:fixed;min-width:0;width:100%;font-size:12px; }
+ .team-compact table.t :is(th,td) { padding:10px 6px;min-width:0;white-space:normal; }
+ .team-compact table.t .th-content { gap:3px; }
+ .team-compact table.t .sort { width:10px; }
+ .team-compact .th-label { font-size:11px; }
+ .team-compact .rank { width:22px;height:22px;font-size:11px; }
+ .team-compact .cmp-d,.team-compact .delta,.team-compact .delta-baseline { font-size:10px; }
+}
 .th-copy { display:inline-flex;flex-direction:column;min-width:0;gap:2px; }
 .th-label { white-space:normal;line-height:1.35;max-inline-size:13rem; }
 .th-hint { font-size:11px;font-weight:400;white-space:nowrap; }
@@ -4752,6 +4788,13 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   const FD = globalThis.FD;
   const E = (en, ar) => ({ en, ar });
   Object.assign(FD.CATALOG, {
+    L_COMPARE_METRIC:E('Compare','مقارنة'), L_CHOOSE_METRIC:E('Choose a sales metric','اختر مقياس المبيعات'),
+    MT_VISITS:E('Visits/day','زيارات/يوم'), MT_WITHSALE:E('Visits with a sale','زيارات ببيع'),
+    MT_AVGSALE:E('Average sale','متوسط البيع'), MT_UPSELL:E('Upsell sales','بيع إضافي'), MT_RETURNS:E('Returns','المرتجعات'),
+    L_STORE_DETAILS:E('Store details','تفاصيل المحل'),
+    PG_PHOTO_OPTIONS:E('Photo tips and options','نصائح التصوير وخياراته'),
+    PG_CAPTURE_HINT:E('Face the full display straight on. Keep packs and prices clear.','صوّر منطقة العرض كاملة من الأمام مع إظهار العبوات والأسعار بوضوح.'),
+    PG_MATCH_ANGLE:E('Match this angle for the after photo.','التقط الصورة بعد الترتيب من الزاوية نفسها.'),
     L_CHANGE_INCREASE:E('Increase','زيادة'), L_CHANGE_DECREASE:E('Decrease','انخفاض'),
     L_NO_PRIOR_UPSELL:E('No earlier comparison','لا توجد مقارنة سابقة'),
     L_SHELF_SHOWING:E('{n} of {m} products','{n} من {m} منتجاً'),
@@ -6122,7 +6165,8 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
  const phaseLabel=p=>t('PG_'+p);
  const current=(store,visitId)=>FD.pgAssessments(st(),store).find(a=>a.date===st().clock.date&&a.visitId===(visitId||null));
  FD.pgCaptureSheet=({store,visitId,assessmentId,phase='BEFORE'})=>{
-  let id=assessmentId||current(store,visitId)?.id,fixture='display',busy=false,status='',pending=[],failures=[];
+  let id=assessmentId||current(store,visitId)?.id,fixture='display',busy=false,status='',pending=[],failures=[],optionsOpen=false;
+  if(id&&phase==='AFTER')fixture=FD.pgPhotos(st(),id).filter(p=>p.phase==='BEFORE').at(-1)?.fixtureId||'display';
   const save=async files=>{
    if(busy)return;const capturedPhase=phase,capturedFixture=fixture.trim()||'display';busy=true;status=t('PG_SAVING');FD.sheet.redraw();
    const result=await FD.pgReadPhotos(files);failures=result.failed.slice();pending=result.savedInputs.map(p=>({...p,phase:capturedPhase,fixtureId:capturedFixture}));
@@ -6137,13 +6181,19 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   };
   FD.sheet.open({title:t('PG_TAKE'),render:()=>{
    const input=h('input',{id:'pg-files',type:'file',accept:'image/*',multiple:true,capture:'environment',hidden:true,on:{change:e=>save(e.target.files)}});
-   return h('div',{class:'stack s16'},h('p',null,t('PG_GUIDE')),h('p',{class:'small muted'},t('PG_TIPS')),
+   const photos=id?FD.pgPhotos(st(),id):[],before=photos.filter(p=>p.phase==='BEFORE'&&p.fixtureId===fixture).at(-1);
+   const reference=phase==='AFTER'&&before&&!photos.some(p=>p.phase==='AFTER'&&p.fixtureId===fixture);
+   return h('div',{class:'stack s12 pg-capture'},
     FD.seg(['BEFORE','AFTER','CONTEXT'].map(p=>({id:p,label:phaseLabel(p)})),phase,v=>{phase=v;FD.sheet.redraw();}),
-    phase!=='CONTEXT'?h('label',{class:'field'},h('span',null,t('PG_DISPLAY_LABEL')),h('input',{class:'input',value:fixture==='display'?t('PG_DISPLAY'):fixture,'data-focus':'pg-fixture',disabled:busy,on:{input:e=>{fixture=e.target.value;}}}),h('small',{class:'muted'},t('PG_DISPLAY_HINT'))):null,
+    h('p',{class:'small muted'},t('PG_CAPTURE_HINT')),
+    reference?h('div',{class:'capture-reference'},FD.photoButton({src:before.src,label:t('PG_BEFORE')}),h('span',{class:'small muted'},t('PG_MATCH_ANGLE'))):null,
     input,h('button',{class:'btn primary block',type:'button',disabled:busy,on:{click:()=>input.click()}},t('PG_ADD')),
     h('div',{role:'status','aria-live':'polite',class:'small'},status,failures.length?h('ul',null,failures.map(name=>h('li',null,name))):null),
-    id?FD.pgEvidence(id):null,
-    id&&phase!=='CONTEXT'?h('div',{class:'stack s8'},FD.btn(t('PG_NO_CHANGE'),()=>{FD.dx('PG_OUTCOME_SET',{id,fixtureId:fixture.trim()||'display',outcome:'UNCHANGED'});FD.sheet.redraw();},'secondary'),FD.btn(t('PG_CHANGED'),()=>{FD.dx('PG_OUTCOME_SET',{id,fixtureId:fixture.trim()||'display',outcome:'CHANGED'});FD.sheet.redraw();},'secondary')):null);
+    h('details',{class:'capture-options',open:optionsOpen,on:{toggle:e=>{optionsOpen=e.currentTarget.open;}}},h('summary',null,t('PG_PHOTO_OPTIONS')),
+      h('div',{class:'stack s8'},h('p',{class:'small muted'},t('PG_GUIDE')),h('p',{class:'small muted'},t('PG_TIPS')),
+        phase!=='CONTEXT'?h('label',{class:'field'},h('span',null,t('PG_DISPLAY_LABEL')),h('input',{class:'input',value:fixture==='display'?t('PG_DISPLAY'):fixture,'data-focus':'pg-fixture',disabled:busy,on:{input:e=>{fixture=e.target.value;}}}),h('small',{class:'muted'},t('PG_DISPLAY_HINT'))):null,
+        id&&phase!=='CONTEXT'?h('div',{class:'row wrap'},FD.btn(t('PG_NO_CHANGE'),()=>{FD.dx('PG_OUTCOME_SET',{id,fixtureId:fixture.trim()||'display',outcome:'UNCHANGED'});FD.sheet.redraw();},'secondary sm'),FD.btn(t('PG_CHANGED'),()=>{FD.dx('PG_OUTCOME_SET',{id,fixtureId:fixture.trim()||'display',outcome:'CHANGED'});FD.sheet.redraw();},'secondary sm')):null)),
+    id?h('details',{class:'capture-saved'},h('summary',null,t('PG_PHOTOS_COUNT',{n:FD.fmt.num(photos.length)})),FD.pgEvidence(id)):null);
   },footer:()=>[FD.btn(t('L_DONE'),()=>FD.sheet.close(),'secondary block')]});
  };
  FD.pgEvidence=id=>{
@@ -6233,7 +6283,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
         h('header', { class: 'topbar' },
           h('div', { class: 'tb-title' }, view.back ? FD.iconBtn('arrow-left', t('L_BACK'), view.back) : null, h('div', null, h('h1', r.page==='stores'?{'aria-live':'polite'}:null, view.title), h('div', { class: 'date' }, FD.fmt.dateLong(today()) + ' · ' + (FD.liveData(s) ? t('L_UPDATED', { time: FD.fmt.time(s.clock.time.slice(0, 3) + '00') }) : tx('L_DATA_UPTO', { date: FD.dataDay(s) }))))),
           h('div', { class: 'spacer' }), S.search(),
-          h('div', { class: 'filters', style: { flexBasis: '100%' } }, supSel, routeSel, r.page === 'today' || r.page === 'home' ? null : periodSeg, custom, view.bar ? h('button', { type: 'button', class: 'btn secondary sm filters-btn', on: { click: () => S.filtersSheet(view) } }, I('filter', 's16'), t('L_FILTERS')) : null),
+          r.page === 'stores' && r.id ? null : h('div', { class: 'filters', style: { flexBasis: '100%' } }, supSel, routeSel, r.page === 'today' || r.page === 'home' ? null : periodSeg, custom, view.bar ? h('button', { type: 'button', class: 'btn secondary sm filters-btn', on: { click: () => S.filtersSheet(view) } }, I('filter', 's16'), t('L_FILTERS')) : null),
           view.bar ? h('div', { class: 'page-bar' }, view.bar()) : null),
         h('main', { class: 'page' + (view.full ? ' page-full' : ''), id: 'sup-page' }, view.body)),
       h('nav', { class: 'mobile-nav', 'aria-label': 'Main' }, NAV.slice(0, 4).map(([id, icon, label]) => h('a', { href: '#/sup/' + id, class: r.page === id ? 'on' : '', 'aria-current': r.page === id ? 'page' : null }, I(icon), t(label), badge(id) ? h('span', { class: 'mn-dot' }, FD.fmt.num(badge(id))) : null)),
@@ -6370,7 +6420,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const s = st(); const { from, to } = S.range();
     const kpis = S.leverStrip({ ids: S.vsrs().map(v => v.id), from, to, prev: from === to ? { from: FD.prevSellingDay(from), to: FD.prevSellingDay(from) } : FD.prevRange(from, to) });
     const rank = FD.teamCompare(s, from, to).filter(x => !S.f.route || vsrOf(x.vsr).route === S.f.route);
-    const team = card(t('L_P_TEAM'), null, FD.table({ id: 'homeRank', rows: rank, onRow: x => S.vsrDrawer(x.vsr), columns: S.teamColumns(false, rank[0] && rank[0].partial, rank[0] && rank[0].prePilot) }),
+    const team = card(t('L_P_TEAM'), null, S.teamTable('homeRank', rank, false),
       { flush: true, icon: 'users', info: t('I_TEAM'), link: ['L_OPEN_TEAM', '#/sup/team'] });
     const whyKind = L['sup:whyKind'] || 'NOT_SOLD';
     const rb = FD.reasonBreakdown(s, { kind: whyKind, from, to, route: S.f.route || null }).filter(g => g.count > 0 || g.group !== 'R_OTHER');
@@ -6794,7 +6844,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const recs = s.recs.filter(r => r.store === storeId && r.outcome && r.date <= today()).sort((a, b) => b.date.localeCompare(a.date));
     const photos = recs.filter(r => r.photo);
     const storeMsgs = s.threads.flatMap(x => x.messages.filter(m => m.store === storeId).map(m => ({ m, th: x })));
-    const tabs = h('div', { class: 'tabs', style: { padding: 0 } }, [['overview', 'L_OVERVIEW'], ['whatsapp', 'L_WHATSAPP'], ['products', 'L_NAV_SKUS'], ['timeline', 'L_TIMELINE'], ['recs', 'L_RECS'], ['planogram', 'PG_TAB']].map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['store:tab'] = id; refresh(); } } }, t(lb))));
+    const tabs = h('div', { class: 'tabs store-sections', style: { padding: 0 } }, [['overview', 'L_OVERVIEW'], ['planogram', 'PG_TAB'], ['recs', 'L_RECS'], ['products', 'L_NAV_SKUS'], ['timeline', 'L_TIMELINE'], ['whatsapp', 'L_WHATSAPP']].map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['store:tab'] = id; refresh(); } } }, t(lb))));
     let body;
     if (tab === 'overview') {
       const pending = s.corrections.filter(c => c.store === storeId && c.status === 'PENDING');
@@ -6838,15 +6888,23 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
           h('span', { class: 'fu-ic' }, I('message', 's16')), h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'small muted' }, (m.by === 'SUP' ? t('L_YOU') : FD.nameOf(vsrOf(m.by))) + ' · ' + FD.fmt.date(m.at.date) + (m.sku ? ' · ' + FD.nameOf(FD.sku(m.sku)) : '')),
             h('div', { class: 'ellipsis', dir: 'auto' }, m.text || t('L_ATTACHMENT')))))) : h('div', { class: 'card' }, FD.empty('X_THREAD', null, 'message')));
     }
-    return h('div', { class: 'stack s16' },
-      h('div', { class: 'row wrap', style: { gap: '6px' } }, FD.chip(t('LBL_' + store.label), 'info'), FD.chip([FD.sizeIcon(store.size), t('SIZE_' + store.size)]), store.tags.map(x => FD.chip(t('TAGN_' + x.slice(4)), 'outline')),
-        store.credit !== 'OK' ? FD.creditChip(store.credit, true) : null, store.onboarding !== 'APPROVED' ? FD.chip(t('GATE_ONBOARD'), 'warn') : null),
-      h('dl', { class: 'kv' }, h('dt', null, t('L_COL_VSR')), h('dd', null, FD.nameOf(vsrOf(store.vsr)), s.sbPending.some(p => p.store === storeId) ? ' ' : null, s.sbPending.some(p => p.store === storeId) ? FD.chip(t('L_PENDING_SB'), 'warn') : null), h('dt', null, t('L_ROUTE')), h('dd', null, FD.nameOf(s.world.routes.find(r => r.id === store.route))), h('dt', null, t('L_COL_ID')), h('dd', { class: 'mono' }, store.id)),
-      h('div', { class: 'row wrap' }, FD.btn(t('L_EDIT'), () => S.storeEditSheet(storeId), 'secondary sm', 'edit'), FD.btn(t('L_MESSAGE'), () => FD.threadSheet({ type: 'store', id: storeId }, 'SUP'), 'secondary sm', 'message'),
-        FD.btn(t('L_WHATSAPP'), () => { L['store:tab'] = 'whatsapp'; refresh(); }, 'secondary sm', 'message'),
-        FD.btn(t('L_REASSIGN'), () => S.storeAssignSheet(storeId), 'secondary sm', 'user-switch'),
-        !blocked ? FD.btn(t('L_BLOCK_STORE'), () => S.confirm(tx('L_BLOCK_STORE_Q', { storeId }), () => { FD.dx('BLOCK_ADD', { store: storeId }); FD.toast('S_BLOCKED', { vsrId: store.vsr }); }), 'danger sm', 'ban') : null,
-        null),
+    return h('div', { class: 'stack s12' },
+      h('div', { class: 'store-summary' },
+        h('div', { class: 'store-owner' }, h('b', null, FD.nameOf(vsrOf(store.vsr))), h('span', { class: 'small muted' }, store.route + ' · ' + t('LBL_' + store.label))),
+        h('div', { class: 'store-actions' }, FD.btn(t('L_MESSAGE'), () => FD.threadSheet({ type: 'store', id: storeId }, 'SUP'), 'secondary sm', 'message'),
+          h('button', { type: 'button', class: 'btn ghost sm store-more', 'aria-haspopup': 'menu', on: { click: e => FD.menu(e.currentTarget, [
+            { icon: 'edit', label: t('L_EDIT'), onClick: () => S.storeEditSheet(storeId) },
+            { icon: 'user-switch', label: t('L_REASSIGN'), onClick: () => S.storeAssignSheet(storeId) },
+            blocked ? { icon: 'check', label: t('L_UNBLOCK'), onClick: () => FD.dx('BLOCK_REMOVE', { blockId: blocked.id }) } :
+              { icon: 'ban', label: t('L_BLOCK_STORE'), danger: true, onClick: () => S.confirm(tx('L_BLOCK_STORE_Q', { storeId }), () => { FD.dx('BLOCK_ADD', { store: storeId }); FD.toast('S_BLOCKED', { vsrId: store.vsr }); }) }
+          ]) } }, I('more', 's16'), t('L_MORE')))),
+      store.credit !== 'OK' || store.onboarding !== 'APPROVED' || s.sbPending.some(p => p.store === storeId) ? h('div', { class: 'row wrap', style: { gap: '6px' } },
+        store.credit !== 'OK' ? FD.creditChip(store.credit, true) : null,
+        store.onboarding !== 'APPROVED' ? FD.chip(t('GATE_ONBOARD'), 'warn') : null,
+        s.sbPending.some(p => p.store === storeId) ? FD.chip(t('L_PENDING_SB'), 'warn') : null) : null,
+      h('details', { class: 'store-details' }, h('summary', null, t('L_STORE_DETAILS')),
+        h('div', { class: 'row wrap', style: { gap: '6px', marginBlock: '8px' } }, FD.chip([FD.sizeIcon(store.size), t('SIZE_' + store.size)]), store.tags.map(x => FD.chip(t('TAGN_' + x.slice(4)), 'outline'))),
+        h('dl', { class: 'kv' }, h('dt', null, t('L_COL_VSR')), h('dd', null, FD.nameOf(vsrOf(store.vsr))), h('dt', null, t('L_ROUTE')), h('dd', null, FD.nameOf(s.world.routes.find(r => r.id === store.route))), h('dt', null, t('L_COL_ID')), h('dd', { class: 'mono' }, store.id))),
       tabs, body);
   };
   S.storeDrawer = (storeId, focusSku, push) => FD.drawer.open({ title: () => FD.nameOf(storeOf(storeId)), expand: '#/sup/stores/' + storeId, render: () => S.storeContent(storeId, focusSku, false) }, { push });
@@ -7004,12 +7062,32 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       // nothing synced from SalesBuzz yet today for this salesman: show a dash, not a fake drop
       .map(c => ['rank', 'vsr', 'trend'].includes(c.key) ? c : Object.assign({}, c, { render: x => x.partial && !x.m.genuine ? h('span', { class: 'small muted', title: t('L_NO_VISITS_YET') }, '—') : c.render(x) })); };
 
+  S.teamTable = (id, rows, full) => {
+    const metric = FD.METRIC_KEYS.includes(L['team:metric']) ? L['team:metric'] : 'upsell';
+    const labels = { visits: 'MT_VISITS', withSale: 'MT_WITHSALE', avgSale: 'MT_AVGSALE', upsell: 'MT_UPSELL', returns: 'MT_RETURNS' };
+    const columns = S.teamColumns(full, rows[0]?.partial, rows[0]?.prePilot);
+    const metricColumn = S.teamColumns(true, rows[0]?.partial, rows[0]?.prePilot).find(c => c.key === metric);
+    const compact = [
+      { key: 'rank', label: t('L_COL_RANK'), width: '34px', nosort: true, render: x => h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)) },
+      { key: 'vsr', label: t('L_COL_VSR'), nosort: true, render: x => h('div', { class: 'team-person' }, h('b', null, FD.nameOf(vsrOf(x.vsr))), h('span', { class: 'small muted' }, vsrOf(x.vsr).route)) },
+      { key: 'score', label: t('L_COL_SCORE'), width: '44px', num: true, nosort: true, render: x => x.partial && !x.m.genuine ? '—' : h('b', null, FD.fmt.num(Math.round(x.composite))) },
+      Object.assign({}, metricColumn, { label: t(labels[metric]), hint: null, width: '96px' })
+    ];
+    const onRow = x => S.vsrDrawer(x.vsr);
+    return h('div', { class: 'team-comparison' },
+      h('div', { class: 'team-wide' }, FD.table({ id, rows, onRow, defaultSort: null, columns })),
+      h('div', { class: 'team-compact' },
+        h('label', { class: 'team-metric-control' }, h('span', { class: 'small muted' }, t('L_COMPARE_METRIC')),
+          FD.select(FD.METRICS.map(m => ({ id: m.k, label: t(labels[m.k]) })), metric, value => { L['team:metric'] = value; FD.render(); }, { 'aria-label': t('L_CHOOSE_METRIC'), 'data-focus': 'team-metric:' + id })),
+        FD.table({ id: id + 'Compact', rows, onRow, defaultSort: null, columns: compact })));
+  };
+
   // ================= TEAM =================
   FD.registerView('sup', 'team', r => {
     if (r.id) { const v = vsrOf(r.id); if (v) return { title: FD.nameOf(v), back: () => FD.go('#/sup/team'), body: [h('div', { class: 'card', style: { padding: '20px' } }, S.vsrContent(v.id, true))] }; }
     const s = st(); const { from, to } = S.range();
     const rows = FD.teamCompare(s, from, to).filter(x => !S.f.route || vsrOf(x.vsr).route === S.f.route);
-    const table = FD.table({ id: 'teamFull', rows, onRow: x => S.vsrDrawer(x.vsr), defaultSort: null, columns: S.teamColumns(true, rows[0] && rows[0].partial, rows[0] && rows[0].prePilot) });
+    const table = S.teamTable('teamFull', rows, true);
     const p = rows[0] && rows[0].prevRange;
     return { title: t('L_NAV_TEAM'), body: [card(t('L_P_TEAM'), null, h('div', null, table, p ? h('div', { class: 'small muted', style: { padding: '10px 16px' } }, (rows[0].partial ? t('L_CMP_TODAY', { date: FD.fmt.date(p.to), time: FD.fmt.time(s.clock.time) }) : t(rows[0].prePilot ? 'L_CMP_NOTE_PRE' : 'L_CMP_NOTE', { date: FD.fmt.date(p.from), label: FD.fmt.date(p.to) }))) : null), { flush: true, icon: 'users', info: t('I_TEAM') }),
       FD.coachDrafts(s).length ? card(t('L_TIP_DRAFTS'), null, h('div', null, FD.coachDrafts(s).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route).slice(0, 12).map(S.draftRow)), { flush: true, icon: 'bulb' }) : null] };
@@ -7597,11 +7675,18 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     if (d == null) return h('span', { class: 'delta flat', title: context, 'aria-label': context || null }, '—');
     const flat = Math.abs(d) < 0.5, good = lowerBetter ? d < 0 : d > 0;
     const text = FD.fmt.pct(flat ? 0 : Math.abs(d));
-    return h('span', { class: 'delta ' + (flat ? 'flat' : good ? 'up' : 'down'), title: context,
+    return h('span', { class: 'delta ' + (flat ? 'flat' : good ? 'up' : 'down') + (Math.abs(d) >= 1000 ? ' has-baseline' : ''), title: context,
       'aria-label': (flat ? '' : t(d > 0 ? 'L_CHANGE_INCREASE' : 'L_CHANGE_DECREASE') + ' ') + text + (context ? ', ' + context : '') },
-      flat ? null : I(d > 0 ? 'arrow-up' : 'arrow-down', 's14'), text);
+      flat ? null : I(d > 0 ? 'arrow-up' : 'arrow-down', 's14'), text,
+      Math.abs(d) >= 1000 ? h('span', { class: 'delta-baseline' }, context) : null);
   };
-  S.leverDelta = (k, now, before) => S.comparisonDelta(now, before, value => FD.metricText(k, value), meta(k).lowerBetter);
+  S.leverDelta = (k, now, before) => S.comparisonDelta(now, before, value => {
+    if (value !== 0 && Math.abs(value) < 1) {
+      if (k === 'upsell' || k === 'avgSale') return FD.fmt.money(value);
+      if (k === 'withSale' || k === 'returns') return FD.fmt.num(value, 2) + (FD.lang === 'ar' ? '٪' : '%');
+    }
+    return FD.metricText(k, value);
+  }, meta(k).lowerBetter);
   S.leverChip = k => k ? h('span', { class: 'chip lever lv-' + k, title: t(meta(k).info) }, I(meta(k).icon, 's14'), t(meta(k).label)) : null;
 
   // one row of tiles: net sales (the result) and the five metrics, each opening its panel
