@@ -1078,7 +1078,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
 .sc-score { display:flex;flex-direction:column; }
 .sc-score b { font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2; }
 .sc-areas { display:grid;gap:6px; }
-.sc-area { display:grid;grid-template-columns:minmax(96px,auto) 1fr 32px;gap:10px;align-items:center;font-size:13px; }
+.sc-area { display:grid;grid-template-columns:112px 1fr 28px;gap:10px;align-items:center;font-size:13px; }
 .sc-meter { height:6px;border-radius:999px;background:var(--line);overflow:hidden; }
 .sc-meter i { display:block;height:100%;background:var(--brand);border-radius:inherit; }
 .sc-photos { display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:12px; }
@@ -1122,6 +1122,46 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
 .sc-thumbs { display:flex;gap:6px; }
 .sc-thumbs img { width:48px;height:48px;object-fit:cover;border-radius:8px; }
 .sc-chips { gap:6px; }
+/* Disclosures: one chevron style everywhere instead of the browser triangle */
+details:not(.rc-grp)>summary { list-style:none;display:inline-flex;align-items:center;gap:8px; }
+details:not(.rc-grp)>summary::-webkit-details-marker { display:none; }
+details:not(.rc-grp)>summary::after { content:'';flex:none;width:6px;height:6px;margin-block-start:-3px;border-inline-end:1.5px solid currentColor;border-block-end:1.5px solid currentColor;transform:rotate(45deg);transition:transform .15s var(--ease); }
+details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-block-start:3px; }
+@media (prefers-reduced-motion:reduce) { details>summary::after { transition:none; } }
+/* Segments never clip their last option; they scroll inside their own box */
+.seg { max-width:100%;overflow-x:auto;scrollbar-width:none; }
+.seg::-webkit-scrollbar { display:none; }
+.seg button { flex:none; }
+@media (max-width:768px) {
+ /* live alerts sit above the bottom navigation instead of over titles and drawers */
+ .live-stack { top:auto;bottom:calc(76px + env(safe-area-inset-bottom));inset-inline:12px;width:auto; }
+ /* wide tables become label/value cards */
+ .table-wrap:has(> table.t-stack) { overflow-x:visible; }
+ table.t.t-stack, table.t.t-stack tbody { display:block;width:100%;min-width:0; }
+ table.t.t-stack thead { display:none; }
+ table.t.t-stack tr { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;padding:12px 14px;border-block-end:1px solid var(--line); }
+ table.t.t-stack td { display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:0;border:0;min-width:0;text-align:start;white-space:normal; }
+ table.t.t-stack td.n { text-align:start; }
+ table.t.t-stack td::before { content:attr(data-label);font-size:11px;font-weight:500;color:var(--ink-3); }
+ table.t.t-stack td:first-child { grid-column:1 / -1; }
+ table.t.t-stack td:first-child::before, table.t.t-stack td[data-label=""]::before { display:none; }
+ table.t.t-stack td:empty { display:none; }
+}
+.van-head { gap:6px;min-width:0; }
+.van-head b { font-weight:600; }
+.van-tile .nowrap { overflow:hidden;text-overflow:ellipsis; }
+.drawer-b .glance { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.metric-grid.grid-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+@media (max-width:768px) { .store-sections button { flex:1 1 0;padding-inline:4px;font-size:13px;white-space:nowrap; } }
+.sc-panel p { margin:0; }
+.sc-panel { gap:14px; }
+.sc-finding .btn.ghost { align-self:flex-start;padding-inline:0; }
+.sc-outcomes { gap:6px;flex-wrap:wrap; }
+.sc-out { display:inline-flex;align-items:center;gap:4px;white-space:nowrap; }
+.sc-visit { padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--paper); }
+.sc-visit .row b:last-child { font-variant-numeric:tabular-nums; }
+.card-h > .grow { flex:1 1 200px;min-width:0; } /* the title keeps room; a switch or button wraps below it */
+.grid-eq:has(.empty) { align-items:start; }
 </style>
 </head>
 <body>
@@ -3524,6 +3564,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
     { k: 'returns', label: 'M_RETURNS', info: 'MI_RETURNS', icon: 'undo', lowerBetter: true }];
   FD.METRIC_KEYS = FD.METRICS.map(x => x.k);
   // Approved pilot contract. Upsell value remains an operational diagnostic, outside the four supporting KPIs.
+  FD.routeArea = r => !r ? '' : FD.nameOf(r).split(' · ').pop(); // route names lead with an internal code
   FD.PILOT_METRICS = [{ k: 'primary', label: 'M_PRIMARY', info: 'MI_PRIMARY', formula: 'MF_PRIMARY', icon: 'chart' },
     ...FD.METRICS.filter(m => m.k !== 'upsell').map((m, i) => ({...m, number: i + 1, formula: 'MF_' + m.k.toUpperCase()}))];
   FD.PILOT_ADOPTION = [
@@ -4302,7 +4343,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
   SC_DO_FIND_WRONG_AREA:E('Ask the owner to move them to the food shelf.','اطلب من صاحب المحل نقلها إلى رف المواد الغذائية.'),SC_DO_FIND_HIDDEN:E('Move what is blocking our packs.','أزح ما يحجب عبواتنا.'),SC_DO_FIND_FACING:E('Turn the packs to face forward.','أدر العبوات لتكون واجهتها للأمام.'),SC_DO_FIND_MIXED:E('Put each flavour together.','اجمع كل نكهة معاً.'),
   SC_DO_COND_DAMAGED_PACK:E('Remove the damaged pack and report it.','أزل العبوة التالفة وأبلغ عنها.'),SC_DO_COND_CARTON:E('Replace the carton or fold a new display tray.','استبدل الكرتون أو جهّز صينية عرض جديدة.'),SC_DO_COND_ROTATION:E('Move older stock to the front.','قدّم البضاعة الأقدم إلى الأمام.'),
   SC_CLASS_FIX:E('Fix now','أصلحه الآن'),SC_CLASS_ASK:E('Ask owner','اسأل صاحب المحل'),
-  SC_OUT_DONE:E('Done','تم'),SC_OUT_PARTLY_DONE:E('Partly done','تم جزئياً'),SC_OUT_NOT_IN_VAN:E('Not in van','غير متوفر في السيارة'),SC_OUT_OWNER_NO:E('Owner said no','رفض صاحب المحل'),SC_OUT_NEED_HELP:E('Need help','أحتاج مساعدة'),SC_OUT_OWNER_YES:E('Owner agreed','وافق صاحب المحل'),SC_OUT_OWNER_AWAY:E('Owner not there','صاحب المحل غير موجود'),
+  SC_OUT_DONE:E('Done','تم'),SC_OUT_PARTLY_DONE:E('Partly done','تم جزئياً'),SC_OUT_NOT_IN_VAN:E('Not in van','غير متوفر في السيارة'),SC_OUT_OWNER_NO:E('Owner said no','رفض صاحب المحل'),SC_OUT_NEED_HELP:E('Need help','أحتاج مساعدة'),SC_OUT_OWNER_YES:E('Owner agreed','وافق صاحب المحل'),SC_OUT_OWNER_AWAY:E('Owner not there','صاحب المحل غير موجود'),SC_OUT_CANT:E("Couldn't do",'تعذّر التنفيذ'),
   SC_ST_OPEN:E('To do','مطلوب'),SC_ST_WAIT:E('Waiting for After photo','بانتظار صورة بعد'),SC_ST_FIXED:E('Fixed','تم الإصلاح'),SC_ST_PARTLY_FIXED:E('Partly fixed','تم إصلاحه جزئياً'),SC_ST_STILL:E('Still there','ما زال موجوداً'),SC_ST_CANT_CHECK:E("Couldn't check",'تعذّر التحقق'),SC_ST_NEW:E('New','جديد'),
   SC_PHOTO_OK:E('Photo OK','الصورة واضحة'),SC_PHOTO_PARTLY:E('Part of the shelf is not clear','جزء من الرف غير واضح'),SC_PHOTO_RETAKE:E('Retake the photo','أعد التقاط الصورة'),SC_PHOTO_NOT_SHELF:E("This photo doesn't show a cake or cookie display",'هذه الصورة لا تُظهر عرض كيك أو بسكويت'),SC_PHOTO_NONE:E("Shelf Check isn't available for this photo",'فحص الرف غير متاح لهذه الصورة'),
   SC_WHY_BLUR:E('Hold the phone steady.','ثبّت الهاتف.'),SC_WHY_DARK:E('Find better light.','اختر إضاءة أفضل.'),SC_WHY_GLARE:E('Change the angle to avoid glare.','غيّر الزاوية لتجنب الانعكاس.'),SC_WHY_CUT_OFF:E('Include the whole display.','أظهر منطقة العرض كاملة.'),SC_WHY_TOO_FAR:E('Move closer.','اقترب أكثر.'),SC_WHY_BLOCKED:E('Clear the view of the display.','أزل ما يحجب منطقة العرض.'),
@@ -4389,7 +4430,8 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
  // Seed: field photos already placed at stores become that visit's Before check; same-display groups supply real After photos.
  FD.scSeed=st=>{
   if(!FD.SHELF_RESULTS)return;const P=st.planogram||(st.planogram={assessments:[],columnPrefs:{}}),by=new Map();
-  const last={};for(const p of st.photos.filter(p=>p.seeded))if(!last[p.store]||p.date>last[p.store])last[p.store]=p.date;
+  const visited=new Set(st.visits.filter(v=>v.status==='DONE').map(v=>v.store+'|'+v.date)),last={}; // a check needs a real visit
+  for(const p of st.photos.filter(p=>p.seeded&&visited.has(p.store+'|'+p.date)))if(!last[p.store]||p.date>last[p.store])last[p.store]=p.date;
   for(const p of st.photos.filter(p=>p.seeded&&p.date===last[p.store]&&FD.scUsable(FD.scResult(p.ref)))){const k=p.store+'|'+p.date;if(!by.has(k))by.set(k,[]);by.get(k).push(p);}
   let n=0;
   for(const ps of by.values()){const f=ps[0],id='SC'+(++n);
@@ -4398,7 +4440,9 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
    const partner=((FD.SHELF_RESULTS.groups||[]).find(g=>g[0]===f.ref)||[])[1];
    if(partner!=null&&!ps.some(p=>p.ref===partner)){const ph={id:id+'-after',src:FD.PHOTOS[partner],store:f.store,vsr:f.vsr,date:f.date,time:f.time,assessmentId:id,phase:'AFTER',ref:partner,seeded:true};st.photos.push(ph);P.assessments.at(-1).photoIds.push(ph.id);}
    const a=P.assessments.at(-1),s=FD.scSummary(st,id);
-   s.findings.forEach((x,k)=>{const o=FD.SC_OUTCOMES[x.cls];a.actions[x.check]=x.cls==='ASK'?o[(n+k)%o.length]:['DONE','DONE','DONE','DONE','PARTLY_DONE','DONE','NOT_IN_VAN','DONE','DONE','OWNER_NO','DONE','NEED_HELP'][(n+k)%12];});}
+   // outcomes agree with what the After photo shows
+   s.findings.forEach((x,k)=>{a.actions[x.check]=x.cls==='ASK'?(x.status==='FIXED'?'OWNER_YES':x.status==='STILL'?'OWNER_NO':FD.SC_OUTCOMES.ASK[(n+k)%3])
+    :x.status==='FIXED'?'DONE':x.status==='PARTLY_FIXED'?'PARTLY_DONE':x.status==='STILL'?['NOT_IN_VAN','OWNER_NO','NEED_HELP'][(n+k)%3]:['DONE','DONE','DONE','PARTLY_DONE','DONE','NOT_IN_VAN','DONE','NEED_HELP'][(n+k)%8];});}
  };
 })();
 
@@ -4794,9 +4838,9 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
     }));
     const body = data.length ? data.map(r => h('tr', { class: (onRow ? 'click ' : '') + (rowClass ? rowClass(r) : ''), tabindex: onRow ? '0' : null,
       on: onRow ? { click: e => { if (!e.target.closest('button, a, input, select')) onRow(r); }, keydown: e => { if (e.key === 'Enter' && e.target.tagName === 'TR') onRow(r); } } : null },
-      columns.map(c => h('td', { class: c.num ? 'n' : '' }, c.render ? c.render(r) : r[c.key]))))
+      columns.map(c => h('td', { class: c.num ? 'n' : '', 'data-label': typeof c.label === 'string' ? c.label : '' }, c.render ? c.render(r) : r[c.key]))))
       : h('tr', null, h('td', { colspan: columns.length }, FD.empty(empty)));
-    const wrap = h('div', { class: 'table-wrap', dataset: { table: id } }, h('table', { class: 't' }, h('thead', null, head), h('tbody', null, body)));
+    const wrap = h('div', { class: 'table-wrap', dataset: { table: id } }, h('table', { class: 't' + (columns.length > 4 ? ' t-stack' : '') }, h('thead', null, head), h('tbody', null, body))); // t-stack: rows become label/value cards on phones
     wrap._args = arguments[0];
     return wrap;
   };
@@ -4836,7 +4880,8 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
   };
   // Line chart: s0 solid brand, s1 dashed muted (e.g. before-pilot average). Crosshair + tooltip.
   FD.line = (series, labels, opts = {}) => {
-    const W = 600, H = opts.h || 200, L = 44, R = 12, T = 12, B = 26;
+    // drawing width follows the screen so axis text stays ~12px instead of scaling with the card
+    const vw = typeof innerWidth === 'number' ? innerWidth : 600, W = opts.fit ? Math.max(320, Math.min(1320, vw - (vw > 768 ? 200 : 64))) : 600, H = opts.h || 200, L = 44, R = 12, T = 12, B = 26;
     const all = series.flatMap(s => s.values).filter(v => v != null);
     const max = Math.max(1, ...all) * 1.1, min = 0;
     const X = i => L + (i / Math.max(1, labels.length - 1)) * (W - L - R), Y = v => T + (1 - (v - min) / (max - min)) * (H - T - B);
@@ -4933,7 +4978,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
   Object.assign(FD.CATALOG, {
     L_COMPARE_METRIC:E('Compare','مقارنة'), L_CHOOSE_METRIC:E('Choose a sales metric','اختر مقياس المبيعات'),
     MT_VISITS:E('Visits/day','زيارات/يوم'), MT_WITHSALE:E('Visits with a sale','زيارات ببيع'),
-    MT_AVGSALE:E('Average sale','متوسط البيع'), MT_UPSELL:E('Upsell sales','بيع إضافي'), MT_RETURNS:E('Returns','المرتجعات'),
+    MT_AVGSALE:E('Average sale','متوسط البيع'), MT_UPSELL:E('Upsell sales','بيع إضافي'), MT_PRIMARY:E('Net sales / day','صافي المبيعات/يوم'), MT_RETURNS:E('Returns','المرتجعات'),
     L_STORE_DETAILS:E('Store details','تفاصيل المحل'),
     PG_PHOTO_OPTIONS:E('Photo tips and options','نصائح التصوير وخياراته'),
     PG_CAPTURE_HINT:E('Face the full display straight on. Keep packs and prices clear.','صوّر منطقة العرض كاملة من الأمام مع إظهار العبوات والأسعار بوضوح.'),
@@ -5173,7 +5218,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
     L_FOL_EXPL: E('Net sales change since recommendations started, for this salesman\'s stores that took recommendations compared with his other stores.', 'تغير صافي المبيعات منذ بدء التوصيات، لمحلات المندوب التي أخذت التوصيات مقارنة بمحلاته الأخرى.'),
     K_I_NET: E('Sales minus returns for visited stores, compared with the average day before recommendations started.', 'المبيعات ناقص المرتجعات للمحلات التي تمت زيارتها، مقارنة بمتوسط اليوم قبل بدء التوصيات.'),
     L_NEW_SINCE_PILOT: E('New since recommendations', 'جديد منذ بدء التوصيات'), L_COL_NET_VS: E('Net sales vs before recommendations', 'صافي المبيعات مقارنة بما قبل التوصيات'),
-    L_CMP_NOTE_PRE: E('Small figures compare with {date} to {label}, before recommendations started. Upsell figures start with recommendations.', 'الأرقام الصغيرة تقارن بالفترة من {date} إلى {label} قبل بدء التوصيات. أرقام البيع الإضافي تبدأ مع التوصيات.'),
+    L_CMP_NOTE_PRE: E('Small figures compare with {date} to {label}, before recommendations started.', 'الأرقام الصغيرة تقارن بالفترة من {date} إلى {label} قبل بدء التوصيات.'),
     L_PILOT: E('With recommendations', 'مع التوصيات'), L_P_PILOT: E('Since 22 Sep', 'منذ ٢٢ سبتمبر'), L_BASE_AVG: E('Average before recommendations', 'المتوسط قبل التوصيات'),
     L_UPSELL_VALUE_YOU: E('Your upsell value', 'قيمة مبيعاتك الإضافية'),
     // SalesBuzz no-sale codes in our own fixed words (the extract has typos such as "Payment  of depts")
@@ -5275,11 +5320,12 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
     MF_AVGSALE: E('Sales value ÷ visits with sale', 'قيمة المبيعات ÷ الزيارات ببيع'),
     MF_RETURNS: E('Return value ÷ sales value', 'قيمة المرتجعات ÷ قيمة المبيعات'),
     L_PILOT_MEASURES: E('Pilot metrics & adoption', 'مؤشرات التجربة والاستخدام'),
-    L_PILOT_KPIS: E('Primary Success KPI & 4 Supporting KPIs', 'مؤشر النجاح الرئيسي و٤ مؤشرات داعمة'),
+    L_PILOT_KPIS: E('Sales metrics', 'مقاييس المبيعات'),
+    L_NO_STORE_ORDERS: E('No orders from this store in the last 4 weeks', 'لا توجد طلبات من هذا المحل خلال آخر ٤ أسابيع'),
+    L_PITCH_EACH: E('Store sells it at {price} SAR each', 'يبيعه المحل بسعر {price} ريال للقطعة'),
     L_PILOT_ADOPTION: E('Field Adoption Metrics & Support Needed', 'مقاييس الاستخدام الميداني والدعم المطلوب'),
     L_PILOT_TARGETS_NOTE: E('Pilot targets, not measured results. This mockup does not yet calculate these adoption rates.', 'أهداف للتجربة وليست نتائج مقاسة. لا يحسب النموذج هذه النسب حتى الآن.'),
     L_PILOT_SUPERVISOR: E('SUPERVISOR USAGE', 'استخدام المشرف'), L_PILOT_SALESMAN: E('SALESMAN USAGE', 'استخدام المندوب'),
-    L_PILOT_DIAGNOSTIC: E('Upsell Sales at Existing Stores is an additional diagnostic. The illustrative score and its draft targets do not define pilot success.', 'مبيعات البيع الإضافي في المحلات الحالية مقياس تشخيصي إضافي. الدرجة التوضيحية وأهدافها المبدئية لا تحددان نجاح التجربة.'),
     L_PILOT_DENOMINATOR: E('Definition to confirm: the mockup counts one visit per store per day and uses days with a completed visit as selling days. Credit and relief-coverage exclusions need agreement.', 'تعريف يحتاج اعتمادًا: يحسب النموذج زيارة واحدة لكل محل يوميًا ويعتبر أيام البيع هي الأيام بزيارة مكتملة. تحتاج استثناءات الائتمان والتغطية البديلة إلى اتفاق.'),
     L_PILOT_COHORTS: E('Pilot and control route groups are not configured in this mockup. Finance evaluation after mature returns remains a launch requirement.', 'لم تُحدد مجموعتا مسارات التجربة والمقارنة في النموذج. يظل تقييم المالية بعد اكتمال فترة المرتجعات من متطلبات الإطلاق.'),
     L_PILOT_DELIVERY: E('This mockup demonstrates workflows using local demo state. Daily data feeds, official invoicing and printing are not connected.', 'يعرض النموذج سير العمل ببيانات توضيحية محلية. تغذيات البيانات اليومية والفوترة الرسمية والطباعة غير متصلة.'),
@@ -5512,7 +5558,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
   const seenAt = (th, who, vsr) => (who === 'SUP' ? th.seenSup : th.team ? (th.seenVsrs || {})[vsr] : th.seenVsr) || '';
   FD.chatSnippet = (m, who, vsr) => (isMine(m, who, vsr) ? t('L_YOU') + ': ' : '') + (m.text || ((m.files || []).length || m.photo ? t('L_ATTACHMENT') : ''));
   FD.chatTitle = (a, who) => a.type === 'team' ? t('L_WHOLE_TEAM') : who === 'SUP' ? nameBy(a.id) : FD.nameOf(st().world.supervisor);
-  FD.chatSub = (a, who) => a.type === 'team' ? t('L_TEAM_SUB', { n: FD.fmt.num(st().world.vsrs.length) }) : who === 'SUP' ? FD.nameOf(st().world.routes.find(r => r.id === (st().world.vsrs.find(v => v.id === a.id) || {}).route)) : t('L_SUPERVISOR');
+  FD.chatSub = (a, who) => a.type === 'team' ? t('L_TEAM_SUB', { n: FD.fmt.num(st().world.vsrs.length) }) : who === 'SUP' ? FD.routeArea(st().world.routes.find(r => r.id === (st().world.vsrs.find(v => v.id === a.id) || {}).route)) : t('L_SUPERVISOR');
   FD.chatIcon = a => a.type === 'team' ? 'megaphone' : 'user';
 
   // where a Message button points: the salesman's conversation, pre-filtered and pre-tagged with its store / product
@@ -5760,7 +5806,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
   };
 
   // ---------- shared bits ----------
-  V.area = route => FD.nameOf(route).split(' · ').pop(); // route names lead with an internal code
+  V.area = FD.routeArea;
   V.statusChip = v => {
     const m = { PLANNED: ['L_STATUS_PLANNED', ''], ARRIVED: ['L_STATUS_ARRIVED', 'info'], DONE: ['L_STATUS_DONE', 'good'], SKIPPED: ['L_STATUS_SKIPPED', ''] }[v.status] || ['L_STATUS_PLANNED', ''];
     return FD.chip(t(v.moved && v.status === 'PLANNED' ? 'L_STATUS_MOVED' : m[0]), m[1]);
@@ -6119,7 +6165,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
       h('div', { class: 'pitch', role: 'group', 'aria-label': tx('C_PITCH', { cost, rev, earn }) },
         h('div', null, h('span', null, t('L_PITCH_COST')), h('b', null, money(cost))), h('div', null, h('span', null, t('L_PITCH_SELLS')), h('b', null, money(rev))),
         h('div', { class: 'earn' }, h('span', null, t('L_PITCH_EARN')), h('b', null, money(promoEarn ?? earn)))),
-      h('div', { class: 'small muted', style: { marginTop: '6px', textAlign: 'center' } }, tx('C_PITCH_PC', { price: sku.street, pcs: sku.pcs, unitOf: sku.code })),
+      h('div', { class: 'small muted', style: { marginTop: '6px', textAlign: 'center' } }, sku.pcs > 1 ? tx('C_PITCH_PC', { price: sku.street, pcs: sku.pcs, unitOf: sku.code }) : t('L_PITCH_EACH', { price: FD.fmt.num(sku.street, 2) })),
       promo ? h('div', { class: 'banner warn', style: { marginTop: '10px', fontSize: '13px' } }, I('tag', 's16'), h('span', null, tx('B_PROMO', { promoId: promo.promoId, date: promo.end }) + (promoEarn != null ? ' ' + tx('C_PITCH_PROMO', { earn: promoEarn }) : ''))) : null,
       h('div', { class: 'qty-row' }, h('div', { class: 'grow' }, h('div', { class: 'small muted' }, t('L_QTY')), h('div', { style: { fontWeight: 600 } }, rec.type === 'GAP' ? t('C_FIRST_FILL', { unit: unitText(rec.sku, 1) }) : tx('C_QTY', { qty: q, unitOf: rec.sku, pcs: q * sku.pcs }))),
         null), // quantity is only a hint: the order is placed in SalesBuzz (R2-f)
@@ -6324,7 +6370,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
       h('section', { class: 'v-section' }, h('h3', null, t('L_MY_SCORE')),
         h('div', { class: 'v-card' }, h('div', { class: 'row', style: { padding: '16px', gap: '16px' } },
           h('div', { class: 'score-ring' }, FD.ring(m.composite), h('b', null, FD.fmt.num(Math.round(m.composite)))),
-          h('div', { class: 'grow stack s8' }, sees.rank ? h('b', { style: { fontSize: '18px' } }, tx('Q_RANK', { rank: rank.rank, n: s.world.vsrs.filter(x => x.kind === 'sales').length, move: moveTxt })) : null, FD.spark(spark, 160, 34), h('div', { class: 'small muted' }, t('L_PILOT_DIAGNOSTIC')))),
+          h('div', { class: 'grow stack s8' }, sees.rank ? h('b', { style: { fontSize: '18px' } }, tx('Q_RANK', { rank: rank.rank, n: s.world.vsrs.filter(x => x.kind === 'sales').length, move: moveTxt })) : null, FD.spark(spark, 160, 34))),
           h('div', { style: { borderTop: '1px solid var(--line)' } }, rows.map(mt => h('div', { class: 'metric-row' }, h('span', null, t(mt.label)), h('b', { class: 'tabular' }, FD.metricText(mt.k, m.lev[mt.k])), mt.k === 'upsell' ? h('span', { class: 'small muted' }, t('L_TARGET_V', { money: FD.fmt.money0(m.target.upsell) })) : FD.sup.leverDelta(mt.k, m.lev[mt.k], m.base[mt.k])))),
           h('div', { class: 'tipbox', style: { margin: '0 14px 14px' } }, I('bulb', 's16'), h('span', null, tx(cue[0], cue[1]))))),
       h('section', { class: 'v-section' }, h('h3', null, t('L_TIPS_RECEIVED')), tips.length ? h('div', { class: 'v-card' }, tips.slice(0, 10).map(x => h('button', { type: 'button', class: 'list-row click', style: { width: '100%', textAlign: 'start' }, on: { click: () => V.tipSheet(x.id) } },
@@ -6361,8 +6407,8 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
  const current=(store,visitId)=>FD.pgAssessments(st(),store).find(a=>a.date===st().clock.date&&a.visitId===(visitId||null));
  const TONE={FIXED:'good',PARTLY_FIXED:'warn',STILL:'bad',NEW:'bad',WAIT:'info',OPEN:'',CANT_CHECK:''};
  const BRAND={LUSINE:'BR_LUSINE',SEVEN_DAYS:'BR_SEVEN_DAYS',SWITZ:'BR_SWITZ',SABAHOO:'BR_SABAHOO',ALMARAI:'BR_ALMARAI',SUNBULAH:'BR_SUNBULAH',AL_KABEER:'BR_AL_KABEER',OTHER:'BR_OTHER'};
- const pts=v=>t('SC_OF_100',{n:FD.fmt.num(v,1)});
- const signed=v=>(v>0?'+':v<0?'−':'')+FD.fmt.num(Math.abs(v),1);
+ const pts=v=>t('SC_OF_100',{n:FD.fmt.num(Math.round(v))});
+ const signed=v=>(v>0?'+':v<0?'−':'')+FD.fmt.num(Math.round(Math.abs(v)));
  const boxStyle=b=>({top:b[0]/10+'%',left:b[1]/10+'%',width:(b[3]-b[1])/10+'%',height:(b[2]-b[0])/10+'%'});
  FD.scScoreText=s=>s&&s.final?pts(s.score):s&&s.none?t('SC_NO_OURS'):'—';
  // Lists show the score as a chip, like other statuses in the app.
@@ -6385,9 +6431,14 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
    pending?h('p',{class:'small muted'},t('SC_PENDING')):null,none?h('p',{class:'small muted'},t('SC_NO_OURS')):null):null;
   const cur=S.current,areas=cur?h('div',{class:'sc-areas'},FD.SC_AREAS.map(a=>{const v=cur.areas[a.id].score;
    return h('div',{class:'sc-area'},h('span',null,t('SC_AREA_'+a.id)),h('span',{class:'sc-meter'},h('i',{style:{width:(v==null?0:v)+'%'}})),h('span',{class:'small tabular'},v==null?'—':FD.fmt.num(v,0)));})):null;
-  const outcomes=f=>f.status==='NEW'?null:h('div',{class:'row wrap sc-outcomes'},FD.chip(t('SC_CLASS_'+f.cls),'outline'),
-   editable?FD.SC_OUTCOMES[f.cls].map(o=>h('button',{type:'button',class:'sc-out'+(f.outcome===o?' on':''),'aria-pressed':String(f.outcome===o),
-     on:{click:()=>{FD.dx('SC_ACTION_SET',{id,check:f.check,outcome:f.outcome===o?null:o});redraw();}}},t('SC_OUT_'+o))):f.outcome?FD.chip(t('SC_OUT_'+f.outcome)):null);
+  // One row of choices: the likely answers first; for a fix, the three "couldn't" reasons sit behind one button.
+  const set=(f,o)=>{FD.dx('SC_ACTION_SET',{id,check:f.check,outcome:f.outcome===o?null:o});redraw();};
+  const choice=(f,o)=>h('button',{type:'button',class:'sc-out'+(f.outcome===o?' on':''),'aria-pressed':String(f.outcome===o),on:{click:()=>set(f,o)}},t('SC_OUT_'+o));
+  const CANT=['NOT_IN_VAN','OWNER_NO','NEED_HELP'];
+  const outcomes=f=>f.status==='NEW'?null:!editable?(f.outcome?h('div',{class:'row'},FD.chip(t('SC_OUT_'+f.outcome),['NOT_IN_VAN','OWNER_NO','NEED_HELP','OWNER_AWAY'].includes(f.outcome)?'warn':'')):null)
+   :h('div',{class:'row sc-outcomes'},f.cls==='ASK'?FD.SC_OUTCOMES.ASK.map(o=>choice(f,o)):[choice(f,'DONE'),choice(f,'PARTLY_DONE'),
+    h('button',{type:'button',class:'sc-out'+(CANT.includes(f.outcome)?' on':''),'aria-haspopup':'menu',on:{click:e=>FD.menu(e.currentTarget,CANT.map(o=>({icon:f.outcome===o?'check':null,label:t('SC_OUT_'+o),onClick:()=>set(f,o)})))}},
+     CANT.includes(f.outcome)?t('SC_OUT_'+f.outcome):t('SC_OUT_CANT'),FD.icon('chevron-down','s14'))]);
   const card=f=>{const s=f.status==='OPEN'&&f.outcome==='DONE'?'WAIT':f.status;
    return h('article',{class:'sc-finding'+(f.urgent?' urgent':'')},
     h('div',{class:'row between wrap'},h('span',{class:'row'},h('span',{class:'sc-num'},FD.fmt.num(f.n)),h('b',null,t('SC_CHK_'+f.check))),FD.chip(t('SC_ST_'+s),TONE[s])),
@@ -6402,7 +6453,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
    S.mismatch?h('div',{class:'banner info'},FD.icon('info'),h('span',null,t('SC_NOT_SAME'))):null,
    head,areas,photos,
    S.good?FD.chip(t('SC_GOOD'),'good'):null,
-   main.length?h('section',{class:'stack s8'},h('h4',null,t(role==='VSR'&&editable?'SC_TODO':'SC_ISSUES')),first.map(card),
+   main.length?h('section',{class:'stack s8'},h('h4',null,t(role==='VSR'&&editable&&!S.after?'SC_TODO':'SC_ISSUES')),first.map(card),
     rest.length?(FD.ui.local['sc:more:'+id]?rest.map(card):FD.btn(t('SC_MORE_TODO',{n:FD.fmt.num(rest.length)}),()=>{FD.ui.local['sc:more:'+id]=true;redraw();},'ghost sm')):null):null,
    fresh.length?h('section',{class:'stack s8'},h('h4',null,t('SC_NEW_ISSUES')),fresh.map(card)):null,
    fixes,
@@ -6592,7 +6643,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
     h('div', { class: opts.flush ? '' : 'card-b' }, body),
     opts.link ? h('div', { class: 'card-f' }, h('a', { class: 'btn ghost sm', href: opts.link[1] }, t(opts.link[0]), I('chevron-right', 's16'))) : null);
   S.card = card;
-  const who = v => h('div', { class: 'who' }, FD.avatar(v), h('div', { style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500 } }, FD.nameOf(v)), h('div', { class: 'small muted ellipsis' }, FD.nameOf(st().world.routes.find(r => r.id === v.route)))));
+  const who = v => h('div', { class: 'who' }, FD.avatar(v), h('div', { style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500 } }, FD.nameOf(v)), h('div', { class: 'small muted ellipsis' }, FD.routeArea(st().world.routes.find(r => r.id === v.route)))));
   // store row: type icon + name; route and ID underneath (salesman is implied by the route)
   const storeCell = s => h('div', { class: 'store-cell' }, FD.sizeIcon(s.size), h('div', { style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500, maxWidth: '260px' } }, FD.nameOf(s)),
     h('div', { class: 'small muted nowrap' }, t('LBL_' + s.label) + ' · ' + s.route + ' · ', h('span', { class: 'mono' }, s.id))));
@@ -6668,7 +6719,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
       labels.push(FD.fmt.date(date));values.push(FD.teamLevers(st(),ids,date,last).primary);
     }
     return card(t('L_ANALYTICS_TREND'),FD.fmt.date(from)+' - '+FD.fmt.date(to),
-      FD.line([{name:t('M_PRIMARY'),values}],labels,{h:190,fmt:FD.fmt.money0,label:t('M_PRIMARY')}));
+      FD.line([{name:t('M_PRIMARY'),values}],labels,{h:220,fit:true,fmt:FD.fmt.money0,label:t('M_PRIMARY')}));
   };
 
   // ================= HOME =================
@@ -7115,13 +7166,13 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
       body = S.ownerChat(storeId, refresh);
     } else if (tab === 'products') {
       const rows = FD.storeSkuStats(s, storeId, today());
-      body = h('div', { class: 'stack s16' }, blockedCard(), h('div', { class: 'card' }, FD.table({ id: 'storeSkus' + (full ? 'P' : 'D'), rows, defaultSort: ['u4', 'desc'], empty: 'X_FILTER', columns: [
+      body = h('div', { class: 'stack s16' }, blockedCard(), h('div', { class: 'card' }, FD.table({ id: 'storeSkus' + (full ? 'P' : 'D'), rows, defaultSort: ['u4', 'desc'], empty: 'L_NO_STORE_ORDERS', columns: [
         { key: 'p', label: t('L_COL_PRODUCT'), render: x => h('div', { class: 'row' }, FD.skuLabel(x.code), ba.skus[x.code] ? FD.chip([I('ban', 's14'), t('L_BLOCKED')], 'bad') : null) },
         { key: 'last', label: t('L_COL_LAST'), sort: (a, c) => a.lastDate.localeCompare(c.lastDate), render: x => h('span', { class: 'nowrap' }, FD.fmt.date(x.lastDate) + ' · ' + FD.fmt.num(x.lastQty)) },
         { key: 'u4', label: t('L_COL_UNITS_4W'), num: true, sort: (a, c) => a.units4w - c.units4w, render: x => FD.fmt.num(x.units4w) },
         { key: 'avg', label: t('L_COL_AVG_VISIT'), num: true, sort: (a, c) => a.avgVisit - c.avgVisit, render: x => FD.fmt.num(x.avgVisit, 1) },
         { key: 'cov', label: t('L_COL_COVER'), num: true, sort: (a, c) => (a.cover ?? -1) - (c.cover ?? -1), render: x => x.cover == null ? '—' : x.cover <= 2 ? FD.chip(t('L_REORDER_DUE'), 'warn') : FD.chip(t('L_COVER_DAYS', { days: FD.fmt.num(x.cover) })) }] }),
-        h('div', { class: 'small muted', style: { padding: '8px 12px' } }, t('L_FROM_SB') + ' ' + t('L_COVER_HELP'))));
+        h('div', { class: 'small muted', style: { padding: '8px 12px' } }, t('L_COVER_HELP'))));
     } else if (tab === 'timeline') {
       body = S.timeline(storeId);
     } else if (tab === 'orders') {
@@ -7162,7 +7213,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
     return h('span', { class: 'vo' }, visit ? FD.chip(t('L_VISIT_ON', { date: FD.fmt.date(visit) }), 'info') : null, order ? FD.chip(t('L_ORDER_ON', { date: FD.fmt.date(order) }), order < (visit || '') ? 'warn' : '') : null);
   };
   S.responseCard = function (storeId) {
-    const s = st(); const r = FD.storeResponse(s, storeId);
+    const s = st(); const r = FD.storeResponse(s, storeId); if (!r.offered) return null; // nothing offered yet: no card of zeros
     const cell = (label, val) => h('div', { class: 'card', style: { padding: '10px 12px', boxShadow: 'none' } }, h('div', { class: 'small muted' }, label), h('b', null, val));
     return h('div', { class: 'card', style: { padding: '14px' } }, h('div', { class: 'row between', style: { marginBottom: '10px' } }, h('b', null, t('L_REC_RESPONSE')), S.segChip(r.segment)),
       h('div', { class: 'metric-grid grid-3' }, cell(t('L_COL_ATTEMPTS'), FD.fmt.num(r.offered)), cell(t('L_COL_CONV'), r.offered ? FD.fmt.pct(r.conv) : '—'), cell(t('L_NOT_FOLLOWED_PCT'), FD.fmt.pct(r.notFollowed)),
@@ -7299,14 +7350,15 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
 
   // value with its change against the previous period of the same length underneath
   const cmp = (val, d) => h('div', { class: 'cmp' }, h('div', null, val), d ? h('div', { class: 'cmp-d' }, d) : null);
+  const SHORT = { primary: 'MT_PRIMARY', visits: 'MT_VISITS', withSale: 'MT_WITHSALE', avgSale: 'MT_AVGSALE', returns: 'MT_RETURNS' };
   S.teamColumns = (full, rowsPartial, prePilot = false) => { const up = x => !x.prePilot; const num = (key, label, get, render) => ({ key, label, num: true, sort: (a, b) => get(a) - get(b), render });
     return [
       { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => h('div', { class: 'row', style: { gap: '4px' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null) },
       { key: 'vsr', label: t('L_COL_VSR'), sort: (a, b) => FD.nameOf(vsrOf(a.vsr)).localeCompare(FD.nameOf(vsrOf(b.vsr))), render: x => h('div', null, who(vsrOf(x.vsr)), full && x.context.length ? h('div', { class: 'row wrap', style: { marginTop: '4px', gap: '4px' } }, x.context.slice(0, 2).map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null) },
-      full ? num('score', t('L_COL_SCORE'), x => x.composite, x => cmp(h('b', null, FD.fmt.num(Math.round(x.composite))), S.comparisonDelta(x.composite, up(x) ? x.prev.composite : null, v => FD.fmt.num(Math.round(v))))) : null,
+      full ? num('score', t('L_COL_SCORE'), x => x.composite, x => cmp(h('b', null, FD.fmt.num(Math.round(x.composite))), (up(x) && Number.isFinite(x.prev.composite) ? S.comparisonDelta(x.composite, x.prev.composite, v => FD.fmt.num(Math.round(v))) : null))) : null,
       // the five sales metrics, each with its change against the comparison period
-      ...FD.PILOT_METRICS.map(mt => Object.assign(num(mt.k, t(mt.label), x => x.m.lev[mt.k], x => cmp(h('b', null, FD.metricText(mt.k, x.m.lev[mt.k])), up(x) || mt.k !== 'upsell' ? S.leverDelta(mt.k, x.m.lev[mt.k], x.prev.lev[mt.k]) : null)), { hint: mt.k === 'upsell' && prePilot ? t('L_NO_PRIOR_UPSELL') : null })),
-      { key: 'trend', label: t('L_COL_TREND'), render: x => h('span', { title: t(x.trendStep === 1 ? 'L_TREND_DAYS' : 'L_TREND_WEEKS') }, FD.spark(x.spark)) }].filter(Boolean)
+      ...FD.PILOT_METRICS.map(mt => Object.assign(num(mt.k, t(SHORT[mt.k] || mt.label), x => x.m.lev[mt.k], x => cmp(h('b', null, FD.metricText(mt.k, x.m.lev[mt.k])), up(x) || mt.k !== 'upsell' ? S.leverDelta(mt.k, x.m.lev[mt.k], x.prev.lev[mt.k]) : null)), { hint: mt.k === 'upsell' && prePilot ? t('L_NO_PRIOR_UPSELL') : null })),
+      { key: 'trend', label: t('L_COL_TREND'), render: x => (x.spark || []).filter(v => v != null).length < 3 ? null : h('span', { title: t(x.trendStep === 1 ? 'L_TREND_DAYS' : 'L_TREND_WEEKS') }, FD.spark(x.spark)) }].filter(Boolean)
       // nothing synced from SalesBuzz yet today for this salesman: show a dash, not a fake drop
       .map(c => ['rank', 'vsr', 'trend'].includes(c.key) ? c : Object.assign({}, c, { render: x => x.partial && !x.m.genuine ? h('span', { class: 'small muted', title: t('L_NO_VISITS_YET') }, '—') : c.render(x) })); };
 
@@ -7317,7 +7369,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
     const metricColumn = S.teamColumns(true, rows[0]?.partial, rows[0]?.prePilot).find(c => c.key === metric);
     const compact = [
       { key: 'rank', label: t('L_COL_RANK'), width: '34px', nosort: true, render: x => h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)) },
-      { key: 'vsr', label: t('L_COL_VSR'), nosort: true, render: x => h('div', { class: 'team-person' }, h('b', null, FD.nameOf(vsrOf(x.vsr))), h('span', { class: 'small muted' }, vsrOf(x.vsr).route)) },
+      { key: 'vsr', label: t('L_COL_VSR'), nosort: true, render: x => h('div', { class: 'team-person' }, h('b', null, FD.nameOf(vsrOf(x.vsr))), h('span', { class: 'small muted' }, FD.routeArea(st().world.routes.find(r => r.id === vsrOf(x.vsr).route)))) },
       { key: 'score', label: t('L_COL_SCORE'), width: '44px', num: true, nosort: true, render: x => x.partial && !x.m.genuine ? '—' : h('b', null, FD.fmt.num(Math.round(x.composite))) },
       Object.assign({}, metricColumn, { label: t('L_PILOT_VALUE'), hint: null, width: '96px' })
     ];
@@ -7327,7 +7379,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
       h('div', { class: 'team-compact' },
         h('label', { class: 'team-metric-control' }, h('span', { class: 'small muted' }, t('L_COMPARE_METRIC')),
           FD.select(FD.PILOT_METRICS.map(m => ({ id: m.k, label: t(labels[m.k]) })), metric, value => { L['team:metric'] = value; FD.render(); }, { 'aria-label': t('L_CHOOSE_METRIC'), 'data-focus': 'team-metric:' + id })),
-        h('div', { class: 'small muted team-selected-metric' }, t(labels[metric])), FD.table({ id: id + 'Compact', rows, onRow, defaultSort: null, columns: compact })));
+        FD.table({ id: id + 'Compact', rows, onRow, defaultSort: null, columns: compact })));
   };
 
   // ================= TEAM =================
@@ -7471,7 +7523,6 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
       { key: 'x', label: '', render: b => FD.btn(t('L_UNBLOCK'), () => FD.dx('BLOCK_REMOVE', { blockId: b.id }), 'ghost sm') }] }) : FD.empty('L_NONE_YET', null, 'ban');
     const sec = (id, first) => h('h3', { class: 'sec-h rules-sec' + (first ? ' first' : '') }, t(id));
     return { title: t('L_NAV_RULES'), body: [
-      h('div', { class: 'banner info' }, I('info'), h('span', null, t('O_S3'))),
       sec('L_SEC_RECS', true),
       h('div', { class: 'grid-eq' },
         card(t('L_R_NUMBERS'), null, h('div', null, num('L_R_LAPSED', 'lapsedDays', 7, 60), num('L_R_COOLDOWN', 'cooldownDays', 0, 60), num('L_R_MATURITY', 'maturityDays', 7, 56), num('L_R_MAX', 'maxPerStore', 1, 3), num('L_R_FIRST', 'firstFillMax', 1, 3),
@@ -7545,13 +7596,13 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
     return h('div', { class: 'van-tile' + (sg === 'NO_ACTIVITY' ? ' quiet' : '') + (L['map:sel'] === v.id ? ' sel' : '') },
       h('button', { type: 'button', class: 'van-loc', 'aria-label': t('L_LOCATE') + ' · ' + v.route, title: t('L_LOCATE'), on: { click: () => S.locateVan(v.id) } }, I('map-pin', 's16')),
       h('button', { type: 'button', class: 'van-main', on: { click: () => S.vsrDrawer(v.id, false, 'day') } },
-      h('div', { class: 'row', style: { gap: '6px' } }, h('b', { class: 'tabular' }, v.route), alerts ? h('span', { class: 'badge' }, FD.fmt.num(alerts)) : null),
-      h('div', { class: 'ellipsis', style: { fontWeight: 500 } }, FD.nameOf(v)),
+      // the salesman is the heading; route code is secondary; the badge says what it counts
+      h('div', { class: 'row van-head' }, h('b', { class: 'ellipsis grow' }, FD.nameOf(v)), alerts ? h('span', { class: 'badge', title: t('L_ALERTS') + ' · ' + FD.fmt.num(alerts), 'aria-label': t('L_ALERTS') + ' · ' + FD.fmt.num(alerts) }, FD.fmt.num(alerts)) : null),
+      h('div', { class: 'small muted tabular' }, v.route),
       h('div', { class: 'row', style: { gap: '6px', flexWrap: 'wrap' } }, stageChip(sg), v.kind === 'collection' ? FD.chip(t('ST_COLLECTION'), 'outline') : null),
       sg === 'NO_ACTIVITY' && !p.planned ? null : h('div', { class: 'stack', style: { gap: '4px' } },
-        live ? null : h('div', { class: 'small muted' }, FD.fmt.date(pd)),
         h('div', { class: 'progress' }, h('i', { style: { width: pct + '%' } })),
-        h('div', { class: 'row between small' }, h('span', null, tx('L_STOPS_DONE', { n: p.done, m: p.planned })), p.offPlan ? h('span', { class: 'muted' }, '+' + FD.fmt.num(p.offPlan) + ' ' + t('L_OFF_PLAN')) : null),
+        h('div', { class: 'small nowrap' }, tx('L_STOPS_DONE', { n: p.done, m: p.planned })), p.offPlan ? h('div', { class: 'small muted nowrap' }, '+' + FD.fmt.num(p.offPlan) + ' ' + t('L_OFF_PLAN')) : null,
         money)));
   }
   // locate: the map switches to vans and the chosen van turns red
@@ -8015,7 +8066,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
    h('div',{class:'row between wrap'},h('div',{class:'sc-thumbs'},s.photos.slice(0,4).map(x=>h('img',{src:x.p.src,alt:'',loading:'lazy'}))),FD.btn(t('ACT_PLANOGRAM'),open,'secondary sm')));};
  S.scFull=store=>{
   const all=analysed(store),want=L['store:sc:'+store],a=all.find(x=>x.id===want)||all[0];
-  const back=FD.btn(t('L_OVERVIEW'),()=>{L['store:sc:'+store]=null;refresh();},'ghost sm','arrow-left');
+  const back=FD.btn(t('L_BACK'),()=>{L['store:sc:'+store]=null;refresh();},'ghost sm','arrow-left');
   if(!a)return h('div',{class:'stack s12'},back,h('p',{class:'muted'},t('SC_NONE')));
   const label=x=>FD.fmt.date(x.date)+' · '+FD.nameOf(st().world.vsrs.find(v=>v.id===x.vsr));
   return h('div',{class:'stack s16 pg-view'},h('div',{class:'row between wrap'},back,all.length>1?FD.select(all.map(x=>({id:x.id,label:label(x)})),a.id,v=>{L['store:sc:'+store]=v;refresh();}):h('span',{class:'small muted'},label(a))),
@@ -8037,7 +8088,7 @@ table.t th.n .th-content { justify-content:center;text-align:center; }
    {key:'p',label:t('SC_COL_PHOTOS'),num:true,render:r=>r.photos?t('SC_N_OF_M',{n:FD.fmt.num(r.photosOk),m:FD.fmt.num(r.photos)}):'—'}].filter(Boolean);
   // Phone: name, score, fixes and open issues; the row drawer carries the rest.
   const compact=cols.filter(c=>['v','s','f','o'].includes(c.key)),facts=r=>h('dl',{class:'sc-facts'},cols.filter(c=>c.key!=='v').flatMap(c=>[h('dt',null,c.label),h('dd',null,c.render(r))]));
-  const so=id=>st().world.stores.find(x=>x.id===id),val=x=>x.s.current.final?x.s.current.score:-1;
+  const so=id=>st().world.stores.find(x=>x.id===id),val=x=>x.s.current.final?x.s.current.score:1000; // no score sorts after every score
   const open=r=>FD.drawer.open({title:t('SC_TITLE')+' · '+nm(r.vsr),render:()=>h('div',{class:'stack s12'},facts(r),h('div',{class:'card'},FD.table({id:'scStores',rows:r.stores_,onRow:x=>S.pgOpen(x.a.store,x.a.id),defaultSort:['sc','asc'],columns:[
    {key:'st',label:t('L_COL_STORE'),sort:(x,y)=>FD.nameOf(so(x.a.store)).localeCompare(FD.nameOf(so(y.a.store))),render:x=>h('div',null,h('div',null,FD.nameOf(so(x.a.store))),h('div',{class:'small muted'},FD.fmt.date(x.a.date)))},
    {key:'sc',label:t('SC_SCORE'),num:true,firstDir:'asc',sort:(x,y)=>val(x)-val(y),render:x=>FD.scChip(x.s.current)},
