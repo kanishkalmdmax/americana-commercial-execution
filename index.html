@@ -1166,6 +1166,10 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
 .team-wide table.t th.n { min-width:0; }
 @media (max-width:768px) { .watch-card .list-row { flex-wrap:wrap; } .watch-card .list-row>.grow { flex-basis:100%; } }
 .delta.big { font-size:24px;font-weight:600;display:inline-flex;align-items:center;gap:4px; }
+.ctl-tabs { overflow:visible; } /* the glowing alert counter must not be clipped */
+.tl-kids { margin-block-start:8px;padding-inline-start:10px;border-inline-start:2px solid var(--line);display:grid;gap:2px; }
+.tl-item.nested { padding-block:6px;grid-template-columns:24px 1fr; }
+.tl-item.nested .tl-ic { width:24px;height:24px; }
 </style>
 </head>
 <body>
@@ -4326,7 +4330,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
   PG_PHOTO_LABEL:E('Open shelf photo','فتح صورة الرف'),PG_CAPTURED:E('Photos from {date}','صور بتاريخ {date}'),PG_PREVIOUS:E('Previous photos','الصور السابقة'),
   PG_COACH:E('Send coaching tip','إرسال نصيحة'),PG_REQUEST:E('Request a check','طلب التحقق'),
   PG_ASSORTMENT:E('Store assortment','تشكيلة المحل'),PG_PURCHASED:E('Products purchased','المنتجات المشتراة'),PG_RECURRING:E('Recurring products','المنتجات المتكررة'),PG_GAPS:E('Suggested additions','إضافات مقترحة'),PG_HISTORY_SOURCE:E('From order history, not a shelf stock count','من سجل الطلبات، وليس تعداداً لمخزون الرف'),
-  PG_READ_ONLY:E('Historical visit — view only','زيارة سابقة — للعرض فقط'),
+
   F_PLANOGRAM:E('Shelf Check at {store} needs you','فحص الرف في {store} يحتاجك'),F_PLANOGRAM_C:E('{n} items: not in van, help needed or a damaged pack','{n} بنود: غير متوفر في السيارة أو يحتاج مساعدة أو عبوة تالفة'),ACT_PLANOGRAM:E('Open Shelf Check','فتح فحص الرف'),
   PG_VALUE:E('Compare pack value','مقارنة قيمة العبوات'),PG_VALUE_CHEAPER:E('{n}% lower cost per 100g','تكلفة أقل بنسبة {n}% لكل ١٠٠ غ'),PG_PACK_COST:E('Store pays / pack','تكلفة المحل / عبوة'),PG_100G:E('Store pays / 100g','تكلفة المحل / ١٠٠ غ'),PG_PRICE_BASIS:E('Historical order price, including VAT. Compare the same selling unit.','سعر طلب سابق شامل الضريبة. قارن وحدة البيع نفسها.'),
   PG_COLUMNS:E('Columns','الأعمدة'),PG_SEARCH_PRODUCTS:E('Search products','بحث المنتجات'),PG_BROWSE:E('Browse assortment','تصفح التشكيلة'),PG_ALL_PRODUCTS:E('All products','كل المنتجات'),PG_RESET:E('Clear filters','مسح المرشحات'),PG_PRODUCT_COUNT:E('{n} products','{n} منتجات'),PG_STORE_COUNT:E('Stores · {n}','المحلات · {n}'),PG_SHOWING:E('Showing {n} of {m} stores','عرض {n} من {m} محلاً'),PG_SORT:E('Sort by','ترتيب حسب'),PG_SORT_SALES:E('Highest sales','الأعلى مبيعاً'),PG_SORT_NAME:E('Product name','اسم المنتج'),PG_SORT_RETURNS:E('Highest returns','الأعلى مرتجعات'),PG_SORT_COST:E('Lowest cost per 100g','أقل تكلفة لكل ١٠٠ غ'),
@@ -4356,7 +4360,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
   SC_SEEN:E('Our products seen','منتجاتنا الظاهرة'),SC_NO_OURS:E('None of our products in this photo','لا توجد منتجاتنا في هذه الصورة'),SC_NOT_IN_PHOTO:E('Not in photo','غير ظاهرة في الصورة'),SC_PENDING_SHORT:E('Pending','معلّقة'),
   SC_FAM_CUPCAKE:E('Cupcakes','كب كيك'),SC_FAM_SWISS_ROLL:E('Swiss rolls','سويس رول'),SC_FAM_CAKE_BAR:E('Cake bars','كيك بار'),SC_FAM_SLICE_CAKE:E('Slice cakes','كيك شرائح'),SC_FAM_POUND_CAKE:E('Pound cakes','باوند كيك'),SC_FAM_BUTTER_COOKIES:E('Butter cookies','بسكويت الزبدة'),SC_FAM_CHOCO_COOKIES:E('Choco cookies','بسكويت الشوكولاتة'),SC_FAM_RUSK:E('Rusks','شابورة'),SC_FAM_OTHER_AMERICANA:E('Other Americana products','منتجات أمريكانا أخرى'),
   BR_SEVEN_DAYS:E('7Days','سفن دايز'),BR_SWITZ:E('Switz','سويتز'),BR_ALMARAI:E('Almarai','المراعي'),BR_SUNBULAH:E('Sunbulah','السنبلة'),BR_AL_KABEER:E('Al Kabeer','الكبير'),BR_UNKNOWN:E('Brand not readable','العلامة غير واضحة'),
-  SC_NOT_CORRECT:E('Not correct','غير صحيح'),
+  SC_NOT_CORRECT:E('Not correct','غير صحيح'),SC_SHOW_CLEAR:E('Show {n} stores with no open issues','عرض {n} محلات بلا مشكلات مفتوحة'),
   SC_NONE:E('No Shelf Check yet. Take a Before photo at the next visit.','لا يوجد فحص للرف بعد. التقط صورة قبل في الزيارة القادمة.'),SC_HISTORY:E('Shelf Check history','سجل فحص الرف'),
   SC_SETTINGS:E('Shelf Score weights','أوزان درجة الرف'),SC_SETTINGS_D:E('How much each area counts in the Shelf Score. The total must be 100%. Changes apply to new checks only.','مقدار ما يحتسبه كل جانب في درجة الرف. يجب أن يكون المجموع ١٠٠٪. تُطبق التغييرات على الفحوصات الجديدة فقط.'),
   SC_TOTAL:E('Total {pct}','المجموع {pct}'),SC_RESET:E('Reset to defaults','إعادة الافتراضي'),SC_INSIDE:E('Inside each area, the more important checks count more.','داخل كل جانب، تُحتسب الفحوصات الأهم بوزن أكبر.'),
@@ -7067,7 +7071,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
           h('div', { class: 'grow' }, h('div', { style: { fontWeight: 500 } }, tx(x.tpl + '_T', x.slots)), h('div', { class: 'small muted' }, x.text || tx(x.tpl, x.slots))), h('div', { class: 'small muted' }, FD.fmt.date(x.sentAt.date)), x.read ? FD.chip(t('ST_VIEWED'), 'good') : FD.chip(t('L_UNREAD'))))) : h('div', { class: 'card' }, FD.empty('X_TIPS', null, 'bulb'))));
     }
     return h('div', { class: 'stack s16' },
-      h('div', { class: 'row', style: { gap: '14px' } }, FD.avatar(v, 'lg'), h('div', { class: 'grow' }, full ? null : h('div', { style: { fontWeight: 600, fontSize: '17px' } }, FD.nameOf(v)), h('div', { class: full ? '' : 'small muted' }, FD.nameOf(s.world.routes.find(x => x.id === v.route)))),
+      h('div', { class: 'row', style: { gap: '14px' } }, FD.avatar(v, 'lg'), h('div', { class: 'grow' }, h('div', { class: 'small muted' }, FD.routeArea(s.world.routes.find(x => x.id === v.route)))), // the drawer title already names the salesman
         rank ? S.baseDelta(rank.m, true) : FD.chip(t(v.kind === 'collection' ? 'ST_COLLECTION' : 'ST_NO_ACTIVITY'), 'outline'),
         rank ? h('div', { style: { textAlign: 'center' } }, h('span', { class: 'rank r' + rank.rank, style: { width: '36px', height: '36px', fontSize: '15px' } }, '#' + FD.fmt.num(rank.rank))) : null),
       rank && rank.context.length ? h('div', { class: 'row wrap' }, rank.context.map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null,
@@ -7246,25 +7250,33 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
   S.timeline = function (storeId) {
     const s = st(); const from = FD.addDays(today(), -35); const ev = [];
     s.visits.filter(v => v.store === storeId && v.date >= from && v.date <= today()).forEach(v => ev.push({ d: v.date, tm: v.arrivedAt || '07:00', ic: v.status === 'SKIPPED' ? 'x' : v.revisit ? 'repeat' : 'map-pin', tone: v.status === 'SKIPPED' ? 'warn' : '',
-      text: (v.revisit ? t('L_REVISIT') : t('L_VISIT')) + ' · ' + t('L_STATUS_' + (v.status === 'ARRIVED' ? 'ARRIVED' : v.status)) + (v.skipReason ? ' · ' + t(v.skipReason) : ''), sub: FD.nameOf(vsrOf(v.vsr)) }));
+      text: (v.revisit ? t('L_REVISIT') : t('L_VISIT')) + ' · ' + t('L_STATUS_' + (v.status === 'ARRIVED' ? 'ARRIVED' : v.status)) + (v.skipReason ? ' · ' + t(v.skipReason) : ''), sub: FD.nameOf(vsrOf(v.vsr)), visit: v.status === 'DONE' || v.status === 'ARRIVED' }));
     const days = {}; for (const k of FD.SKUS) for (const o of FD.storeOrders(s, storeId, k.code)) if (o.date >= from && o.date <= today() && o.units > 0) (days[o.date] = days[o.date] || []).push(o);
     Object.entries(days).forEach(([d, os]) => ev.push({ d, tm: '12:00', ic: 'package', tone: 'good', text: t('L_ORDER_LINE', { n: FD.fmt.num(os.length), money: FD.fmt.money0(sum(os, o => o.value)) }), chips: os.slice(0, 6).map(o => FD.skuLabel(o.sku)) }));
     FD.storeRecs(s, storeId).filter(r => r.date >= from && r.outcome && r.outcome !== 'CARRIED').forEach(r => ev.push({ d: r.soldOn || r.date, tm: r.gradedAt || '12:30', ic: FD.SOLD.includes(r.outcome) ? 'check-circle' : r.outcome === 'NOT_OFFERED' ? 'eye-off' : 'x-circle', tone: FD.SOLD.includes(r.outcome) ? 'good' : 'bad',
       sku: r.sku, text: FD.nameOf(FD.sku(r.sku)) + ' · ' + (r.revisit ? t('E_REVISIT') : r.outcome === 'NOT_OFFERED' ? t('E_NOT_FOLLOWED') : S.outcomeChip(r).textContent), sub: r.reason ? t(r.reason) : null, rec: r.id }));
     s.returns.filter(x => x.store === storeId && x.date >= from && x.date <= today()).forEach(x => ev.push({ d: x.date, tm: '13:00', ic: 'undo', tone: 'bad', sku: x.sku, text: t('E_RETURNED') + ' · ' + FD.nameOf(FD.sku(x.sku)), sub: FD.fmt.money0(x.value) }));
-    const ph = s.photos.filter(p => p.store === storeId && p.date >= from); [...new Set(ph.map(p => p.date))].forEach(d => ev.push({ d, tm: '12:10', ic: 'camera', text: t('L_PHOTOS') + ' · ' + FD.fmt.num(ph.filter(p => p.date === d).length), photos: ph.filter(p => p.date === d) }));
+    // a Shelf Check shows as its result; other photos stay a photo strip
+    FD.pgAssessments(s, storeId).filter(a => a.date >= from).forEach(a => { const x = FD.scSummary(s, a.id); if (!x || !x.analysed || !x.current) return;
+      ev.push({ d: a.date, tm: a.time, ic: 'camera', text: t('SC_TITLE') + ' · ' + t('SC_OPEN') + ' ' + FD.fmt.num(x.open), chips: x.before && x.after ? [FD.scChip(x.before), I('arrow-right', 's14'), FD.scChip(x.after)] : [FD.scChip(x.current)], open: () => { L['store:tab'] = 'overview'; L['store:sc:' + storeId] = a.id; FD.drawer.refresh(false); FD.render(); } }); });
+    const ph = s.photos.filter(p => p.store === storeId && p.date >= from && !(p.assessmentId && FD.scSummary(s, p.assessmentId)?.current)); [...new Set(ph.map(p => p.date))].forEach(d => ev.push({ d, tm: '12:10', ic: 'camera', text: t('L_PHOTOS') + ' · ' + FD.fmt.num(ph.filter(p => p.date === d).length), photos: ph.filter(p => p.date === d) }));
     s.threads.forEach(th => th.messages.filter(m => m.store === storeId && m.at.date >= from).forEach(m => ev.push({ d: m.at.date, tm: m.at.time, ic: 'message', text: (m.by === 'SUP' ? FD.nameOf(s.world.supervisor) : FD.nameOf(vsrOf(m.by))) + ': ' + (m.text || t('L_PHOTO')) })));
     ev.sort((a, b) => (b.d + b.tm).localeCompare(a.d + a.tm));
     if (!ev.length) return h('div', { class: 'card' }, FD.empty('X_FILTER'));
-    const out = []; let day = null;
-    for (const e of ev.slice(0, 120)) {
-      if (e.d !== day) { day = e.d; out.push(h('div', { class: 'tl-day' }, FD.fmt.dateLong(e.d))); }
-      out.push(h('div', { class: 'tl-item' + (e.rec ? ' click' : ''), style: e.rec ? { cursor: 'pointer' } : null, on: e.rec ? { click: () => S.recDrawer(e.rec, true) } : null },
-        e.sku ? h('span', { class: 'tl-ic sku' }, FD.skuIcon(e.sku, 22)) : h('span', { class: 'tl-ic ' + (e.tone || '') }, I(e.ic, 's16')),
+    // everything from a visited day hangs under that visit, so one visit reads as one story
+    const grouped = new Set();
+    for (const v of ev.filter(e => e.visit)) { v.kids = ev.filter(e => !e.visit && !grouped.has(e) && e.d === v.d && e.ic !== 'message'); v.kids.forEach(k => grouped.add(k)); }
+    const item = (e, nested) => h('div', { class: 'tl-item' + (nested ? ' nested' : '') + (e.rec || e.open ? ' click' : ''), style: e.rec || e.open ? { cursor: 'pointer' } : null, on: e.rec || e.open ? { click: ev2 => { ev2.stopPropagation(); e.open ? e.open() : S.recDrawer(e.rec, true); } } : null },
+        e.sku ? h('span', { class: 'tl-ic sku' }, FD.skuIcon(e.sku, nested ? 18 : 22)) : h('span', { class: 'tl-ic ' + (e.tone || '') }, I(e.ic, nested ? 's14' : 's16')),
         h('div', { style: { minWidth: 0 } }, h('div', { dir: 'auto' }, e.text), e.sub ? h('div', { class: 'small muted' }, e.sub) : null,
           e.chips ? h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '6px' } }, e.chips) : null,
-          e.photos ? h('div', { class: 'photo-day', style: { marginTop: '6px' } }, e.photos.map(p => h('button', { type: 'button', 'aria-label':t('PG_PHOTO_LABEL'), on: { click: () => FD.lightbox(p.src) } }, h('img', { src: p.src, alt: '', loading: 'lazy' })))) : null),
-        h('span', { class: 'small muted' }, FD.fmt.time(e.tm))));
+          e.photos ? h('div', { class: 'photo-day', style: { marginTop: '6px' } }, e.photos.map(p => h('button', { type: 'button', 'aria-label':t('PG_PHOTO_LABEL'), on: { click: () => FD.lightbox(p.src) } }, h('img', { src: p.src, alt: '', loading: 'lazy' })))) : null,
+          e.kids && e.kids.length ? h('div', { class: 'tl-kids' }, e.kids.map(k => item(k, true))) : null),
+        nested ? null : h('span', { class: 'small muted' }, FD.fmt.time(e.tm)));
+    const out = []; let day = null;
+    for (const e of ev.filter(e => !grouped.has(e)).slice(0, 120)) {
+      if (e.d !== day) { day = e.d; out.push(h('div', { class: 'tl-day' }, FD.fmt.dateLong(e.d))); }
+      out.push(item(e));
     }
     return h('div', { class: 'card', style: { padding: '4px 14px 10px' } }, h('div', { class: 'tline' }, out));
   };
@@ -7774,7 +7786,7 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
   S.vanDay = function (vsrId,date) {
     if(date&&date!==today()){
       const visits=st().visits.filter(v=>v.vsr===vsrId&&v.date===date).slice().sort((a,b)=>(a.seq||0)-(b.seq||0));
-      return h('div',{class:'stack s16'},h('div',{class:'banner info'},t('PG_READ_ONLY')+' · '+FD.fmt.date(date)),h('div',{class:'card'},visits.map(v=>h('div',{class:'list-row'},h('button',{type:'button',class:'link grow',on:{click:()=>S.storeDrawer(v.store)}},FD.nameOf(storeOf(v.store))),FD.chip(t('L_STATUS_'+v.status))))),FD.btn(t('L_NAV_TODAY'),()=>S.vsrDrawer(vsrId,false,'day'),'secondary'));
+      return h('div',{class:'stack s16'},h('div',{class:'card'},visits.map(v=>h('div',{class:'list-row'},h('button',{type:'button',class:'link grow',on:{click:()=>S.storeDrawer(v.store)}},FD.nameOf(storeOf(v.store))),FD.chip(t('L_STATUS_'+v.status))))),FD.btn(t('L_NAV_TODAY'),()=>S.vsrDrawer(vsrId,false,'day'),'secondary'));
     }
     const s = st(); const d = today(); const v = vsrOf(vsrId); const sg = FD.stageFor(s, vsrId, d); const live = FD.liveData(s); const pd = live ? d : FD.dataDay(s); const p = FD.vanProgress(s, vsrId, pd);
     const missed = new Set(live ? FD.alerts(s, d).filter(a => a.type === 'A_MISSED' && a.van === vsrId).map(a => a.visit) : []);
@@ -8095,10 +8107,15 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
   // Phone: name, score, fixes and open issues; the row drawer carries the rest.
   const compact=cols.filter(c=>['v','s','f','o'].includes(c.key)),facts=r=>h('dl',{class:'sc-facts'},cols.filter(c=>c.key!=='v').flatMap(c=>[h('dt',null,c.label),h('dd',null,c.render(r))]));
   const so=id=>st().world.stores.find(x=>x.id===id),val=x=>x.s.current.final?x.s.current.score:1000; // no score sorts after every score
-  const open=r=>FD.drawer.open({title:t('SC_TITLE')+' · '+nm(r.vsr),render:()=>h('div',{class:'stack s12'},facts(r),h('div',{class:'card'},FD.table({id:'scStores',rows:r.stores_,onRow:x=>S.pgOpen(x.a.store,x.a.id),defaultSort:['sc','asc'],columns:[
+  const cols2=[
    {key:'st',label:t('L_COL_STORE'),sort:(x,y)=>FD.nameOf(so(x.a.store)).localeCompare(FD.nameOf(so(y.a.store))),render:x=>h('div',null,h('div',null,FD.nameOf(so(x.a.store))),h('div',{class:'small muted'},FD.fmt.date(x.a.date)))},
    {key:'sc',label:t('SC_SCORE'),num:true,firstDir:'asc',sort:(x,y)=>val(x)-val(y),render:x=>FD.scChip(x.s.current)},
-   {key:'op',label:t('SC_OPEN'),num:true,sort:(x,y)=>x.s.open-y.s.open,render:x=>FD.fmt.num(x.s.open)}]}))) });
+   {key:'op',label:t('SC_OPEN'),num:true,sort:(x,y)=>x.s.open-y.s.open,render:x=>FD.fmt.num(x.s.open)}];
+  // stores that need something first; the rest fold away like other long lists
+  const open=r=>FD.drawer.open({title:t('SC_TITLE')+' · '+nm(r.vsr),render:()=>{const busy=r.stores_.filter(x=>x.s.open),quiet=r.stores_.filter(x=>!x.s.open),k='sc:quiet:'+r.vsr;
+   return h('div',{class:'stack s12'},facts(r),
+    busy.length?h('div',{class:'card'},FD.table({id:'scStores',rows:busy,onRow:x=>S.pgOpen(x.a.store,x.a.id),defaultSort:['sc','asc'],columns:cols2})):null,
+    quiet.length?(L[k]?h('div',{class:'card'},FD.table({id:'scStoresQuiet',rows:quiet,onRow:x=>S.pgOpen(x.a.store,x.a.id),defaultSort:['sc','asc'],columns:cols2})):FD.btn(t('SC_SHOW_CLEAR',{n:FD.fmt.num(quiet.length)}),()=>{L[k]=true;FD.drawer.refresh(false);},'secondary block')):null);}});
   // narrow: the card sits beside Team on Analytics, so it always uses the short columns
   return S.card(t('SC_TEAM'),null,!rows.length?FD.empty('SC_NO_TEAM'):narrow?FD.table({id:'scTeamCompact',rows,columns:compact,onRow:open}):h('div',{class:'team-comparison'},h('div',{class:'team-wide'},FD.table({id:'scTeam',rows,columns:cols,onRow:open})),h('div',{class:'team-compact'},FD.table({id:'scTeamCompact',rows,columns:compact,onRow:open}))),{flush:true,icon:'camera'});
  };
