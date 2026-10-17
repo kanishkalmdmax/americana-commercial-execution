@@ -974,6 +974,10 @@ summary { cursor:pointer;min-height:44px;align-content:center; }
 /* Labels and sort indicators stay aligned as one header. Periods are explicit subtitles. */
 table.t th { vertical-align:middle; }
 .th-content { display:inline-flex;align-items:center;gap:6px;max-width:100%;vertical-align:middle;text-align:start; }
+:is([data-table="teamFull"],[data-table="homeRank"]) :is(th,td):not(:nth-child(2)) { text-align:center; }
+:is([data-table="teamFull"],[data-table="homeRank"]) th:not(:nth-child(2)) .th-content { justify-content:center;text-align:center; }
+:is([data-table="teamFull"],[data-table="homeRank"]) td:not(:nth-child(2)) .cmp { justify-items:center; }
+:is([data-table="teamFull"],[data-table="homeRank"]) td:not(:nth-child(2))>.row { justify-content:center; }
 .th-copy { display:inline-flex;flex-direction:column;min-width:0;gap:2px; }
 .th-label { white-space:normal;line-height:1.35;max-inline-size:13rem; }
 .th-hint { font-size:11px;font-weight:400;white-space:nowrap; }
