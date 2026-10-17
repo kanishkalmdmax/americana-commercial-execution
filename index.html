@@ -994,8 +994,9 @@ table.t th { vertical-align:middle; }
 .store-details .kv { margin-block:8px 0;color:var(--ink); }
 .store-sections { gap:8px; }
 .store-sections button { padding-inline:8px;font-size:13px; }
-.delta.has-baseline { display:inline-grid;grid-template-columns:auto auto;justify-content:center;column-gap:2px;row-gap:2px;white-space:normal; }
-.delta-baseline { grid-column:1/-1;font-size:11px;font-weight:400;color:var(--ink-3);line-height:1.35; }
+.delta.has-baseline { display:inline-flex;flex-direction:column;align-items:center;gap:2px;white-space:normal; }
+.delta-value { display:inline-flex;align-items:center;gap:2px; }
+.delta-baseline { font-size:11px;font-weight:400;color:var(--ink-3);line-height:1.35; }
 .pg-capture>p { margin:0; }
 .capture-options,.capture-saved { font-size:12px;color:var(--ink-3); }
 .capture-options[open]>.stack,.capture-saved[open]>.stack { margin-block-start:12px; }
@@ -1014,6 +1015,7 @@ table.t th { vertical-align:middle; }
  .team-compact .rank { width:22px;height:22px;font-size:11px; }
  .team-compact .cmp-d,.team-compact .delta,.team-compact .delta-baseline { font-size:10px; }
 }
+@media(max-width:360px) { .sup .topbar>.filters>.seg button { font-size:12px;padding-inline:4px; } }
 .th-copy { display:inline-flex;flex-direction:column;min-width:0;gap:2px; }
 .th-label { white-space:normal;line-height:1.35;max-inline-size:13rem; }
 .th-hint { font-size:11px;font-weight:400;white-space:nowrap; }
@@ -4795,6 +4797,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     PG_PHOTO_OPTIONS:E('Photo tips and options','نصائح التصوير وخياراته'),
     PG_CAPTURE_HINT:E('Face the full display straight on. Keep packs and prices clear.','صوّر منطقة العرض كاملة من الأمام مع إظهار العبوات والأسعار بوضوح.'),
     PG_MATCH_ANGLE:E('Match this angle for the after photo.','التقط الصورة بعد الترتيب من الزاوية نفسها.'),
+    PG_NO_ANALYSIS:E('No photo analysis yet.','لا يوجد تحليل للصور بعد.'),
     L_CHANGE_INCREASE:E('Increase','زيادة'), L_CHANGE_DECREASE:E('Decrease','انخفاض'),
     L_NO_PRIOR_UPSELL:E('No earlier comparison','لا توجد مقارنة سابقة'),
     L_SHELF_SHOWING:E('{n} of {m} products','{n} من {m} منتجاً'),
@@ -5248,14 +5251,15 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const steps = role === 'vsr' ? ['O_V1', 'O_V2', 'O_V3'] : ['O_S1', 'O_S2', 'O_S3'];
     let i = 0, ring = null, card = null;
     if (FD.tourEnd) FD.tourEnd(); // never two tours stacked
-    let raf = 0; const onScroll = () => { if (card && !raf) raf = requestAnimationFrame(() => { raf = 0; if (card) show(true); }); };
-    const end = () => { if (ring) ring.remove(); if (card) card.remove(); ring = card = null; document.removeEventListener('keydown', onKey); removeEventListener('resize', onResize); removeEventListener('scroll', onScroll, true); if (FD.tourEnd === end) FD.tourEnd = null; FD.dx('TOUR_SEEN', { role }); };
+    let raf = 0, showTimer = 0, ended = false; const onScroll = () => { if (card && !raf) raf = requestAnimationFrame(() => { raf = 0; if (card) show(true); }); };
+    const end = () => { ended = true; clearTimeout(showTimer); if (raf) cancelAnimationFrame(raf); if (ring) ring.remove(); if (card) card.remove(); ring = card = null; document.removeEventListener('keydown', onKey); removeEventListener('resize', onResize); removeEventListener('scroll', onScroll, true); if (FD.tourEnd === end) FD.tourEnd = null; FD.dx('TOUR_SEEN', { role }); };
     FD.tourEnd = end; addEventListener('scroll', onScroll, true);
     const onResize = () => { if (card) show(); }; addEventListener('resize', onResize);
     document.querySelectorAll('.coach-mark,.coach-ring').forEach(x => x.remove()); // never two tours stacked
     const onKey = e => { if (e.key === 'Escape') end(); };
     document.addEventListener('keydown', onKey);
     function show(quiet) {
+      if (ended) return;
       if (ring) ring.remove(); if (card) card.remove();
       const target = document.querySelector(`[data-tour="${role}${i + 1}"]`);
       // bring the target on screen first, otherwise the card can land below the fold on short windows
@@ -5275,7 +5279,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
       Object.assign(card.style, { top: top + 'px', left: left + 'px' });
       if (!quiet) card.querySelector('.btn.primary').focus();
     }
-    setTimeout(show, 350);
+    showTimer = setTimeout(show, 350);
   };
   FD.maybeTour = r => { if (!FD.state.tourSeen[r.role] && !document.querySelector('.coach-mark') && !FD.demoRunning) FD.tour(r.role); };
 
@@ -7677,7 +7681,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
     const text = FD.fmt.pct(flat ? 0 : Math.abs(d));
     return h('span', { class: 'delta ' + (flat ? 'flat' : good ? 'up' : 'down') + (Math.abs(d) >= 1000 ? ' has-baseline' : ''), title: context,
       'aria-label': (flat ? '' : t(d > 0 ? 'L_CHANGE_INCREASE' : 'L_CHANGE_DECREASE') + ' ') + text + (context ? ', ' + context : '') },
-      flat ? null : I(d > 0 ? 'arrow-up' : 'arrow-down', 's14'), text,
+      Math.abs(d) >= 1000 ? h('span', { class: 'delta-value' }, I(d > 0 ? 'arrow-up' : 'arrow-down', 's14'), text) : [flat ? null : I(d > 0 ? 'arrow-up' : 'arrow-down', 's14'), text],
       Math.abs(d) >= 1000 ? h('span', { class: 'delta-baseline' }, context) : null);
   };
   S.leverDelta = (k, now, before) => S.comparisonDelta(now, before, value => {
@@ -7773,7 +7777,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
   const all=FD.pgAssessments(st(),store),wanted=assessmentId||L['pg:assessment:'+store],a=all.find(x=>x.id===wanted)||all[0],os=(st().planogram?.observations||[]).filter(o=>o.assessmentId===a?.id),assort=FD.pgAssortment(st(),store,st().clock.date);
   const stats=[['PG_PURCHASED',assort.purchased],['PG_RECURRING',assort.recurring],['PG_GAPS',assort.gaps]];
   return h('div',{class:'stack s16 pg-view'},
-   all.length?FD.select(all.map(x=>({id:x.id,label:FD.fmt.date(x.date)+' '+FD.fmt.time(x.time)+' · '+t('PG_'+x.processing)})),a.id,v=>{L['pg:assessment:'+store]=v;FD.render();}):h('p',{class:'muted'},t('PG_NONE')),
+   all.length?FD.select(all.map(x=>({id:x.id,label:FD.fmt.date(x.date)+' '+FD.fmt.time(x.time)+' · '+t('PG_'+x.processing)})),a.id,v=>{L['pg:assessment:'+store]=v;FD.render();}):h('p',{class:'muted'},t('PG_NO_ANALYSIS')),
    a?FD.pgEvidence(a.id):null,
    a?h('div',{class:'row wrap'},FD.pgPhotos(st(),a.id).map((p,i)=>FD.btn(t('PG_MATCH')+' ? '+FD.fmt.num(i+1),()=>S.pgMatch(a.id,p),'secondary sm'))):null,
    a?h('section',null,h('h3',null,t('PG_INSIGHTS')),h('p',{class:'small muted'},t('PG_MATCH_HINT')),a.analysisAt?h('p',{class:'small muted'},t('PG_UPDATED',{time:a.analysisAt})):null,
