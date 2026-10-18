@@ -6843,7 +6843,7 @@ button.list-row > .grow { text-align:start; }
       I(icon), h('span', null, t(label)), n ? h('span', { class: 'badge' }, FD.fmt.num(n)) : null); });
     const periodSeg = FD.seg([{ id: 'TODAY', label: t(FD.liveData(st()) ? 'L_P_TODAY' : 'L_METRICS_DAY') }, { id: 'WEEK', label: t('L_P_WEEK') }, { id: 'PILOT', label: t('L_P_PILOT') }, { id: 'CUSTOM', label: t('L_P_CUSTOM') }], S.f.period, v => { S.f.period = v; if (v === 'CUSTOM' && !S.f.from) { S.f.from = FD.addDays(today(), -13); S.f.to = today(); } FD.render(); });
     const supSel = FD.select([{ id: '', label: t('L_ALL_SUPS') }].concat(s.world.sups.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.sup, v => { S.f.sup = v; FD.render(); }, { 'aria-label': t('L_SUPERVISOR') });
-    const routeSel = FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.route, v => { S.f.route = v; FD.render(); }, { 'aria-label': t('L_ROUTE') });
+    const routeSel = FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.routeArea(x) }))), S.f.route, v => { S.f.route = v; FD.render(); }, { 'aria-label': t('L_ROUTE') });
     const custom = S.f.period === 'CUSTOM' ? h('div', { class: 'row' },
       h('input', { class: 'input', type: 'date', style: { height: '34px', width: '150px' }, 'aria-label': t('L_FROM'), min: FD.BASE_START, max: today(), value: S.f.from, on: { change: e => { S.f.from = e.target.value; FD.render(); } } }),
       h('span', { class: 'muted' }, '–'),
@@ -6872,14 +6872,14 @@ button.list-row > .grow { text-align:start; }
   // phone width: page filters move into a sheet so the sticky bar stays one line
   S.filtersSheet = function (view) { const s = st();
     FD.sheet.open({ title: t('L_FILTERS'), render: () => h('div', { class: 'stack s16 filters-stack' },
-      h('div', { class: 'field' }, h('label', null, t('L_ROUTE')), FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.route, v => { S.f.route = v; FD.render(); FD.sheet.redraw(); })),
+      h('div', { class: 'field' }, h('label', null, t('L_ROUTE')), FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.routeArea(x) }))), S.f.route, v => { S.f.route = v; FD.render(); FD.sheet.redraw(); })),
       view.bar()), footer: () => [h('span', { class: 'grow' }), FD.btn(t('DONE'), () => FD.sheet.close(), 'primary')] }); };
   // Phone-width "More": remaining pages, filters and settings in one sheet
   S.moreSheet = function (r) {
     const s = st();
     FD.sheet.open({ title: t('L_MORE'), render: () => h('div', { class: 'stack s16' },
       h('div', { class: 'stack s8' }, NAV.slice(4).map(([id, icon, label]) => h('a', { class: 'list-row click', href: '#/sup/' + id, style: { border: '1px solid var(--line)', borderRadius: '12px' }, on: { click: e => { e.preventDefault(); FD.sheet.close(); FD.go('#/sup/' + id); } } }, I(icon), h('span', { class: 'grow' }, t(label)), I('chevron-right', 's16')))),
-      h('div', { class: 'field' }, h('label', null, t('L_ROUTE')), FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.route, v => { S.f.route = v; FD.render(); })),
+      h('div', { class: 'field' }, h('label', null, t('L_ROUTE')), FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.routeArea(x) }))), S.f.route, v => { S.f.route = v; FD.render(); })),
       h('div', { class: 'field' }, h('label', null, t('L_THEME')), FD.seg([{ id: 'auto', label: t('L_AUTO') }, { id: 'light', label: t('L_LIGHT') }, { id: 'dark', label: t('L_DARK') }], s.theme, v => { FD.dx('SET_THEME', { theme: v }); FD.sheet.redraw(); })),
       FD.btn(t('L_REPLAY_TOUR'), () => { FD.sheet.close(); FD.dx('TOUR_RESET'); FD.go('#/sup/today'); setTimeout(() => FD.tour('sup'), 300); }, 'secondary block', 'play'),
       FD.btn(t('L_LOG_OUT'), () => { FD.sheet.close(); FD.signOut(); }, 'ghost block', 'arrow-left'),
