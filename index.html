@@ -5496,6 +5496,8 @@ button.list-row > .grow { text-align:start; }
     PB_R4: E('Watch products with high returns', 'راقب المنتجات ذات المرتجعات العالية'),
     PB_R4_D: E('Most returns referred to earlier orders; slow-selling lines need smaller quantities.', 'معظم المرتجعات تخص طلبات سابقة؛ الأصناف بطيئة البيع تحتاج كميات أقل.'),
     N_PLAN_SUP_G: E('{sup} updated your plan ({n} stores)', 'حدّث {sup} خطتك ({n} محلات)'),
+    K_CUSTOM_T: E('Tip from your supervisor', 'نصيحة من مشرفك'), // written tips (e.g. Shelf Check coaching) have no template title
+    L_TIPS_BAR: E('{n} suggested tips for {m} salesmen', '{n} نصائح مقترحة لـ {m} مندوبين'), L_TIPS_BAR_SUB: E('Review per salesman and send', 'راجعها لكل مندوب وأرسلها'), L_TIPS_DONE: E('All suggested tips sent', 'تم إرسال كل النصائح المقترحة'),
     L_NO_STORE_ORDERS: E('No orders from this store in the last 4 weeks', 'لا توجد طلبات من هذا المحل خلال آخر ٤ أسابيع'),
     L_PITCH_EACH: E('Store sells it at {price} SAR each', 'يبيعه المحل بسعر {price} ريال للقطعة'),
     L_PILOT_ADOPTION: E('Field Adoption Metrics & Support Needed', 'مقاييس الاستخدام الميداني والدعم المطلوب'),
@@ -7059,7 +7061,9 @@ button.list-row > .grow { text-align:start; }
       FD.avatar(vsrOf(g.vsr)), h('span', { class: 'grow' }, h('span', { class: 'fu-t', style: { display: 'block' } }, FD.nameOf(vsrOf(g.vsr))), h('span', { class: 'fu-c', style: { display: 'block' } }, t(g.ds.length === 1 ? 'L_TIPS_1' : 'L_TIPS_N', { n: FD.fmt.num(g.ds.length) }))),
       h('span', { class: 'btn ghost sm' }, t('L_OPEN')),
       h('button', { type: 'button', class: 'btn secondary sm', on: { click: e => { e.stopPropagation(); S.sendDrafts(g.vsr); } } }, I('send', 's14'), t('L_SEND_ALL', { n: FD.fmt.num(g.ds.length) }))))); };
-  S.sendDrafts = vsrId => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId); ds.forEach(d => FD.dx('TIP_SEND', { vsr: d.vsr, tpl: d.tpl, slots: d.slots, draftKey: d.key })); FD.toast('S_SENT', { vsrId }); FD.render(); };
+  S.tipsDrawer = () => FD.drawer.open({ title: t('L_TIP_DRAFTS'), render: () => { const ds = FD.coachDrafts(st()).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route);
+    return ds.length ? h('div', { class: 'card' }, S.draftGroups(ds)) : h('div', { class: 'card' }, FD.empty('L_TIPS_DONE', null, 'check-circle')); } });
+  S.sendDrafts = vsrId => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId); ds.forEach(d => FD.dx('TIP_SEND', { vsr: d.vsr, tpl: d.tpl, slots: d.slots, draftKey: d.key })); FD.toast('S_SENT', { vsrId }); FD.render(); FD.drawer.refresh(false); };
   S.draftSheet = vsrId => FD.sheet.open({ center: true, title: () => t('L_TIP_DRAFTS') + ' · ' + FD.nameOf(vsrOf(vsrId)), render: () => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId);
       return ds.length ? h('div', { class: 'card' }, ds.map(d => S.draftRow(d, true))) : FD.empty('L_NONE_YET', null, 'check'); },
     footer: () => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId); return [FD.btn(t('L_CANCEL'), () => FD.sheet.close(), 'secondary'), h('span', { class: 'grow' }),
@@ -7635,8 +7639,13 @@ button.list-row > .grow { text-align:start; }
     const rows = FD.teamCompare(s, from, to).filter(x => !S.f.route || vsrOf(x.vsr).route === S.f.route);
     const table = S.teamTable('teamFull', rows, true);
     const p = rows[0] && rows[0].prevRange;
-    return { title: t('L_NAV_TEAM'), body: [card(t('L_P_TEAM'), null, h('div', null, table, p ? h('div', { class: 'small muted', style: { padding: '10px 16px' } }, (rows[0].partial ? t('L_CMP_TODAY', { date: FD.fmt.date(p.to), time: FD.fmt.time(s.clock.time) }) : t(rows[0].prePilot ? 'L_CMP_NOTE_PRE' : 'L_CMP_NOTE', { date: FD.fmt.date(p.from), label: FD.fmt.date(p.to) }))) : null), { flush: true, icon: 'users', info: t('I_TEAM') }),
-      FD.coachDrafts(s).length ? card(t('L_TIP_DRAFTS'), null, S.draftGroups(FD.coachDrafts(s).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route)), { flush: true, icon: 'bulb' }) : null] };
+    // suggested tips: one collapsed bar on top (like Today's bars); it opens the per-salesman list and is gone once all are sent
+    const drafts = FD.coachDrafts(s).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route), nV = new Set(drafts.map(d => d.vsr)).size;
+    const tipBar = drafts.length ? h('button', { type: 'button', class: 'card fu-bar', on: { click: () => S.tipsDrawer() } },
+      h('span', { class: 'fu-ic', style: { width: '32px', height: '32px' } }, I('bulb', 's16')),
+      h('span', { class: 'grow', style: { minWidth: 0 } }, h('b', null, t('L_TIPS_BAR', { n: FD.fmt.num(drafts.length), m: FD.fmt.num(nV) })), h('span', { class: 'small muted ellipsis', style: { display: 'block' } }, t('L_TIPS_BAR_SUB'))),
+      h('span', { class: 'btn secondary sm' }, t('L_REVIEW'))) : null;
+    return { title: t('L_NAV_TEAM'), body: [tipBar, card(t('L_P_TEAM'), null, h('div', null, table, p ? h('div', { class: 'small muted', style: { padding: '10px 16px' } }, (rows[0].partial ? t('L_CMP_TODAY', { date: FD.fmt.date(p.to), time: FD.fmt.time(s.clock.time) }) : t(rows[0].prePilot ? 'L_CMP_NOTE_PRE' : 'L_CMP_NOTE', { date: FD.fmt.date(p.from), label: FD.fmt.date(p.to) }))) : null), { flush: true, icon: 'users', info: t('I_TEAM') })] };
   });
 
   // ================= STORES =================
