@@ -1239,6 +1239,10 @@ button.list-row > .grow { text-align:start; }
 .jump-bar { position:sticky;top:var(--tb-h,0px);z-index:4;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 0;margin-block-end:4px;background:var(--bg); }
 .jump-bar::-webkit-scrollbar { display:none; }
 [id^='sec-'] { scroll-margin-top:calc(var(--tb-h,0px) + 56px); }
+.tl-item.nested.tone-good, .tl-item.nested.tone-bad, .tl-item.nested.tone-warn { border-radius:var(--r-sm);padding-inline:8px;border-top-color:transparent;margin-block-start:4px; }
+.tl-item.nested.tone-good { background:var(--good-tint); } .tl-item.nested.tone-bad { background:var(--bad-tint); } .tl-item.nested.tone-warn { background:var(--warn-tint); } /* full-row tint: colour at a glance without a side stripe */
+.on-cat + .on-cat { border-top:1px solid var(--line); } .on-cat-h { padding:8px 14px;gap:8px; } .on-cat-h .row-toggle { display:flex;align-items:center;gap:10px;min-height:44px;padding:0;border:0;background:none;font:inherit;color:inherit;text-align:start;cursor:pointer; }
+.on-items { background:var(--hover);padding-block:2px; } .on-items .list-row { padding:8px 14px 8px 28px;gap:10px;width:100%; }
 </style>
 </head>
 <body>
@@ -5502,6 +5506,34 @@ button.list-row > .grow { text-align:start; }
     K_CUSTOM_T: E('Tip from your supervisor', 'نصيحة من مشرفك'), // written tips (e.g. Shelf Check coaching) have no template title
     L_TIPS_BAR: E('{n} suggested tips for {m} salesmen', '{n} نصائح مقترحة لـ {m} مندوبين'), L_TIPS_BAR_SUB: E('Review per salesman and send', 'راجعها لكل مندوب وأرسلها'), L_TIPS_DONE: E('All suggested tips sent', 'تم إرسال كل النصائح المقترحة'),
     L_JUMP_TO: E('Jump to section', 'الانتقال إلى قسم'),
+    CAT_A_MISSED: E('Planned stops not visited', 'محطات مخططة لم تتم زيارتها'),
+    CAT_A_OFFPLAN: E('Visits not on the plan', 'زيارات خارج الخطة'),
+    CAT_A_PACE: E('Behind usual pace', 'أبطأ من المعتاد'),
+    CAT_A_PREORDER: E('Pre-orders from owners', 'طلبات مسبقة من أصحاب المحلات'),
+    CAT_X_CARRY: E('Missed priority stores to carry over', 'محلات مهمة فائتة لنقلها'),
+    CAT_X_PREORDER: E('Pre-order waiting on the plan', 'طلب مسبق ينتظر في الخطة'),
+    CAT_X_DUE: E('Due to order, not on the plan', 'مستحقة للطلب وليست في الخطة'),
+    CAT_X_QUESTION: E('Visited often, rarely orders', 'تُزار كثيراً ونادراً ما تطلب'),
+    CAT_X_SKIPPED: E('Missed on the last two visits', 'فائتة في آخر زيارتين'),
+    CAT_X_SHORT: E('Short on the van', 'ناقصة في السيارة'),
+    CAT_F_RETURN_UPSELL: E('Upsells returned', 'مبيعات إضافية مرتجعة'),
+    CAT_F_WATCH_OK: E('Watchlist improved', 'تحسّن في قائمة المراقبة'),
+    CAT_F_WATCH_BAD: E('Watchlist not improved', 'لم تتحسن قائمة المراقبة'),
+    CAT_F_WATCHLIST: E('Watchlist products', 'منتجات قيد المراقبة'),
+    CAT_F_MISSING_REASONS: E('Reasons missing', 'أسباب ناقصة'),
+    CAT_F_REPEAT_DECLINE: E('Repeated declines', 'رفض متكرر'),
+    CAT_F_COMPETITOR: E('Competitor deals', 'عروض المنافسين'),
+    CAT_F_GAP_CLUSTER: E('Area gaps', 'فجوات في المنطقة'),
+    CAT_F_NOT_OFFERED: E('Recommendations skipped', 'توصيات لم تُعرض'),
+    CAT_F_PLANOGRAM: E('Shelf Checks that need you', 'فحوصات رف تحتاجك'),
+    CAT_F_ENGINE_MISS: E('Sells without being recommended', 'تُباع دون توصية'),
+    CAT_F_PROMO_LOW: E('Low promotion uptake', 'إقبال ضعيف على العرض'),
+    CAT_F_VSR_BELOW: E('Below usual level', 'أقل من المستوى المعتاد'),
+    CAT_F_CREDIT: E('Credit changes', 'تغيّرات الائتمان'),
+    CAT_F_SKIPPED: E('Skipped stops', 'محطات متروكة'),
+    CAT_F_PLAN_CHANGE: E('Plan changes by salesmen', 'تغييرات المندوبين على الخطة'),
+    CAT_F_COVER: E('Route cover and reassignment', 'تغطية المسارات وإعادة التعيين'),
+    L_RESOLVE_ALL: E('Resolve all', 'حل الكل'), L_ADD_ALL_PLAN: E('Add all to plan', 'أضف الكل إلى الخطة'), L_HANDLED_ALL: E('Mark all handled', 'تمت معالجة الكل'),
     L_NO_STORE_ORDERS: E('No orders from this store in the last 4 weeks', 'لا توجد طلبات من هذا المحل خلال آخر ٤ أسابيع'),
     L_PITCH_EACH: E('Store sells it at {price} SAR each', 'يبيعه المحل بسعر {price} ريال للقطعة'),
     L_PILOT_ADOPTION: E('Field Adoption Metrics & Support Needed', 'مقاييس الاستخدام الميداني والدعم المطلوب'),
@@ -6916,7 +6948,7 @@ button.list-row > .grow { text-align:start; }
       case 'learn': FD.go('#/sup/learn'); break;
     }
   };
-  const FU_ICON = { F_WATCH_OK: 'check-circle', F_WATCH_BAD: 'alert', F_RETURN_UPSELL: 'undo', F_MISSING_REASONS: 'list', F_REPEAT_DECLINE: 'x-circle', F_COMPETITOR: 'flag', F_GAP_CLUSTER: 'target', F_VSR_BELOW: 'trending-down', F_NOT_OFFERED: 'eye-off',
+  const FU_ICON = S.FU_ICON = { F_WATCH_OK: 'check-circle', F_WATCH_BAD: 'alert', F_RETURN_UPSELL: 'undo', F_MISSING_REASONS: 'list', F_REPEAT_DECLINE: 'x-circle', F_COMPETITOR: 'flag', F_GAP_CLUSTER: 'target', F_VSR_BELOW: 'trending-down', F_NOT_OFFERED: 'eye-off',
     F_CREDIT: 'wallet', F_CORRECTION: 'edit', F_VSR_COMMENT: 'message', F_VSR_STORE_MSG: 'message', F_PLANOGRAM:'camera', F_PHOTO: 'camera', F_ENGINE_MISS: 'trending-up', F_WATCHLIST: 'eye', F_SKIPPED: 'x', F_PROMO_LOW: 'tag', F_COVER: 'user-switch' };
   S.fuRow = f => {
     const row = h('div', { class: 'fu-row' },
@@ -8305,21 +8337,41 @@ button.list-row > .grow { text-align:start; }
   };
 
   // open items that move one metric: today's alerts and checks, and follow-ups
-  S.leverActions = (k,ctx) => {
-    const s = st(); const out = []; const context=FD.metricActionContext(s,ctx); const dd=context.to; const today = s.clock.date;
-    // SalesBuzz alerts come from the latest data day; WhatsApp pre-orders are live, so they are today's, in one row
-    for (const g of context.groups.filter(g => g.type !== 'A_PREORDER'))
-      if (FD.leverOf(g.type) === k) out.push({ icon: 'alert', tone: g.type === 'A_MISSED' ? 'bad' : 'warn', text: tx(g.type + (g.count === 1 ? '_G1' : '_G'), { vsrId: g.van, n: g.count, m: (g.items[0].slots || {}).m }), open: () => S.vsrDrawer(g.van, false, 'day',{date:g.day}) });
-    const po = FD.alerts(s, dd).filter(a => a.type === 'A_PREORDER'&&context.ids.includes(a.van)).length;
-    if (po && k === 'withSale') out.unshift({ icon: 'inbox', tone: 'info', text: tx(po === 1 ? 'A_PREORDER_G1' : 'A_PREORDER_G', { n: po }), open: () => S.preordersDrawer() });
-    for (const v of s.world.vsrs.filter(x => x.kind === 'sales'&&context.ids.includes(x.id))) {
-      const by = {}; for (const x of FD.dispatchExceptions(s, v.id, dd)) if (FD.leverOf(x.type) === k) by[x.type] = (by[x.type] || 0) + 1;
-      for (const [type, n] of Object.entries(by)) out.push({ icon: 'list', tone: 'warn', text: FD.nameOf(v) + ': ' + tx(type + (n === 1 ? '_G1' : '_G'), { n }), open: () => S.vsrDrawer(v.id, false, 'day',{date:dd}) });
+  // Open now, by category: one row per kind of work with its count; it opens to the salesmen involved; a bulk action where one is safe
+  const CAT_IC = { A_MISSED: 'alert', A_OFFPLAN: 'map-pin', A_PACE: 'clock', A_PREORDER: 'inbox', X_CARRY: 'repeat', X_PREORDER: 'inbox', X_DUE: 'calendar', X_QUESTION: 'help', X_SKIPPED: 'alert', X_SHORT: 'truck' };
+  const inLever = (type, k) => { const l = FD.leverOf(type); return l === k || (k === 'avgSale' && l === 'upsell'); }; // extra lines and upsells move the average sale
+  S.leverActions = (k, ctx) => {
+    const s = st(), context = FD.metricActionContext(s, ctx), dd = context.to, cats = new Map();
+    const cat = (key, tone, icon) => { if (!cats.has(key)) cats.set(key, { key, tone, icon, items: [] }); return cats.get(key); };
+    for (const g of context.groups.filter(g => g.type !== 'A_PREORDER' && inLever(g.type, k)))
+      cat(g.type, g.type === 'A_MISSED' ? 'bad' : 'warn', CAT_IC[g.type]).items.push({ vsr: g.van, n: g.count, open: () => S.vsrDrawer(g.van, false, 'day', { date: g.day }), alert: g });
+    const po = FD.alerts(s, dd).filter(a => a.type === 'A_PREORDER' && context.ids.includes(a.van));
+    if (po.length && inLever('A_PREORDER', k)) cat('A_PREORDER', 'info', 'inbox').items.push({ vsr: null, n: po.length, label: tx(po.length === 1 ? 'A_PREORDER_G1' : 'A_PREORDER_G', { n: po.length }), open: () => S.preordersDrawer() });
+    for (const v of s.world.vsrs.filter(x => x.kind === 'sales' && context.ids.includes(x.id))) {
+      const by = {}; for (const x of FD.dispatchExceptions(s, v.id, dd)) if (inLever(x.type, k)) (by[x.type] = by[x.type] || []).push(x);
+      for (const [type, xs] of Object.entries(by)) cat(type, 'warn', CAT_IC[type] || 'list').items.push({ vsr: v.id, n: xs.length, open: () => S.vsrDrawer(v.id, false, 'day', { date: dd }), exc: xs, date: dd });
     }
-    const fus = context.followUps.filter(f => FD.leverOf(f.tpl) === k);
-    return { rows: out, fus };
+    for (const f of context.followUps.filter(f => inLever(f.tpl, k)))
+      cat(f.tpl, f.pri === 1 ? 'bad' : 'warn', FU_ICON_OF(f.tpl)).items.push({ vsr: S.fuVsr(f), n: 1, label: S.fuVsr(f) ? null : tx(f.tpl, f.slots), open: () => S.fuDetail(f), fu: f });
+    const order = { bad: 0, warn: 1, info: 2 };
+    return [...cats.values()].map(c => Object.assign(c, { n: c.items.reduce((t, i) => t + i.n, 0) })).sort((a, b) => order[a.tone] - order[b.tone] || b.n - a.n);
   };
-
+  const FU_ICON_OF = tpl => (S.FU_ICON || {})[tpl] || 'bell';
+  // the one safe bulk action per category (same idea as Send all on tips)
+  const bulkOf = c => {
+    if (c.items.some(i => i.alert)) return { label: 'L_RESOLVE_ALL', run: () => c.items.forEach(i => { const keys = i.alert.items.map(a => FD.alertKey(a, i.alert.day || st().clock.date)); FD.dx('ALERT_RESOLVE', { keys }); }) };
+    if (c.key === 'X_DUE' || c.key === 'X_CARRY') return { label: 'L_ADD_ALL_PLAN', run: () => c.items.forEach(i => i.exc.forEach(x => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: x.store, bySup: true }))) };
+    if (c.items.some(i => i.fu)) return { label: 'L_HANDLED_ALL', run: () => c.items.forEach(i => FD.dx('FOLLOWUP_DISMISS', { fu: i.fu.key, why: 'FU_HANDLED', snap: { tpl: i.fu.tpl, slots: i.fu.slots } })) };
+    if (c.key === 'A_PREORDER') return { label: 'L_NAV_PREORDERS', run: () => S.preordersDrawer() };
+    return null; };
+  S.openNow = cats => !cats.length ? FD.empty('L_METRIC_MOVES_NONE', null, 'check-circle') : h('div', { class: 'card', style: { padding: 0 } }, cats.map(c => {
+    const k = 'on:' + c.key, open = FD.ui.local[k], bulk = bulkOf(c);
+    return h('div', { class: 'on-cat' }, h('div', { class: 'list-row on-cat-h' },
+      h('button', { type: 'button', class: 'row-toggle grow', 'aria-expanded': String(!!open), on: { click: () => { FD.ui.local[k] = !open; FD.drawer.refresh(false); } } },
+        h('span', { class: 'fu-ic ' + c.tone }, I(c.icon, 's16')), h('span', { class: 'grow fu-t' }, t('CAT_' + c.key)), h('span', { class: 'pill-count' }, FD.fmt.num(c.n)), I(open ? 'chevron-up' : 'chevron-down', 's16')),
+      bulk ? FD.btn(t(bulk.label), () => { bulk.run(); FD.toast('S_SAVED'); FD.drawer.refresh(false); FD.render(); }, 'secondary sm') : null),
+      open ? h('div', { class: 'on-items' }, c.items.map(i => h('button', { type: 'button', class: 'list-row click', on: { click: i.open } },
+        i.vsr ? FD.avatar(vsrOf(i.vsr)) : null, h('span', { class: 'grow' }, i.label || FD.nameOf(vsrOf(i.vsr))), i.n > 1 ? h('span', { class: 'small muted tabular' }, FD.fmt.num(i.n)) : null, I('chevron-right', 's16')))) : null); }));
   S.metricDrawer = (k, ctx) => FD.drawer.open({ title: t(k === 'net' ? 'L_NET_RESULT' : meta(k).label), render: () => {
     const s = st(); const ids = ctx.ids; const lk = k === 'net' || k === 'primary' ? null : k;
     const now = FD.teamLevers(s, ids, ctx.from, ctx.to); const was = ctx.prev ? FD.teamLevers(s, ids, ctx.prev.from, ctx.prev.to) : null;
@@ -8327,18 +8379,13 @@ button.list-row > .grow { text-align:start; }
     const days = []; for (let d = FD.addDays(ctx.to, -20); d <= ctx.to; d = FD.addDays(d, 1)) if (FD.isSellingDay(d) && d >= FD.BASE_START) days.push(d);
     const series = days.map(d => { const x = FD.teamLevers(s, ids, d, d); return x.days ? x[k] : null; });
     const rows = ids.map(id => { const m = FD.vsrMetrics(s, id, ctx.from, ctx.to); const v = k === 'net' ? m.net : m.lev[k]; return { id, v, base: k === 'net' ? null : m.base[k] }; }).filter(x => x.v != null);
-    const acts = lk ? S.leverActions(lk,ctx) : { rows: [], fus: [] };
+    const acts = lk ? S.leverActions(lk, ctx) : [];
     return h('div', { class: 'stack s16' },
       h('div', { class: 'card', style: { padding: '14px' } },
         h('div', { class: 'row between wrap' }, h('div', null, h('div', { class: 'row', style: { gap: '6px' } }, h('div', { class: 'kpi-big' }, fmt(now[k])), S.info(t(k === 'net' ? 'L_NET_RESULT_D' : meta(k).info) + (k !== 'net' && meta(k).formula ? ' ' + t(meta(k).formula) : ''))), was ? h('div', { class: 'small muted row', style: { gap: '6px' } }, S.leverDelta(lk || 'avgSale', now[k], was[k]), t('PG_PREVIOUS_PERIOD'), ': ', fmt(was[k])) : null),
           h('div', { class: 'row wrap', style: { gap: '8px' } }, lk && meta(lk).lowerBetter ? FD.chip(t('L_LOWER_BETTER'), 'outline') : null,
             FD.btn(t('L_PLAYBOOK'), () => S.playbookSheet(k === 'primary' || k === 'net' ? 'primary' : lk, t(k === 'net' ? 'L_NET_RESULT' : meta(k).label)), 'secondary sm', 'bulb'))),
         null), // definition and formula live in the (i) beside the value
-      // what needs acting on comes first; the chart is context below it
-      lk ? h('section', null, h('h3', { class: 'sec-h' }, t('L_METRIC_OPEN_NOW')),
-        acts.rows.length || acts.fus.length ? h('div', { class: 'card', style: { padding: 0 } },
-          acts.rows.map(a => h('button', { type: 'button', class: 'list-row click lever-act', on: { click: a.open } }, h('span', { class: 'fu-ic ' + a.tone }, I(a.icon, 's16')), h('span', { class: 'grow' }, a.text), I('chevron-right', 's16'))),
-          acts.fus.slice(0, 6).map(S.fuRow)) : FD.empty('L_METRIC_MOVES_NONE', null, 'check-circle')) : null,
       // one card: the trend or each salesman, switched in place so nothing sits far below
       (() => { const by = FD.ui.local['metric:view'] === 'vsr', lb = t(k === 'net' ? 'L_NET_RESULT' : meta(k).label);
         const sw = FD.seg([{ id: 'trend', label: t('L_COL_TREND') }, { id: 'vsr', label: t('L_BY_VSR') }], by ? 'vsr' : 'trend', v => { FD.ui.local['metric:view'] = v; FD.drawer.refresh(false); });
@@ -8346,6 +8393,8 @@ button.list-row > .grow { text-align:start; }
           by ? FD.bars(rows.sort((a, b) => meta(lk || 'avgSale').lowerBetter ? a.v - b.v : b.v - a.v).map(r => ({ label: FD.nameOf(vsrOf(r.id)), value: r.v,
               display: h('span', { class: 'row', style: { gap: '6px', justifyContent: 'flex-end' } }, fmt(r.v), r.base ? S.leverDelta(lk || 'avgSale', r.v, r.base) : null), onClick: () => S.vsrDrawer(r.id, true) })))
             : FD.line([{ name: lb, values: series }], days.map(d => FD.fmt.date(d)), { h: 170, fmt, label: lb })); })(),
+      // actions follow the chart (user preference: trend / by salesman directly under the value)
+      lk ? h('section', null, h('h3', { class: 'sec-h' }, t('L_METRIC_OPEN_NOW')), S.openNow(acts)) : null,
       null);
   } });
 
