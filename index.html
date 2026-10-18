@@ -4952,7 +4952,7 @@ button.list-row > .grow { text-align:start; }
       on: onRow ? { click: e => { if (!e.target.closest('button, a, input, select')) onRow(r); }, keydown: e => { if (e.key === 'Enter' && e.target.tagName === 'TR') onRow(r); } } : null },
       columns.map(c => h('td', { class: c.num ? 'n' : '', 'data-label': typeof c.label === 'string' ? c.label : '' }, c.render ? c.render(r) : r[c.key]))))
       : h('tr', null, h('td', { colspan: columns.length }, FD.empty(empty)));
-    const wrap = h('div', { class: 'table-wrap', dataset: { table: id } }, h('table', { class: 't' + (columns.length > 4 ? ' t-stack' : '') }, h('thead', null, head), h('tbody', null, body))); // t-stack: rows become label/value cards on phones
+    const wrap = h('div', { class: 'table-wrap', dataset: { table: id } }, h('table', { class: 't' + (columns.length > 3 && !/Compact$/.test(id) ? ' t-stack' : '') }, h('thead', null, head), h('tbody', null, body))); // t-stack: rows become label/value cards on phones
     wrap._args = arguments[0];
     return wrap;
   };
