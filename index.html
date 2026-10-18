@@ -1191,8 +1191,6 @@ button.list-row > .grow { text-align:start; }
 .tl-sum { gap:6px;margin-block-start:6px; }
 .tl-pill { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600; }
 .tl-pill.good { background:var(--good-tint);color:var(--good); } .tl-pill.bad { background:var(--bad-tint);color:var(--bad); } .tl-pill.warn { background:var(--warn-tint);color:var(--warn-ink); }
-.tl-item.nested.tone-good { box-shadow:inset 3px 0 0 var(--good);padding-inline-start:8px; } .tl-item.nested.tone-bad { box-shadow:inset 3px 0 0 var(--bad);padding-inline-start:8px; } .tl-item.nested.tone-warn { box-shadow:inset 3px 0 0 var(--warn);padding-inline-start:8px; }
-[dir="rtl"] .tl-item.nested.tone-good { box-shadow:inset -3px 0 0 var(--good); } [dir="rtl"] .tl-item.nested.tone-bad { box-shadow:inset -3px 0 0 var(--bad); } [dir="rtl"] .tl-item.nested.tone-warn { box-shadow:inset -3px 0 0 var(--warn); }
 .tl-ic.good { color:var(--good);background:var(--good-tint); } .tl-ic.bad { color:var(--bad);background:var(--bad-tint); } .tl-ic.warn { color:var(--warn-ink);background:var(--warn-tint); }
 .pg-offer-advice.small { display:flex;align-items:center;gap:6px;color:var(--good);margin-block:8px; }
 .plan-van { overflow:hidden; } .plan-van-h { padding:12px 16px;gap:12px;border-top:0; }
@@ -1230,6 +1228,14 @@ button.list-row > .grow { text-align:start; }
 .al-type .tabular { font-weight:600; }
 .playbook .list-row { padding:12px 14px;gap:12px;align-items:flex-start; } .pb-n { flex:none;width:24px;height:24px;border-radius:999px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600; }
 .todo-h { display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:4px 2px;border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--ink-2);text-align:start;cursor:pointer; }
+/* touch targets: 44px tap areas on phones (PRODUCT.md: one-hand use in the field) */
+.info-btn { position:relative; } .info-btn::after { content:'';position:absolute;inset:-12px; }
+.rec-more { min-height:44px; }
+@media (max-width:768px) {
+ .van-loc { min-width:44px;min-height:44px; }
+ .store-actions .btn.sm, .store-actions .store-more { min-height:44px; }
+ .sc-out { min-height:44px; } .btn.sm { min-height:40px; }
+}
 </style>
 </head>
 <body>
@@ -4474,7 +4480,9 @@ button.list-row > .grow { text-align:start; }
    areas[a.id]={score:as?100*ag/as:null,coverage:aa?100*as/aa:null};got+=ag;seen+=as;all+=aa;}
   const coverage=all?100*seen/all:0;return {score:seen?100*got/seen:null,coverage,final:seen>0&&coverage>=FD.SC_MIN_COVERAGE,none:!all,areas};};
  const sameDisplay=(i,j)=>i===j||((FD.SHELF_RESULTS||{}).groups||[]).some(g=>g.includes(i)&&g.includes(j));
- FD.scSummary=(st,id)=>{
+ // cached per data version: the same check is summarised by many screens in one render
+ FD.scSummary=(st,id)=>FD.cached?FD.cached('scs',st,id,()=>scSummary(st,id)):scSummary(st,id);
+ const scSummary=(st,id)=>{
   const a=FD.pgAssessment(st,id);if(!a)return null;
   const photos=FD.pgPhotos(st,id).map(p=>{const r=FD.scResult(p.ref);return {p,r,status:r?r.photo.status:'NONE',reasons:r&&r.photo.status!=='OK'?r.photo.reasons||[]:[]};});
   const done=photos.filter(x=>x.r);if(!done.length)return {analysed:false,photos};
@@ -7818,7 +7826,7 @@ button.list-row > .grow { text-align:start; }
     const money = v.kind === 'collection' ? h('div', { class: 'small' }, t('L_COLLECTED') + ' · ' + FD.fmt.money0(p.collected))
       : h('div', { class: 'small' }, FD.fmt.money0(p.sales), h('span', { class: 'muted' }, ' / ' + FD.fmt.money0(p.expected)));
     return h('div', { class: 'van-tile' + (sg === 'NO_ACTIVITY' ? ' quiet' : '') + (L['map:sel'] === v.id ? ' sel' : '') },
-      h('button', { type: 'button', class: 'van-loc', 'aria-label': t('L_LOCATE') + ' · ' + v.route, title: t('L_LOCATE'), on: { click: () => S.locateVan(v.id) } }, I('map-pin', 's16')),
+      h('button', { type: 'button', class: 'van-loc', 'aria-label': t('L_LOCATE') + ' · ' + FD.nameOf(v), title: t('L_LOCATE'), on: { click: () => S.locateVan(v.id) } }, I('map-pin', 's16')),
       h('button', { type: 'button', class: 'van-main', on: { click: () => S.vsrDrawer(v.id, false, 'day') } },
       // the salesman is the heading; route code is secondary; the badge says what it counts
       h('div', { class: 'row van-head' }, h('b', { class: 'ellipsis grow' }, FD.nameOf(v)), alerts ? h('span', { class: 'badge', title: t('L_ALERTS') + ' · ' + FD.fmt.num(alerts), 'aria-label': t('L_ALERTS') + ' · ' + FD.fmt.num(alerts) }, FD.fmt.num(alerts)) : null),
