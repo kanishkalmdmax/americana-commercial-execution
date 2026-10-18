@@ -100,7 +100,7 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { font: 14px/1.5 var(--font); color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+body { font: 14px/1.5 var(--font); color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; overflow-x: clip; } /* clip, not hidden: hidden makes body a scroll box and breaks sticky bars */
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: 0; padding: 0; }
 a { color: var(--brand); text-decoration: none; }
@@ -1236,9 +1236,9 @@ button.list-row > .grow { text-align:start; }
  .store-actions .btn.sm, .store-actions .store-more { min-height:44px; }
  .sc-out { min-height:44px; } .btn.sm { min-height:40px; }
 }
-.jump-bar { position:sticky;top:0;z-index:4;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 0;margin-block-end:4px;background:var(--bg); }
+.jump-bar { position:sticky;top:var(--tb-h,0px);z-index:4;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 0;margin-block-end:4px;background:var(--bg); }
 .jump-bar::-webkit-scrollbar { display:none; }
-[id^='sec-'] { scroll-margin-top:72px; }
+[id^='sec-'] { scroll-margin-top:calc(var(--tb-h,0px) + 56px); }
 </style>
 </head>
 <body>
@@ -6992,7 +6992,8 @@ button.list-row > .grow { text-align:start; }
   });
 
   // long pages: a sticky row of section chips; each heading carries an id to scroll to
-  S.jumpBar = ids => h('nav', { class: 'jump-bar', 'aria-label': t('L_JUMP_TO') }, ids.map(id => h('button', { type: 'button', class: 'al-type', on: { click: () => { const el = document.getElementById('sec-' + id); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } } }, t(id))));
+  S.jumpBar = ids => { requestAnimationFrame(() => { const tb = document.querySelector('.topbar'); if (tb && getComputedStyle(tb).position === 'sticky') document.documentElement.style.setProperty('--tb-h', tb.offsetHeight + 'px'); else document.documentElement.style.removeProperty('--tb-h'); });
+    return h('nav', { class: 'jump-bar', 'aria-label': t('L_JUMP_TO') }, ids.map(id => h('button', { type: 'button', class: 'al-type', on: { click: () => { const el = document.getElementById('sec-' + id); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } } }, t(id)))); };
   S.fuVsr = f => (f.slots && f.slots.vsrId) || null;
   // ================= DRAWERS =================
   S.followupsDrawer = () => FD.drawer.open({ title: t('L_FOLLOWUPS_ALL'), render: () => {
