@@ -1243,6 +1243,8 @@ button.list-row > .grow { text-align:start; }
 .tl-item.nested.tone-good { background:var(--good-tint); } .tl-item.nested.tone-bad { background:var(--bad-tint); } .tl-item.nested.tone-warn { background:var(--warn-tint); } /* full-row tint: colour at a glance without a side stripe */
 .on-cat + .on-cat { border-top:1px solid var(--line); } .on-cat-h { padding:8px 14px;gap:8px; } .on-cat-h .row-toggle { display:flex;align-items:center;gap:10px;min-height:44px;padding:0;border:0;background:none;font:inherit;color:inherit;text-align:start;cursor:pointer; }
 .on-items { background:var(--hover);padding-block:2px; } .on-items .list-row { padding:8px 14px 8px 28px;gap:10px;width:100%; }
+.on-cat-h .pill-count { background:var(--ink-2);color:#fff; } .on-cat-h .fu-ic.bad ~ .pill-count { background:var(--bad); } .on-cat-h .fu-ic.warn ~ .pill-count { background:var(--warn-ink); }
+.on-items .small.muted { color:var(--ink-2);font-weight:600; } .small.ink-2 { color:var(--ink-2); } .small.warn-ink { color:var(--warn-ink);font-weight:600; }
 </style>
 </head>
 <body>
@@ -3419,7 +3421,7 @@ button.list-row > .grow { text-align:start; }
     for (const s of st.world.stores) s.vsr = FD.routeOwner(st, s.route, from) || s.vsr;
     st.sbPending.push({ kind: 'route', route: p.route, vsr: p.vsr, at: now(st) }); audit(st, 'AU_ASSIGN', { vsrId: p.vsr });
   };
-  R.ALERT_RESOLVE = (st, p) => { st.alertDone = st.alertDone || {}; for (const k of p.keys) { if (p.undo) delete st.alertDone[k]; else st.alertDone[k] = true; } };
+  R.ALERT_RESOLVE = (st, p) => { st.alertDone = st.alertDone || {}; for (const k of p.keys) { if (p.undo) delete st.alertDone[k]; else st.alertDone[k] = p.how || 'RESOLVED'; } };
   R.LIVE_SET = (st, p) => { st.rules.liveNotifs = !!p.on; };
   R.LIVEDATA_SET = (st, p) => { st.rules.liveData = !!p.on; audit(st, 'AU_DATA_MODE', {}); };
   R.VANFEED_SET = REGEN((st, p) => { st.rules.vanFeed = !!p.on; audit(st, 'AU_VANFEED', {}); });
@@ -3591,6 +3593,11 @@ button.list-row > .grow { text-align:start; }
       try { chan = new BroadcastChannel('fielddrive'); chan.onmessage = e => { try { if (e.data.type === '__RESET') FD.reset(true); else FD.dispatch(e.data.type, e.data.payload); } catch (err) { } }; } catch (e) { chan = null; }
     }
   };
+  // demo: drop the dismiss / resolve events and replay, so tested-away items come back; everything else stays
+  FD.undismiss = function () { const seed = FD.state.seed, gone = ['ALERT_RESOLVE', 'FOLLOWUP_DISMISS', 'TIP_DISMISS', 'SUP_REC_REMOVE', 'SC_DISMISS', 'REASON_HIDE'];
+    const log = FD.state.log.filter(ev => !gone.includes(ev.type)), n = FD.state.log.length - log.length;
+    try { storage.set(JSON.stringify({ v: 1, seed, log })); } catch (e) { return 0; }
+    FD.init(seed); changed(); return n; };
   FD.reset = function (fromRemote) { const seed = FD.state.seed; if (storage) storage.clear(); FD.state = fresh(seed); if (chan && !fromRemote) { try { chan.postMessage({ type: '__RESET' }); } catch (e) { } } changed(); };
 })();
 
@@ -4340,6 +4347,12 @@ button.list-row > .grow { text-align:start; }
   const RANK = { A_MISSED: 0, A_OFFPLAN: 1, A_PACE: 2, A_PREORDER: 3 };
   // an alert the supervisor resolved stays hidden; a new stop or van problem raises a new one
   FD.alertKey = (a, iso) => [a.type, a.van, a.store || a.visit || a.preorder || '', iso].join('|');
+  // what was done about a missed stop: put back on a later plan, or marked handled (and how)
+  FD.missOutcome = (st, van, store, iso) => {
+    const later = st.visits.find(v => v.store === store && v.date > iso && v.supAdded && v.status !== 'SKIPPED'); // only a stop someone put back counts, not the next routine visit
+    if (later) return { id: 'L_OUT_REPLANNED', slots: { date: later.date } };
+    const how = (st.alertDone || {})[['A_MISSED', van, store, iso].join('|')];
+    return how ? { id: 'L_OUT_' + (how === true ? 'RESOLVED' : how) } : null; };
   FD.alerts = (st, iso) => { const done = st.alertDone || {}; return allAlerts(st, iso).filter(a => !done[FD.alertKey(a, iso)]); };
   function allAlerts(st, iso) {
     return FD.cached('alerts', st, iso + st.clock.time, () => {
@@ -5533,6 +5546,12 @@ button.list-row > .grow { text-align:start; }
     CAT_F_SKIPPED: E('Skipped stops', 'محطات متروكة'),
     CAT_F_PLAN_CHANGE: E('Plan changes by salesmen', 'تغييرات المندوبين على الخطة'),
     CAT_F_COVER: E('Route cover and reassignment', 'تغطية المسارات وإعادة التعيين'),
+    L_CARRY_ALL: E('Add all to next plan', 'أضف الكل إلى الخطة التالية'), L_CARRY_ALL_DONE: E('Added to the next plan', 'أضيفت إلى الخطة التالية'),
+    L_ASK_ALL_WHY: E('Ask each why', 'اسأل كل مندوب عن السبب'), L_ASK_ALL_WHY_DONE: E('Message sent to each salesman', 'أُرسلت رسالة لكل مندوب'),
+    MSG_ASK_OFFPLAN: E('You visited {n} stores that were not on your plan. What was the reason?', 'زرت {n} محلات ليست في خطتك. ما السبب؟'),
+    L_ADD_ALL_PLAN_DONE: E('Added to the plan', 'أضيفت إلى الخطة'), L_HANDLED_ALL_DONE: E('Marked handled', 'تم وضع علامة تمت المعالجة'), L_NAV_PREORDERS_DONE: E('Opened', 'تم الفتح'),
+    L_OUT_REPLANNED: E('Back on the plan for {date}', 'عادت إلى الخطة يوم {date}'), L_OUT_ASKED: E('Salesman asked why', 'تم سؤال المندوب عن السبب'),
+    L_OUT_RESOLVED: E('Marked handled by you', 'وضعت علامة تمت المعالجة'), L_OUT_NONE: E('No action yet', 'لم يُتخذ إجراء بعد'),
     L_RESOLVE_ALL: E('Resolve all', 'حل الكل'), L_ADD_ALL_PLAN: E('Add all to plan', 'أضف الكل إلى الخطة'), L_HANDLED_ALL: E('Mark all handled', 'تمت معالجة الكل'),
     L_NO_STORE_ORDERS: E('No orders from this store in the last 4 weeks', 'لا توجد طلبات من هذا المحل خلال آخر ٤ أسابيع'),
     L_PITCH_EACH: E('Store sells it at {price} SAR each', 'يبيعه المحل بسعر {price} ريال للقطعة'),
@@ -7025,7 +7044,12 @@ button.list-row > .grow { text-align:start; }
 
   // long pages: a sticky row of section chips; each heading carries an id to scroll to
   S.jumpBar = ids => { requestAnimationFrame(() => { const tb = document.querySelector('.topbar'); if (tb && getComputedStyle(tb).position === 'sticky') document.documentElement.style.setProperty('--tb-h', tb.offsetHeight + 'px'); else document.documentElement.style.removeProperty('--tb-h'); });
-    return h('nav', { class: 'jump-bar', 'aria-label': t('L_JUMP_TO') }, ids.map(id => h('button', { type: 'button', class: 'al-type', on: { click: () => { const el = document.getElementById('sec-' + id); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } } }, t(id)))); };
+    const mark = id => document.querySelectorAll('.jump-bar .al-type').forEach(b => { const on = b.dataset.sec === id; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'true' : 'false'); if (on) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+    if (typeof addEventListener === 'function') { if (S._spy) removeEventListener('scroll', S._spy);
+      S._spy = () => { if (S._spyHold > Date.now()) return; const top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tb-h')) || 0) + 90; let cur = ids[0];
+      for (const id of ids) { const el = document.getElementById('sec-' + id); if (el && el.getBoundingClientRect().top <= top) cur = id; } mark(cur); };
+    addEventListener('scroll', S._spy, { passive: true }); requestAnimationFrame(S._spy); }
+    return h('nav', { class: 'jump-bar', 'aria-label': t('L_JUMP_TO') }, ids.map(id => h('button', { type: 'button', class: 'al-type', 'data-sec': id, on: { click: () => { const el = document.getElementById('sec-' + id); mark(id); S._spyHold = Date.now() + 900; if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } } }, t(id)))); };
   S.fuVsr = f => (f.slots && f.slots.vsrId) || null;
   // ================= DRAWERS =================
   S.followupsDrawer = () => FD.drawer.open({ title: t('L_FOLLOWUPS_ALL'), render: () => {
@@ -7098,7 +7122,6 @@ button.list-row > .grow { text-align:start; }
   S.draftGroups = drafts => { const by = []; for (const d of drafts) { let g = by.find(x => x.vsr === d.vsr); if (!g) by.push(g = { vsr: d.vsr, ds: [] }); g.ds.push(d); }
     return h('div', null, by.map(g => h('button', { type: 'button', class: 'list-row click draft-group', on: { click: () => S.draftSheet(g.vsr) } },
       FD.avatar(vsrOf(g.vsr)), h('span', { class: 'grow' }, h('span', { class: 'fu-t', style: { display: 'block' } }, FD.nameOf(vsrOf(g.vsr))), h('span', { class: 'fu-c', style: { display: 'block' } }, t(g.ds.length === 1 ? 'L_TIPS_1' : 'L_TIPS_N', { n: FD.fmt.num(g.ds.length) }))),
-      h('span', { class: 'btn ghost sm' }, t('L_OPEN')),
       h('button', { type: 'button', class: 'btn secondary sm', on: { click: e => { e.stopPropagation(); S.sendDrafts(g.vsr); } } }, I('send', 's14'), t('L_SEND_ALL', { n: FD.fmt.num(g.ds.length) }))))); };
   S.tipsDrawer = () => FD.drawer.open({ title: t('L_TIP_DRAFTS'), render: () => { const ds = FD.coachDrafts(st()).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route);
     return ds.length ? h('div', { class: 'card' }, S.draftGroups(ds)) : h('div', { class: 'card' }, FD.empty('L_TIPS_DONE', null, 'check-circle')); } });
@@ -8075,7 +8098,9 @@ button.list-row > .grow { text-align:start; }
   S.vanDay = function (vsrId,date) {
     if(date&&date!==today()){
       const visits=st().visits.filter(v=>v.vsr===vsrId&&v.date===date).slice().sort((a,b)=>(a.seq||0)-(b.seq||0));
-      return h('div',{class:'stack s16'},h('div',{class:'card'},visits.map(v=>h('div',{class:'list-row'},h('button',{type:'button',class:'link grow',on:{click:()=>S.storeDrawer(v.store)}},FD.nameOf(storeOf(v.store))),FD.chip(t('L_STATUS_'+v.status))))),FD.btn(t('L_NAV_TODAY'),()=>S.vsrDrawer(vsrId,false,'day'),'secondary'));
+      return h('div',{class:'stack s16'},h('div',{class:'card'},visits.map(v=>{const miss=v.status!=='DONE'&&!v.offPlan,out=miss?FD.missOutcome(st(),vsrId,v.store,date):null;
+        return h('div',{class:'list-row'},h('div',{class:'grow',style:{minWidth:0}},h('button',{type:'button',class:'link',on:{click:()=>S.storeDrawer(v.store)}},FD.nameOf(storeOf(v.store))),
+          miss?h('div',{class:'small '+(out?'ink-2':'warn-ink')},out?tx(out.id,out.slots||{}):t('L_OUT_NONE')):null),FD.chip(t('L_STATUS_'+v.status),miss?'bad':''));})),FD.btn(t('L_NAV_TODAY'),()=>S.vsrDrawer(vsrId,false,'day'),'secondary'));
     }
     const s = st(); const d = today(); const v = vsrOf(vsrId); const sg = FD.stageFor(s, vsrId, d); const live = FD.liveData(s); const pd = live ? d : FD.dataDay(s); const p = FD.vanProgress(s, vsrId, pd);
     const missed = new Set(live ? FD.alerts(s, d).filter(a => a.type === 'A_MISSED' && a.van === vsrId).map(a => a.visit) : []);
@@ -8359,7 +8384,12 @@ button.list-row > .grow { text-align:start; }
   const FU_ICON_OF = tpl => (S.FU_ICON || {})[tpl] || 'bell';
   // the one safe bulk action per category (same idea as Send all on tips)
   const bulkOf = c => {
-    if (c.items.some(i => i.alert)) return { label: 'L_RESOLVE_ALL', run: () => c.items.forEach(i => { const keys = i.alert.items.map(a => FD.alertKey(a, i.alert.day || st().clock.date)); FD.dx('ALERT_RESOLVE', { keys }); }) };
+    const keysOf = i => i.alert.items.map(a => FD.alertKey(a, i.alert.day || st().clock.date));
+    // missed stops: the playbook step is to put them on the next plan
+    if (c.key === 'A_MISSED') return { label: 'L_CARRY_ALL', run: () => { const nd = FD.nextSellingDay(st().clock.date); c.items.forEach(i => { i.alert.items.forEach(a => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: a.store, date: nd, bySup: true })); FD.dx('ALERT_RESOLVE', { keys: keysOf(i), how: 'REPLANNED' }); }); } };
+    // visits off the plan: ask each salesman why, once
+    if (c.key === 'A_OFFPLAN') return { label: 'L_ASK_ALL_WHY', run: () => c.items.forEach(i => { FD.dx('MSG_SEND', { anchor: { type: 'vsr', id: i.vsr }, by: 'SUP', text: tx('MSG_ASK_OFFPLAN', { n: i.n }) }); FD.dx('ALERT_RESOLVE', { keys: keysOf(i), how: 'ASKED' }); }) };
+    if (c.items.some(i => i.alert)) return null; // pace: message one salesman at a time
     if (c.key === 'X_DUE' || c.key === 'X_CARRY') return { label: 'L_ADD_ALL_PLAN', run: () => c.items.forEach(i => i.exc.forEach(x => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: x.store, bySup: true }))) };
     if (c.items.some(i => i.fu)) return { label: 'L_HANDLED_ALL', run: () => c.items.forEach(i => FD.dx('FOLLOWUP_DISMISS', { fu: i.fu.key, why: 'FU_HANDLED', snap: { tpl: i.fu.tpl, slots: i.fu.slots } })) };
     if (c.key === 'A_PREORDER') return { label: 'L_NAV_PREORDERS', run: () => S.preordersDrawer() };
@@ -8369,7 +8399,7 @@ button.list-row > .grow { text-align:start; }
     return h('div', { class: 'on-cat' }, h('div', { class: 'list-row on-cat-h' },
       h('button', { type: 'button', class: 'row-toggle grow', 'aria-expanded': String(!!open), on: { click: () => { FD.ui.local[k] = !open; FD.drawer.refresh(false); } } },
         h('span', { class: 'fu-ic ' + c.tone }, I(c.icon, 's16')), h('span', { class: 'grow fu-t' }, t('CAT_' + c.key)), h('span', { class: 'pill-count' }, FD.fmt.num(c.n)), I(open ? 'chevron-up' : 'chevron-down', 's16')),
-      bulk ? FD.btn(t(bulk.label), () => { bulk.run(); FD.toast('S_SAVED'); FD.drawer.refresh(false); FD.render(); }, 'secondary sm') : null),
+      bulk ? FD.btn(t(bulk.label), () => { bulk.run(); FD.toast(null, null, { text: t(bulk.label + '_DONE') }); FD.drawer.refresh(false); FD.render(); }, 'secondary sm') : null),
       open ? h('div', { class: 'on-items' }, c.items.map(i => h('button', { type: 'button', class: 'list-row click', on: { click: i.open } },
         i.vsr ? FD.avatar(vsrOf(i.vsr)) : null, h('span', { class: 'grow' }, i.label || FD.nameOf(vsrOf(i.vsr))), i.n > 1 ? h('span', { class: 'small muted tabular' }, FD.fmt.num(i.n)) : null, I('chevron-right', 's16')))) : null); }));
   S.metricDrawer = (k, ctx) => FD.drawer.open({ title: t(k === 'net' ? 'L_NET_RESULT' : meta(k).label), render: () => {
@@ -8590,6 +8620,7 @@ button.list-row > .grow { text-align:start; }
       h('section', null, h('h5', null, 'PRESENTER'),
         row(btn('Engine learning (internal)', () => FD.go('#/sup/learn'))),
         row(btn('Guided demo (5 steps)', guided, 'primary'), btn('Replay tour', () => { FD.dx('TOUR_RESET'); FD.tour(FD.route().role); })),
+        row(btn('Bring back dismissed items', () => { FD.closeAllOverlays(); note(FD.undismiss() + ' dismissals undone'); }, 'secondary')),
         row(btn(D.resetArmed ? 'Click again to reset' : 'Reset demo', () => { if (!D.resetArmed) { D.resetArmed = true; redraw(); setTimeout(() => { D.resetArmed = false; redraw(); }, 3000); return; }
           D.resetArmed = false; FD.closeAllOverlays(); FD.reset(); note('reset to seed data'); }, D.resetArmed ? 'danger' : 'secondary')),
         h('div', { class: 'small muted' }, 'Ctrl + . or Esc closes this panel')));
