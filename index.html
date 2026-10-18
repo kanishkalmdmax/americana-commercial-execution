@@ -1199,6 +1199,20 @@ button.list-row > .grow { text-align:start; }
 .plan-van { overflow:hidden; } .plan-van-h { padding:12px 16px;gap:12px;border-top:0; }
 .sc-issue-row { padding:8px 16px;gap:8px;font-size:13px; }
 .link-btn.tabular { color:var(--brand);font-weight:600;text-decoration:underline;text-underline-offset:3px;background:none;border:0;cursor:pointer;font:inherit; }
+.sc-col-h > div { min-width:0; }
+.sc-col-empty .sc-empty { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:200px;padding:16px;border:1.5px dashed var(--line-2);border-radius:var(--r-md);text-align:center;color:var(--ink-3); }
+.sc-next { display:flex;align-items:center;gap:4px; }
+.sc-side-sw { display:none;margin-block-end:10px; }
+@media (max-width:600px) { .sc-side-sw { display:block; } .sc-cols > .sc-col:not(.on) { display:none; } }
+.rec-pays { display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-block-start:8px; }
+.rec-warn { display:flex;align-items:center;gap:6px;margin-block-start:8px;color:var(--bad); }
+.rec-more { display:inline-flex;align-items:center;gap:4px;margin-block-start:10px;padding:0;border:0;background:none;color:var(--brand);font:inherit;font-size:13px;font-weight:500;cursor:pointer; }
+.rec-details { display:flex;flex-direction:column;gap:8px;margin-block-start:10px;padding-block-start:10px;border-block-start:1px solid var(--line); }
+.prof-list { padding:0;overflow:hidden; }
+.prof-sec + .prof-sec { border-block-start:1px solid var(--line); }
+.prof-h { display:flex;align-items:center;gap:8px;width:100%;min-height:48px;padding:12px 14px;border:0;background:none;font:inherit;font-weight:500;color:var(--ink);text-align:start;cursor:pointer; }
+.prof-sec.open .prof-h { background:var(--hover); }
+.prof-b { padding:12px 14px 14px; }
 </style>
 </head>
 <body>
@@ -4400,7 +4414,11 @@ button.list-row > .grow { text-align:start; }
   SC_NOT_CORRECT:E('Not correct','غير صحيح'),SC_REQ_NONE:E('No shelf photos yet','لا توجد صور للرف بعد'),SC_REQ_ASK:E('Request a check','طلب فحص'),SC_REQ_OPEN:E('Check requested {date} · waiting for the next visit','طُلب الفحص {date} · بانتظار الزيارة القادمة'),SC_REQ_DONE:E('Requested check done {date}','تم الفحص المطلوب {date}'),SC_REQ_BLOCKED:E("Couldn't check: {reason}",'تعذّر الفحص: {reason}'),
   SC_REQ_CLOSED:E('Store closed','المحل مغلق'),SC_REQ_OWNER_NO:E('Owner said no','رفض صاحب المحل'),SC_REQ_NO_ACCESS:E("Couldn't reach the shelf",'تعذّر الوصول إلى الرف'),
   SC_REQ_VSR:E('Your supervisor asked for a shelf check','طلب مشرفك فحص الرف'),SC_REQ_TAKE:E('Take before photo','التقاط صورة قبل'),SC_TODO_REQ:E('Shelf check at {store}','فحص الرف في {store}'),SC_TODO_FIX:E('Check fixes from the last visit at {store}','تحقق من إصلاحات الزيارة السابقة في {store}'),
-  SC_TODO_H:E('Shelf checks','فحوصات الرف'),SC_SWAP:E('Swap Before and After','تبديل قبل وبعد'),SC_NEXT_VISIT:E('Checked on the next visit, {date}','تم التحقق في الزيارة التالية، {date}'),SC_FROM_LAST:E('From the last visit','من الزيارة السابقة'),
+  SC_TODO_H:E('Shelf checks','فحوصات الرف'),SC_SWAP:E('Swap Before and After','تبديل قبل وبعد'),SC_NEXT_VISIT:E('Checked on the next visit, {date}','تم التحقق في الزيارة التالية، {date}'),SC_FROM_LAST:E('From the last visit','من الزيارة السابقة'),SC_NEXT_LABEL:E('Next visit','الزيارة التالية'),SC_NO_AFTER:E('No After photo yet','لا توجد صورة بعد حتى الآن'),
+  SC_NO_AFTER_VSR:E('Take the After photo of the same shelf when you finish.','التقط صورة بعد للرف نفسه عند الانتهاء.'),SC_NO_AFTER_SUP:E('The next photo of this shelf will appear here.','ستظهر هنا الصورة التالية لهذا الرف.'),
+  SC_NEXT_CLOSED:E('Closed','مغلقة'),SC_NEXT_THIS:E('To do on this visit','مطلوبة في هذه الزيارة'),SC_NEXT_VERIFY:E('Next: the After photo or the next visit confirms it','التالي: صورة بعد أو الزيارة القادمة تؤكدها'),
+  SC_NEXT_OPEN:E('Stays open: next visit to-do and the store card','تبقى مفتوحة: مهمة الزيارة القادمة وبطاقة المحل'),SC_NEXT_TODAY:E('Also on Today for the supervisor','تظهر أيضاً في صفحة اليوم للمشرف'),
+  SC_NEXT_OWNER:E('Stays on the store for a talk with the owner','تبقى على المحل للحديث مع صاحبه'),SC_NEXT_NEW:E('New issue: added to the next visit','مشكلة جديدة: أضيفت للزيارة القادمة'),
   SC_NONE:E('No Shelf Check yet. Take a Before photo at the next visit.','لا يوجد فحص للرف بعد. التقط صورة قبل في الزيارة القادمة.'),SC_HISTORY:E('Shelf Check history','سجل فحص الرف'),
   SC_SETTINGS:E('Shelf Score weights','أوزان درجة الرف'),SC_SETTINGS_D:E('How much each area counts in the Shelf Score. The total must be 100%. Changes apply to new checks only.','مقدار ما يحتسبه كل جانب في درجة الرف. يجب أن يكون المجموع ١٠٠٪. تُطبق التغييرات على الفحوصات الجديدة فقط.'),
   SC_TOTAL:E('Total {pct}','المجموع {pct}'),SC_RESET:E('Reset to defaults','إعادة الافتراضي'),SC_INSIDE:E('Inside each area, the more important checks count more.','داخل كل جانب، تُحتسب الفحوصات الأهم بوزن أكبر.'),
@@ -4453,14 +4471,16 @@ button.list-row > .grow { text-align:start; }
   const mark=(list,check)=>{for(const x of list){const f=(x.r.findings||[]).find(f=>f.check===check);if(f)return {photoId:x.p.id,box:f.box_2d};}return null;};
   const findings=PRIORITY.filter(c=>typeof bv[c]==='number'&&bv[c]<1).map(c=>{
    const v=av&&av[c],status=!A.length?'OPEN':!comparable||v==null||v==='NA'?'CANT_CHECK':v>=1?'FIXED':v>bv[c]?'PARTLY_FIXED':'STILL';
-   return {check:c,met:bv[c],cls:FD.scClass(c),outcome:(a.actions||{})[c]||null,status,mark:mark(B,c),urgent:c==='COND_DAMAGED_PACK'};});
+   return {check:c,met:bv[c],cls:FD.scClass(c),outcome:(a.actions||{})[c]||null,status,mark:mark(B,c),markAfter:A.length?mark(A,c):null,urgent:c==='COND_DAMAGED_PACK'};});
   const fresh=comparable?PRIORITY.filter(c=>typeof av[c]==='number'&&av[c]<1&&bv[c]===1).map(c=>({check:c,met:av[c],cls:FD.scClass(c),status:'NEW',mark:mark(A,c)})):[];
   const fix=findings.filter(f=>f.cls==='FIX'&&!BLOCKERS.includes(f.outcome));
   const fixes={verified:fix.filter(f=>f.status==='FIXED').length,total:fix.length,waiting:fix.filter(f=>f.status==='OPEN'&&f.outcome==='DONE').length};
   const blockers=findings.filter(f=>BLOCKERS.includes(f.outcome)&&f.status!=='FIXED');
   // A Before and an After of one display are one sighting each, not two to add up.
   const comp=new Map();for(const x of done.filter(x=>FD.scUsable(x.r)))for(const c of x.r.competition||[])if(c.signal!=='COMP_NONE')comp.set(c.signal+'|'+(c.brand||'UNKNOWN'),{signal:c.signal,brand:c.brand||'UNKNOWN'});
-  return {analysed:true,photos,weights:W,before,after,comparable,nextVisit:next,mismatch:!!(B.length&&A.length&&!comparable),change,findings,fresh,fixes,blockers,
+  // the photos to compare: this check's Before, and its After or the next visit's photo of the same display
+  const cmp={before:B.map(x=>x.p),after:A.map(x=>x.p),afterSource:next?'NEXT':A.length?'AFTER':null};
+  return {analysed:true,photos,weights:W,before,after,comparable,nextVisit:next,cmp,mismatch:!!(B.length&&A.length&&!comparable),change,findings,fresh,fixes,blockers,
    open:findings.filter(f=>f.status!=='FIXED').length+fresh.length,competition:[...comp.values()],seen:[...new Set(done.flatMap(x=>FD.scUsable(x.r)?x.r.americana_seen||[]:[]))],
    urgent:findings.some(f=>f.urgent&&f.status!=='FIXED'),current:after||before,good:!!(before&&before.final&&!findings.length)};
  };
@@ -4492,13 +4512,13 @@ button.list-row > .grow { text-align:start; }
   for(const ps of by.values()){const f=ps[0],id='SC'+(++n);
    P.assessments.push({id,store:f.store,vsr:f.vsr,visitId:null,date:f.date,time:f.time,photoIds:ps.map(p=>p.id),weights:{...FD.SC_DEFAULT_WEIGHTS},actions:{},dismissed:{},seeded:true});
    for(const p of ps){p.assessmentId=id;p.phase='BEFORE';}
-   const partner=((FD.SHELF_RESULTS.groups||[]).find(g=>g[0]===f.ref)||[])[1];
+   const partner=((FD.SHELF_RESULTS.groups||[]).find(g=>g[0]===f.ref&&g.every(r=>(FD.scResult(r).americana_seen||[]).length))||[])[1];
    if(partner!=null&&!ps.some(p=>p.ref===partner)){const ph={id:id+'-after',src:FD.PHOTOS[partner],store:f.store,vsr:f.vsr,date:f.date,time:f.time,assessmentId:id,phase:'AFTER',ref:partner,seeded:true};st.photos.push(ph);P.assessments.at(-1).photoIds.push(ph.id);}
    const a=P.assessments.at(-1),pick=(n*7919)%100;
    // demo variety: about two in three stores get one to three conditions; damaged packs stay rare
    if(pick<65){const pool=['FULL_EMPTY_SPACE','FIND_HIDDEN','FULL_NOT_FORWARD','COND_CARTON','FIND_FACING','FIND_MIXED','COND_ROTATION','FIND_WRONG_AREA','FULL_EMPTY_CARTON'].concat(pick%11===0?['COND_DAMAGED_PACK']:[]);
-    const k=1+pick%3,B={},Af={};for(let i=0;i<k;i++){const c=pool[(n*3+i*5)%pool.length];B[c]=[0,0.5,0,0.25][(n+i)%4];Af[c]=[1,1,1,0.75,B[c]][(n+i*2)%5];}
-    a.adjust={BEFORE:B,AFTER:Af};}
+    const k=1+pick%3,B={};for(let i=0;i<k;i++){const c=pool[(n*3+i*5)%pool.length];B[c]=[0,0.5,0,0.25][(n+i)%4];}
+    a.adjust={BEFORE:B};}
    const s=FD.scSummary(st,id);
    // outcomes agree with what the After photo shows
    s.findings.forEach((x,k)=>{a.actions[x.check]=x.cls==='ASK'?(x.status==='FIXED'?'OWNER_YES':x.status==='STILL'?'OWNER_NO':FD.SC_OUTCOMES.ASK[(n+k)%3])
@@ -5391,6 +5411,7 @@ button.list-row > .grow { text-align:start; }
     B_GAP_LABEL_MOST: E("Most {label} stores carry this. This store doesn't yet.", 'معظم محلات فئة {label} توفّر هذا المنتج، وهذا المحل لا يوفّره بعد.'), B_GAP_LABEL_MANY: E("Many {label} stores carry this. This store doesn't yet.", 'كثير من محلات فئة {label} توفّر هذا المنتج، وهذا المحل لا يوفّره بعد.'),
     PG_VALUE_LINE: E('Better value per gram than {label}', 'قيمة أفضل لكل غرام من {label}'),
     L_SUGGESTIONS_N: E('{n} suggestions', '{n} اقتراحات'),
+    L_MORE_DETAILS: E('More details', 'تفاصيل أكثر'),
     L_NO_STORE_ORDERS: E('No orders from this store in the last 4 weeks', 'لا توجد طلبات من هذا المحل خلال آخر ٤ أسابيع'),
     L_PITCH_EACH: E('Store sells it at {price} SAR each', 'يبيعه المحل بسعر {price} ريال للقطعة'),
     L_PILOT_ADOPTION: E('Field Adoption Metrics & Support Needed', 'مقاييس الاستخدام الميداني والدعم المطلوب'),
@@ -5881,15 +5902,6 @@ button.list-row > .grow { text-align:start; }
     const m = { PLANNED: ['L_STATUS_PLANNED', ''], ARRIVED: ['L_STATUS_ARRIVED', 'info'], DONE: ['L_STATUS_DONE', 'good'], SKIPPED: ['L_STATUS_SKIPPED', ''] }[v.status] || ['L_STATUS_PLANNED', ''];
     return FD.chip(t(v.moved && v.status === 'PLANNED' ? 'L_STATUS_MOVED' : m[0]), m[1]);
   };
-  V.promoEarn = (rec, sku, qty) => {
-    const p = rec.promo && st().world.promos.find(x => x.id === rec.promo) || FD.activePromo(st(), rec.sku, today());
-    if (!p) return null;
-    const base = qty * (sku.retail - sku.cost);
-    if (p.promoId === 'PROMO_CB_51') return base + Math.floor(qty / 5) * sku.retail;
-    if (p.promoId === 'PROMO_BC_1OFF') return base + qty * 1;
-    if (p.promoId === 'PROMO_SR_10') return base + qty * sku.cost * 0.1;
-    return base;
-  };
   function tipFor(rec) {
     const tips = st().tips.filter(x => x.vsr === FD.recVsr(rec) && x.status === 'SENT' && FD.daysBetween(x.sentAt.date, today()) <= 14);
     return tips.reverse().find(x => (x.slots && x.slots.skuCode === rec.sku)) || tips.find(x => !x.slots || !x.slots.skuCode);
@@ -6145,7 +6157,7 @@ button.list-row > .grow { text-align:start; }
 ));
     const body = [head];
     if (tab === 'offer') { const rq = FD.scRequestCard({ store: storeId, visitId: visit?.id }); if (rq) body.push(rq); const sc = FD.scVisitCard({ store: storeId, visitId: visit?.id }); if (sc) body.push(sc); }
-    s.preorders.filter(p => p.store === storeId && p.status !== 'DONE' && (!p.forDate || p.forDate === d)).forEach(p => body.push(h('div', { class: 'banner info', style: { marginTop: '12px', alignItems: 'flex-start' } }, I('inbox'),
+    if (tab === 'offer') s.preorders.filter(p => p.store === storeId && p.status !== 'DONE' && (!p.forDate || p.forDate === d)).forEach(p => body.push(h('div', { class: 'banner info', style: { marginTop: '12px', alignItems: 'flex-start' } }, I('inbox'),
       h('div', { class: 'grow', style: { minWidth: 0 } }, h('b', null, t('L_PREORDER_FROM_OWNER')), h('div', { dir: 'auto' }, FD.txtOf(p.text)), h('div', { class: 'small muted' }, t('L_VIA_WHATSAPP') + ' · ' + FD.fmt.time(p.at.time))),
       p.photo ? h('img', { src: p.photo, alt: '', style: { width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', cursor: 'zoom-in' }, on: { click: () => FD.lightbox(p.photo) } }) : null)));
     const due = FD.storeSkuStats(s, storeId, d).filter(x => x.cover != null && x.cover <= 2); // regular reorders, not upsells: a quiet line only
@@ -6198,8 +6210,7 @@ button.list-row > .grow { text-align:start; }
   V.recCard = function (rec, first) {
     const s = st(); const sku = FD.sku(rec.sku); const q = rec.qtyModified ?? rec.qty; const store = storeOf(rec.store);
     if (rec.stage === 'SENT' && !V._viewed[rec.id]) { V._viewed[rec.id] = 1; setTimeout(() => FD.dx('REC_VIEW', { recId: rec.id }), 0); }
-    const cost = q * sku.cost, rev = q * sku.retail, earn = rev - cost;
-    const promoEarn = V.promoEarn(rec, sku, q);
+    const cost = q * sku.cost;
     const promo = rec.promo ? s.world.promos.find(p => p.id === rec.promo) : FD.activePromo(s, rec.sku, today());
     const van = s.rules.vanFeed ? ((s.vanStock[FD.recVsr(rec)] || {})[rec.sku] || 0) : null;
     const tip = tipFor(rec);
@@ -6224,22 +6235,24 @@ button.list-row > .grow { text-align:start; }
       }
       return null;
     })();
+    // compact by default: product, quantity, what the store pays; the rest one tap away (store shelf price is not known, so not shown)
+    const more = !!V._more[rec.id];
     return h('article', { class: 'v-card rec', 'data-tour': first ? 'vsr3' : null, 'aria-label': FD.nameOf(sku) },
       h('div', { class: 'top' }, FD.chip(t('TYPE_' + rec.type), rec.type === 'PROMO' ? 'warn' : 'info'), rec.pinned ? FD.chip([I('pin', 's14'), t('L_PIN')], 'brand') : null, h('span', { class: 'grow' }),
         th ? h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('L_MESSAGES'), on: { click: () => FD.threadSheet({ type: 'rec', id: rec.id }, 'VSR') } }, I('message'), th.unreadVsr ? h('span', { class: 'dot' }, '1') : null)
           : FD.iconBtn('message', t('L_MESSAGES'), () => FD.threadSheet({ type: 'rec', id: rec.id }, 'VSR'))),
       h('div', { class: 'row', style: { gap: '12px', alignItems: 'center' } }, FD.skuTile(rec.sku, 40), h('h4', { class: 'grow' }, FD.nameOf(sku))),
-      rec.date < today() ? h('div', { class: 'small muted', style: { marginTop: '4px' } }, t('L_CARRIED_FROM', { date: FD.fmt.date(rec.date), reason: t(rec.reason) })) : null,
-      h('div', { class: 'why' }, tx(rec.reasonId, reasonSlots), rec.pinned ? ' ' + t('B_PINNED') : ''),
-      FD.pgOfferAdvice(rec),
-      rec.supEdited ? h('div', { style: { marginTop: '6px' } }, FD.chip([I('user', 's14'), t(rec.supEdited.prev ? 'L_SUP_CHANGED' : 'SK_SUP_ADDED')], 'info')) : null,
-      h('div', { class: 'pitch', role: 'group', 'aria-label': tx('C_PITCH', { cost, rev, earn }) },
-        h('div', null, h('span', null, t('L_PITCH_COST')), h('b', null, money(cost))), h('div', null, h('span', null, t('L_PITCH_SELLS')), h('b', null, money(rev))),
-        h('div', { class: 'earn' }, h('span', null, t('L_PITCH_EARN')), h('b', null, money(promoEarn ?? earn)))),
-      h('div', { class: 'small muted', style: { marginTop: '6px', textAlign: 'center' } }, sku.pcs > 1 ? tx('C_PITCH_PC', { price: sku.street, pcs: sku.pcs, unitOf: sku.code }) : t('L_PITCH_EACH', { price: FD.fmt.num(sku.street, 2) })),
-      promo ? h('div', { class: 'banner warn', style: { marginTop: '10px', fontSize: '13px' } }, I('tag', 's16'), h('span', null, tx('B_PROMO', { promoId: promo.promoId, date: promo.end }) + (promoEarn != null ? ' ' + tx('C_PITCH_PROMO', { earn: promoEarn }) : ''))) : null,
       h('div', { class: 'qty-row' }, h('div', { class: 'grow' }, h('div', { class: 'small muted' }, t('L_QTY')), h('div', { style: { fontWeight: 600 } }, rec.type === 'GAP' ? t('C_FIRST_FILL', { unit: unitText(rec.sku, 1) }) : tx('C_QTY', { qty: q, unitOf: rec.sku, pcs: q * sku.pcs }))),
         null), // quantity is only a hint: the order is placed in SalesBuzz (R2-f)
+      h('div', { class: 'rec-pays' }, h('span', { class: 'small muted' }, t('L_PITCH_COST')), h('b', null, money(cost))),
+      promo ? h('div', { class: 'banner warn', style: { marginTop: '10px', fontSize: '13px' } }, I('tag', 's16'), h('span', null, tx('B_PROMO', { promoId: promo.promoId, date: promo.end }))) : null,
+      van === 0 ? h('div', { class: 'rec-warn small' }, I('truck', 's14'), t('D_NOT_ON_VAN')) : null,
+      h('button', { type: 'button', class: 'rec-more', 'aria-expanded': String(more), on: { click: () => { V._more[rec.id] = !more; FD.render(); } } }, t(more ? 'L_SHOW_LESS' : 'L_MORE_DETAILS'), I(more ? 'chevron-up' : 'chevron-down', 's14')),
+      more ? h('div', { class: 'rec-details' },
+        rec.date < today() ? h('div', { class: 'small muted' }, t('L_CARRIED_FROM', { date: FD.fmt.date(rec.date), reason: t(rec.reason) })) : null,
+        h('div', { class: 'why' }, tx(rec.reasonId, reasonSlots), rec.pinned ? ' ' + t('B_PINNED') : ''),
+        FD.pgOfferAdvice(rec),
+        rec.supEdited ? h('div', null, FD.chip([I('user', 's14'), t(rec.supEdited.prev ? 'L_SUP_CHANGED' : 'SK_SUP_ADDED')], 'info')) : null,
       h('div', { class: 'meta-list' },
         h('div', null, I('truck', 's14'), van == null ? t('D_NOT_VERIFIED') : van > 0 ? tx('D_ON_VAN', { qty: van, unitOf: rec.sku }) : t('D_NOT_ON_VAN')),
         h('div', null, I('clock', 's14'), tx('D_DATA_AGE', { date: FD.addDays(today(), -1), time: '21:40' })),
@@ -6251,10 +6264,11 @@ button.list-row > .grow { text-align:start; }
       FD.PLACEMENT[sku.group] ? h('div', { class: 'rec-line' }, I('layers', 's16'), h('span', null, h('b', null, t('L_WHERE_PLACE') + ': '), t(FD.PLACEMENT[sku.group]))) : null,
       open || rec.shelfAsk ? h('div', { class: 'shelf-ask' }, h('span', { class: 'small' }, t('L_SHELF_ASK')),
         FD.seg([{ id: 'GOT', label: t('L_SHELF_GOT') }, { id: 'NO', label: t('L_SHELF_NO') }], rec.shelfAsk || '', v => FD.dx('SHELF_ASK', { recId: rec.id, result: rec.shelfAsk === v ? null : v }))) : null,
+      ) : null,
       open ? h('div', { class: 'row', style: { marginTop: '12px' } }, h('button', { type: 'button', class: 'btn secondary sm', on: { click: () => V.reasonSheet(rec.id, 'NOT_OFFERED') } }, I('eye-off', 's16'), t('L_DIDNT_OFFER'))) : null,
       outcome);
   };
-  V._viewed = {};
+  V._viewed = {}; V._more = {};
   // Visit again: later today or on the next visit day (R2-Q4) — inserts a revisit stop into that day's plan
   V.revisitSheet = function (storeId) {
     let when = 'today';
@@ -6281,15 +6295,23 @@ button.list-row > .grow { text-align:start; }
       return h('div', { class: 'list-row', style: { padding: '8px 14px', alignItems: 'flex-start' } }, h('span', { class: 'small', style: { width: '56px', flex: 'none', color: 'var(--ink-3)' } }, FD.fmt.date(v.date)),
         h('div', { class: 'row wrap grow', style: { gap: '4px' } }, lines.length ? lines.map(l => FD.chip([FD.skuIcon(l.sku, 16), FD.nameOf(FD.sku(l.sku)) + ' ×' + FD.fmt.num(l.units)])) : h('span', { class: 'small muted' }, '—')));
     }));
-    return h('div', { class: 'stack s16', style: { marginTop: '14px' } },
+    // phone: the summary stays visible; everything else is one section at a time, each header saying what is inside
+    const key = 'vsr:prof:' + storeId, openId = L[key] || null, ownerN = FD.ownerThread(s, storeId).length;
+    const photosN = s.photos.filter(p => p.store === storeId).length, checksN = FD.pgAssessments(s, storeId).length;
+    const sec = (id, label, n, body) => h('section', { class: 'prof-sec' + (openId === id ? ' open' : '') },
+      h('button', { type: 'button', class: 'prof-h', 'aria-expanded': String(openId === id), on: { click: () => { L[key] = openId === id ? null : id; FD.render(); } } },
+        h('span', { class: 'grow' }, t(label)), n != null ? h('span', { class: 'pill-count' }, FD.fmt.num(n)) : null, I(openId === id ? 'chevron-up' : 'chevron-down', 's16')),
+      openId === id ? h('div', { class: 'prof-b' }, body()) : null);
+    return h('div', { class: 'stack s12', style: { marginTop: '14px' } },
       FD.sup.glance(storeId, true),
-      h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('L_SHELF')), FD.shelfView(shelf, { compact: true, filterKey: 'vsr:' + storeId })),
-      h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('L_STORE_PRODUCTS')), V.skuStats(storeId)),
-      h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('SC_HISTORY')), FD.scHistory(storeId)),
-      h('section', null, h('div', { class: 'row between', style: { marginBottom: '8px' } }, h('h3', { class: 'small muted', style: { margin: 0 } }, t('L_PHOTOS')), FD.btn(t('PG_TAKE_PHOTOS'),()=>FD.pgCaptureSheet({store:storeId}),'secondary sm')), FD.photoTimeline(storeId, 6)),
-      FD.ownerThread(s, storeId).length ? h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('L_OWNER_WA')), FD.sup.ownerChat(storeId, FD.render, true)) : null,
-      h('section', null, h('h3', { class: 'small muted', style: { margin: '0 0 8px' } }, t('L_LAST_8')), recent),
-      FD.btn(t('L_SUGGEST_FIX'), () => V.correctionSheet(storeId), 'secondary block', 'edit'));
+      h('div', { class: 'v-card prof-list' },
+        sec('products', 'L_STORE_PRODUCTS', FD.storeSkuStats(s, storeId, d).length, () => V.skuStats(storeId)),
+        sec('shelf', 'L_SHELF', null, () => FD.shelfView(shelf, { compact: true, filterKey: 'vsr:' + storeId })),
+        sec('checks', 'SC_HISTORY', checksN, () => FD.scHistory(storeId)),
+        sec('photos', 'L_PHOTOS', photosN, () => h('div', { class: 'stack s8' }, FD.btn(t('PG_TAKE_PHOTOS'), () => FD.pgCaptureSheet({ store: storeId }), 'secondary sm', 'camera'), FD.photoTimeline(storeId, 6))),
+        ownerN ? sec('owner', 'L_OWNER_WA', ownerN, () => FD.sup.ownerChat(storeId, FD.render, true)) : null,
+        sec('visits', 'L_LAST_8', visits.length, () => recent)),
+      FD.btn(t('L_SUGGEST_FIX'), () => V.correctionSheet(storeId), 'ghost block', 'edit'));
   };
 
   // Shared shelf view (used by VSR profile and Supervisor store detail)
@@ -6492,14 +6514,21 @@ button.list-row > .grow { text-align:start; }
  FD.scPanel=(id,{role='VSR',editable=false,redraw=()=>FD.render()}={})=>{
   const S=FD.scSummary(st(),id);if(!S||!S.photos.length)return null;
   const listed=S.analysed?S.findings.concat(S.fresh).map((f,i)=>({...f,n:i+1})):[];
-  const marksOn=pid=>listed.filter(f=>f.mark&&f.mark.photoId===pid);
-  const fig=x=>h('figure',{class:'sc-figure'},
-   h('div',{class:'sc-photo'},FD.photoButton({src:x.p.src,label:t('PG_PHOTO_LABEL')}),marksOn(x.p.id).map(f=>h('span',{class:'sc-mark'+(f.urgent?' urgent':''),style:boxStyle(f.mark.box),'aria-hidden':'true'},h('b',null,FD.fmt.num(f.n))))),
-   h('figcaption',{class:'small muted'},t('SC_PHOTO_'+x.status)),x.reasons.length?h('p',{class:'small muted'},x.reasons.map(r=>t('SC_WHY_'+r)).join(' ')):null);
-  // Before and After as two labelled columns, each with its own score
-  const col=ph=>{const xs=S.photos.filter(x=>x.p.phase===ph);if(!xs.length)return null;const sc=ph==='BEFORE'?S.before:S.after;
-   return h('div',{class:'sc-col'},h('div',{class:'sc-col-h'},h('b',null,t('PG_'+ph)),S.analysed&&sc?FD.scChip(sc):null),xs.map(fig));};
-  const photos=h('div',{class:'sc-cols'},col('BEFORE'),col('AFTER'));
+  const marksOn=pid=>listed.filter(f=>f.mark&&f.mark.photoId===pid||f.markAfter&&f.markAfter.photoId===pid).map(f=>({...f,box:(f.mark&&f.mark.photoId===pid?f.mark:f.markAfter).box}));
+  const statusOf=p=>{const r=FD.scResult(p.ref);return {status:r?r.photo.status:'NONE',reasons:r&&r.photo.status!=='OK'?r.photo.reasons||[]:[]};};
+  const fig=p=>{const x=statusOf(p);return h('figure',{class:'sc-figure'},
+   h('div',{class:'sc-photo'},FD.photoButton({src:p.src,label:t('PG_PHOTO_LABEL')}),marksOn(p.id).map(f=>h('span',{class:'sc-mark'+(f.urgent?' urgent':''),style:boxStyle(f.box),'aria-hidden':'true'},h('b',null,FD.fmt.num(f.n))))),
+   h('figcaption',{class:'small muted'},t('SC_PHOTO_'+x.status)),x.reasons.length?h('p',{class:'small muted'},x.reasons.map(r=>t('SC_WHY_'+r)).join(' ')):null);};
+  // Before | After side by side, each labelled with when and its score; an empty After says what happens next
+  const head2=(label,ps,sc)=>h('div',{class:'sc-col-h'},h('div',null,h('b',null,label),ps[0]?h('div',{class:'small muted'},FD.fmt.date(ps[0].date)+' · '+FD.fmt.time(ps[0].time)):null),S.analysed&&sc?FD.scChip(sc):null);
+  const bPs=S.analysed?S.cmp.before:S.photos.filter(x=>x.p.phase==='BEFORE').map(x=>x.p),aPs=S.analysed?S.cmp.after:S.photos.filter(x=>x.p.phase==='AFTER').map(x=>x.p);
+  const side=FD.ui.local['sc:side:'+id]||'BEFORE';
+  const beforeCol=bPs.length?h('div',{class:'sc-col'+(side==='BEFORE'?' on':'')},head2(t('PG_BEFORE'),bPs,S.before),bPs.map(fig)):null;
+  const afterCol=!bPs.length&&!aPs.length?null:aPs.length?h('div',{class:'sc-col'+(side==='AFTER'?' on':'')},head2(S.analysed&&S.cmp.afterSource==='NEXT'?t('SC_NEXT_LABEL'):t('PG_AFTER'),aPs,S.after),aPs.map(fig))
+   :h('div',{class:'sc-col sc-col-empty'+(side==='AFTER'?' on':'')},head2(t('PG_AFTER'),[],null),h('div',{class:'sc-empty'},FD.icon('camera','s20'),h('b',null,t('SC_NO_AFTER')),
+     h('span',{class:'small muted'},t(role==='VSR'&&editable?'SC_NO_AFTER_VSR':'SC_NO_AFTER_SUP')),role==='VSR'&&editable?FD.btn(t('PG_CAPTURE_AFTER'),()=>FD.pgCaptureSheet({store:FD.pgAssessment(st(),id).store,visitId:FD.pgAssessment(st(),id).visitId,assessmentId:id,phase:'AFTER'}),'secondary sm','camera'):null));
+  const sideSw=beforeCol&&afterCol?h('div',{class:'sc-side-sw'},FD.seg([{id:'BEFORE',label:t('PG_BEFORE')},{id:'AFTER',label:t('PG_AFTER')}],side,v=>{FD.ui.local['sc:side:'+id]=v;redraw();})):null;
+  const photos=h('div',null,sideSw,h('div',{class:'sc-cols'},beforeCol,afterCol));
   if(!S.analysed)return h('div',{class:'stack s12 sc-panel'},photos);
   const pending=[S.before,S.after].some(s=>s&&!s.final&&!s.none),none=[S.before,S.after].some(s=>s&&s.none);
   const both=S.photos.some(x=>x.p.phase==='BEFORE')&&S.photos.some(x=>x.p.phase==='AFTER');
@@ -6517,10 +6546,12 @@ button.list-row > .grow { text-align:start; }
    :h('div',{class:'row sc-outcomes'},f.cls==='ASK'?FD.SC_OUTCOMES.ASK.map(o=>choice(f,o)):[choice(f,'DONE'),choice(f,'PARTLY_DONE'),
     h('button',{type:'button',class:'sc-out'+(CANT.includes(f.outcome)?' on':''),'aria-haspopup':'menu',on:{click:e=>FD.menu(e.currentTarget,CANT.map(o=>({icon:f.outcome===o?'check':null,label:t('SC_OUT_'+o),onClick:()=>set(f,o)})))}},
      CANT.includes(f.outcome)?t('SC_OUT_'+f.outcome):t('SC_OUT_CANT'),FD.icon('chevron-down','s14'))]);
+  // where each issue goes after the After photo (or while waiting for one)
+  const nextStep=f=>f.status==='FIXED'?'SC_NEXT_CLOSED':['NOT_IN_VAN','NEED_HELP'].includes(f.outcome)||f.urgent?'SC_NEXT_TODAY':f.outcome==='OWNER_NO'||f.outcome==='OWNER_AWAY'?'SC_NEXT_OWNER':f.status==='NEW'?'SC_NEXT_NEW':f.status==='OPEN'&&!f.outcome?'SC_NEXT_THIS':f.status==='OPEN'?'SC_NEXT_VERIFY':'SC_NEXT_OPEN';
   const card=f=>{const s=f.status==='OPEN'&&f.outcome==='DONE'?'WAIT':f.status;
    return h('article',{class:'sc-finding'+(f.urgent?' urgent':'')},
     h('div',{class:'row between wrap'},h('span',{class:'row'},h('span',{class:'sc-num'},FD.fmt.num(f.n)),h('b',null,t('SC_CHK_'+f.check))),FD.chip(t('SC_ST_'+s),TONE[s])),
-    h('p',{class:'small'},t('SC_DO_'+f.check)),outcomes(f),
+    h('p',{class:'small'},t('SC_DO_'+f.check)),outcomes(f),h('p',{class:'small muted sc-next'},FD.icon('arrow-right','s14'),t(nextStep(f))),
     role==='SUP'&&f.status!=='NEW'?FD.btn(t('SC_NOT_CORRECT'),()=>{FD.dx('SC_DISMISS',{id,check:f.check});redraw();},'ghost sm'):null);};
   const main=listed.filter(f=>f.status!=='NEW'),fresh=listed.filter(f=>f.status==='NEW'),first=role==='VSR'?main.slice(0,3):main,rest=role==='VSR'?main.slice(3):[];
   const fx=S.fixes,fixes=fx.total?h('p',{class:'small'},h('b',null,t('SC_FIXES')),' ',t('SC_N_OF_M',{n:FD.fmt.num(fx.verified),m:FD.fmt.num(fx.total)}),fx.waiting?' · '+t('SC_WAITING',{n:FD.fmt.num(fx.waiting)}):null):null;
