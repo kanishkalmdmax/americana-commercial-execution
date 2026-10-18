@@ -7304,7 +7304,7 @@ button.list-row > .grow { text-align:start; }
     const recs = s.recs.filter(r => r.vsr === vsrId && r.outcome && r.outcome !== 'CARRIED' && r.date >= from && r.date <= to);
     const typeF = L['vsr:type'] || '', outF = L['vsr:out'] || '';
     const hist = recs.filter(r => (!typeF || r.type === typeF) && (!outF || (outF === 'SOLD' ? SOLD.includes(r.outcome) : r.outcome === outF)));
-    const tabs = h('div', { class: 'tabs', style: { padding: 0 } }, [['day', 'L_NAV_TODAY'], ['overview', 'L_OVERVIEW'], ['history', 'L_HISTORY'], ['coach', 'L_TIPS_SENT']].filter(x => v.kind === 'sales' || x[0] === 'day' || x[0] === 'history').map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['vsr:tab'] = id; full ? FD.render() : FD.drawer.refresh(); } } }, t(lb))));
+    const tabs = h('div', { class: 'tabs', style: { padding: 0 } }, [['day', date && date !== today() ? null : 'L_NAV_TODAY'], ['overview', 'L_OVERVIEW'], ['history', 'L_HISTORY'], ['coach', 'L_TIPS_SENT']].filter(x => v.kind === 'sales' || x[0] === 'day' || x[0] === 'history').map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['vsr:tab'] = id; full ? FD.render() : FD.drawer.refresh(); } } }, lb ? t(lb) : FD.fmt.date(date))));
     let body;
     if (tab === 'day' || tab === 'plan' || v.kind !== 'sales' && tab !== 'history') {
       body = S.vanDay(vsrId,date);
@@ -7962,7 +7962,7 @@ button.list-row > .grow { text-align:start; }
       const sel = L['map:sel'];
       const all = shown.map(v => { const p = FD.vanPosition(s, v.id, d); const sg = FD.vanStage(s, v.id, d); const pr = FD.vanProgress(s, v.id, d);
         const where = p.at === 'DEPOT' ? t('L_AT_DEPOT') : tx('L_VAN_AT', { storeId: p.store, time: p.time });
-        return { id: v.id, lat: p.lat, lng: p.lng, van: true, sel: sel === v.id, depot: p.at === 'DEPOT', label: v.route.replace('RYD_', ''), status: 'VAN ' + (p.at === 'DEPOT' ? 'DEPOT' : sg),
+        return { id: v.id, lat: p.lat, lng: p.lng, van: true, sel: sel === v.id, depot: p.at === 'DEPOT', label: FD.initials(v.name), status: 'VAN ' + (p.at === 'DEPOT' ? 'DEPOT' : sg),
           name: FD.nameOf(v), sub: [t(STAGE[sg][0]), where, tx('L_STOPS_DONE', { n: pr.done, m: pr.planned })].join(' · '), open: () => S.vsrDrawer(v.id, false, 'day') }; });
       // ponytail: fixed irregular parking offsets (lat, lng); vans at the same spot are nudged so every pin stays visible
       const PARK = [[0, 0], [0.016, 0.021], [-0.014, 0.028], [0.024, -0.012], [-0.02, -0.017], [0.005, -0.03], [-0.03, 0.006], [0.033, 0.012], [0.012, 0.042], [-0.008, -0.042], [0.038, -0.03], [-0.036, 0.034]];
@@ -8222,7 +8222,7 @@ button.list-row > .grow { text-align:start; }
     for (const [sid, n] of Object.entries(planN)) { const m = ord[sid] ? ord[sid].size : 0; if (n >= 4 && m <= 1) rows.push({ sid, n, m, off: offN[sid] || 0, freq: m ? 'FREQ_2W' : 'FREQ_M' }); }
     for (const [sid, k] of Object.entries(offN)) if (k >= 2 && !planN[sid]) rows.push({ sid, n: 0, m: ord[sid] ? ord[sid].size : 0, off: k, freq: 'FREQ_W' });
     const vans = S.vans().filter(v => v.kind !== 'inactive').map(v => { const pv = s.visits.filter(x => x.vsr === v.id && x.date < d && x.date >= FD.addDays(d, -14) && !x.offPlan);
-      return { label: v.route, value: pv.length ? Math.round(100 * pv.filter(x => x.status === 'DONE').length / pv.length) : 0 }; });
+      return { label: FD.nameOf(v), value: pv.length ? Math.round(100 * pv.filter(x => x.status === 'DONE').length / pv.length) : 0 }; });
     return S.card(t('L_JOURNEY_REVIEW'), t('L_JOURNEY_REVIEW_HELP'), h('div', { class: 'stack s16' },
       h('div', null, h('b', { class: 'small' }, t('L_PLAN_COMPLETION')), h('div', { style: { marginTop: '8px' } }, FD.bars(vans.map(x => ({ label: x.label, value: x.value, display: FD.fmt.pct(x.value) }))))),
       FD.table({ id: 'jpr', rows, defaultSort: ['n', 'desc'], limit: L['jpr:all'] ? 400 : 12, columns: [
@@ -8265,7 +8265,7 @@ button.list-row > .grow { text-align:start; }
         const a = FD.alerts(s, d).filter(x => ALERT_IC[x.type] && !seen.has(x.type + x.van + (x.store || ''))); if (!a.length) continue;
         const x = pickOf(a); seen.add(x.type + x.van + (x.store || '')); const v = vsrOf(x.van);
         return { ic: ALERT_IC[x.type], tone: x.type === 'A_MISSED' ? 'bad' : 'warn', alert: true,
-          title: x.type === 'A_PACE' ? tx('A_PACE', x.slots) : tx(x.type + '_G1', { vsrId: x.van, n: 1 }), sub: [x.store ? FD.nameOf(storeOf(x.store)) : null, v ? v.route : null].filter(Boolean).join(' · '),
+          title: x.type === 'A_PACE' ? tx('A_PACE', x.slots) : tx(x.type + '_G1', { vsrId: x.van, n: 1 }), sub: [x.store ? FD.nameOf(storeOf(x.store)) : null, v ? FD.routeArea(FD.state.world.routes.find(r => r.id === v.route)) : null].filter(Boolean).join(' · '),
           open: () => x.store ? S.storeDrawer(x.store) : S.vsrDrawer(x.van, false, 'day') };
       }
       if (k === 'PREORDER') {
