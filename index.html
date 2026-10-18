@@ -1197,6 +1197,8 @@ button.list-row > .grow { text-align:start; }
 .tl-ic.good { color:var(--good);background:var(--good-tint); } .tl-ic.bad { color:var(--bad);background:var(--bad-tint); } .tl-ic.warn { color:var(--warn-ink);background:var(--warn-tint); }
 .pg-offer-advice.small { display:flex;align-items:center;gap:6px;color:var(--good);margin-block:8px; }
 .plan-van { overflow:hidden; } .plan-van-h { padding:12px 16px;gap:12px;border-top:0; }
+.sc-issue-row { padding:8px 16px;gap:8px;font-size:13px; }
+.link-btn.tabular { color:var(--brand);font-weight:600;text-decoration:underline;text-underline-offset:3px;background:none;border:0;cursor:pointer;font:inherit; }
 </style>
 </head>
 <body>
@@ -5382,7 +5384,7 @@ button.list-row > .grow { text-align:start; }
     L_COL_VS_BASE: E('vs own baseline', 'مقابل خط الأساس'), L_NO_BASELINE: E('No baseline', 'لا يوجد خط أساس'),
     L_VS_MY_BASE: E('Net sales per selling day, compared with your own days before recommendations', 'صافي المبيعات لكل يوم بيع مقارنة بأيامك قبل بدء التوصيات'),
     L_SEES_NOTE: E('Choose what each salesman sees on their scorecard. Ranking uses net sales per selling day against their own baseline.', 'اختر ما يراه كل مندوب في بطاقة أدائه. يعتمد الترتيب على صافي المبيعات لكل يوم بيع مقارنة بخط أساسه.'),
-    L_TIPS_N: E('{n} tips', '{n} نصائح'), L_SEND_ALL: E('Send all ({n})', 'إرسال الكل ({n})'),
+    L_TIPS_N: E('{n} tips', '{n} نصائح'), L_TIPS_1: E('1 tip', 'نصيحة واحدة'), L_SEND_ALL: E('Send all ({n})', 'إرسال الكل ({n})'),
     L_TL_ORDER: E('{n} order', '{n} طلب'), L_TL_SOLD: E('{n} sold', '{n} بيع'), L_TL_NOTSOLD: E('{n} not sold', '{n} لم يُبع'), L_TL_NOTOFFERED: E('{n} not offered', '{n} لم يُعرض'), L_TL_RETURN: E('{n} returned', '{n} مرتجع'),
     L_COL_LAST_QTY: E('Last qty', 'آخر كمية'),
     B_GAP_TAG_MOST: E("Most stores {tag} carry this. This store doesn't yet.", 'معظم المحلات {tag} توفّر هذا المنتج، وهذا المحل لا يوفّره بعد.'), B_GAP_TAG_MANY: E("Many stores {tag} carry this. This store doesn't yet.", 'كثير من المحلات {tag} توفّر هذا المنتج، وهذا المحل لا يوفّره بعد.'),
@@ -6528,11 +6530,12 @@ button.list-row > .grow { text-align:start; }
   return h('div',{class:'stack s12 sc-panel'},
    S.urgent?h('div',{class:'banner bad'},FD.icon('alert'),h('span',null,t('SC_URGENT'))):null,
    S.mismatch?h('div',{class:'banner info'},FD.icon('info'),h('span',null,t('SC_NOT_SAME'))):null,
-   head,pending?h('p',{class:'small muted'},t('SC_PENDING')):null,none?h('p',{class:'small muted'},t('SC_NO_OURS')):null,photos,areas,
+   head,pending?h('p',{class:'small muted'},t('SC_PENDING')):null,none?h('p',{class:'small muted'},t('SC_NO_OURS')):null,role==='SUP'?null:photos,role==='SUP'?null:areas,
    S.good?FD.chip(t('SC_GOOD'),'good'):null,
    main.length?h('section',{class:'stack s8'},h('h4',null,t(role==='VSR'&&editable&&!S.after?'SC_TODO':'SC_ISSUES')),first.map(card),
     rest.length?(FD.ui.local['sc:more:'+id]?rest.map(card):FD.btn(t('SC_MORE_TODO',{n:FD.fmt.num(rest.length)}),()=>{FD.ui.local['sc:more:'+id]=true;redraw();},'ghost sm')):null):null,
    fresh.length?h('section',{class:'stack s8'},h('h4',null,t('SC_NEW_ISSUES')),fresh.map(card)):null,
+   role==='SUP'?photos:null,role==='SUP'?areas:null, // supervisor: issues first, evidence below
    fixes,
    role==='VSR'&&editable&&S.before&&!S.after&&main.length?h('p',{class:'small muted'},t('SC_TAKE_AFTER')):null,
    S.seen.length?h('p',{class:'small'},h('b',null,t('SC_SEEN')),' ',S.seen.map(x=>t('SC_FAM_'+x)).join(FD.lang==='ar'?'، ':', ')):null,
@@ -6851,9 +6854,11 @@ button.list-row > .grow { text-align:start; }
       sec('L_SEC_SELLS'), h('div', { class: 'grid-eq' }, skuCard, insCard), sec('L_JOURNEY_REVIEW'), S.journeyReview()] };
   });
 
+  S.fuVsr = f => (f.slots && f.slots.vsrId) || null;
   // ================= DRAWERS =================
   S.followupsDrawer = () => FD.drawer.open({ title: t('L_FOLLOWUPS_ALL'), render: () => {
-    const all = FD.followUps(st()).filter(inRoute); const drafts = FD.coachDrafts(st()).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route);
+    // shared items only: anything for one salesman lives in that salesman's block on Today
+    const all = FD.followUps(st()).filter(inRoute).filter(f => !S.fuVsr(f)).sort((a, b) => a.pri - b.pri); const drafts = FD.coachDrafts(st()).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route);
     const tab = L['fu:tab'] || 'open';
     const tabs = h('div', { class: 'tabs', style: { padding: 0 } }, [['open', 'L_FU_OPEN', all.length], ['done', 'L_FU_DONE', st().fuHistory.length]].map(([id, lb, n]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['fu:tab'] = id; FD.drawer.refresh(); } } }, t(lb), ' ', h('span', { class: 'pill-count' }, FD.fmt.num(n)))));
     if (tab === 'done') return h('div', { class: 'stack s16' }, tabs, S.fuHistoryList(null));
@@ -6915,7 +6920,7 @@ button.list-row > .grow { text-align:start; }
   // Suggested tips go to one salesman at a time, so they are listed that way: salesman · n tips → open → review → send
   S.draftGroups = drafts => { const by = []; for (const d of drafts) { let g = by.find(x => x.vsr === d.vsr); if (!g) by.push(g = { vsr: d.vsr, ds: [] }); g.ds.push(d); }
     return h('div', null, by.map(g => h('button', { type: 'button', class: 'list-row click draft-group', on: { click: () => S.draftSheet(g.vsr) } },
-      FD.avatar(vsrOf(g.vsr)), h('span', { class: 'grow' }, h('span', { class: 'fu-t' }, FD.nameOf(vsrOf(g.vsr))), h('span', { class: 'fu-c' }, t('L_TIPS_N', { n: FD.fmt.num(g.ds.length) }))),
+      FD.avatar(vsrOf(g.vsr)), h('span', { class: 'grow' }, h('span', { class: 'fu-t', style: { display: 'block' } }, FD.nameOf(vsrOf(g.vsr))), h('span', { class: 'fu-c', style: { display: 'block' } }, t(g.ds.length === 1 ? 'L_TIPS_1' : 'L_TIPS_N', { n: FD.fmt.num(g.ds.length) }))),
       h('span', { class: 'btn secondary sm' }, t('L_OPEN')), I('chevron-right', 's16')))); };
   S.draftSheet = vsrId => FD.sheet.open({ center: true, title: () => t('L_TIP_DRAFTS') + ' · ' + FD.nameOf(vsrOf(vsrId)), render: () => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId);
       return ds.length ? h('div', { class: 'card' }, ds.map(d => S.draftRow(d, true))) : FD.empty('L_NONE_YET', null, 'check'); },
@@ -7810,32 +7815,43 @@ button.list-row > .grow { text-align:start; }
     const s = st(); const d = today(); const vans = S.vans(); const dd = FD.dataDay(s);
     const ready = vans.filter(v => FD.stageFor(s, v.id, d) === 'PLAN_READY');
     const groups = S.alertGroupsNow().filter(g => vans.some(v => v.id === g.van) || g.type === 'A_PREORDER');
-    const nAlerts = groups.length; const unread = L['live:unread'] || 0; const tab = L['ctl:tab'] || 'VANS';
+    // one block per salesman holds everything for him: release checks, alerts, follow-ups; the most critical salesman first
+    const pendingV = vans.filter(v => ['PLAN_READY', 'DISPATCHED'].includes(FD.stageFor(s, v.id, d)) && v.kind !== 'inactive');
+    const coachBy = pendingV.length ? Object.fromEntries(S.coachList(pendingV).filter(c => c.list.length).map(c => [c.v.id, c])) : {};
+    const fuAll = FD.followUps(s), fuMine = fuAll.filter(f => S.fuVsr(f));
+    const blocks = vans.map(v => { const gs = groups.filter(g => g.van === v.id), fs = fuMine.filter(f => S.fuVsr(f) === v.id).sort((a, b) => a.pri - b.pri), cx = coachBy[v.id];
+      const crit = (gs.some(g => g.type === 'A_MISSED') ? 4 : gs.length ? 2 : 0) + (fs.some(f => f.pri === 1) ? 3 : fs.length ? 1 : 0) + (cx && cx.score >= 20 ? 2 : cx ? 1 : 0);
+      return { v, gs, fs, cx, crit, n: gs.length + fs.length + (cx ? 1 : 0) }; }).filter(b => b.n).sort((a, b) => b.crit - a.crit || b.n - a.n);
+    // count = salesmen needing action, plus shared alerts
+    const nAlerts = blocks.length + groups.filter(g => !g.van).length; const unread = L['live:unread'] || 0; const tab = L['ctl:tab'] || 'VANS';
     const switcher = h('div', { class: 'tabs ctl-tabs', role: 'tablist' }, [['VANS', t('L_VANS'), FD.fmt.num(vans.length), ''], ['ALERTS', t('L_ALERTS'), FD.fmt.num(nAlerts), nAlerts ? ' hot' + (unread ? ' new' : '') : '']].map(([id, lb, n, hot]) =>
       h('button', { type: 'button', role: 'tab', 'aria-selected': String(tab === id), class: tab === id ? 'on' : '', on: { click: () => { L['ctl:tab'] = id; if (id === 'ALERTS') L['live:unread'] = 0; FD.render(); } } }, lb, h('span', { class: 'tab-n' + hot }, n))));
     const strip = h('section', { class: 'card', 'data-tour': 'sup1' },
       h('div', { class: 'card-h' }, switcher,
         h('div', { class: 'grow' }, h('div', { class: 'sub' }, S.updatedLine())),
         ready.length ? FD.btn(t('ACT_RELEASE_ALL') + ' (' + FD.fmt.num(ready.length) + ')', () => FD.dx('VAN_RELEASE_ALL', { vans: ready.map(v => v.id) }), 'primary sm', 'check') : null));
-    // one block per salesman: the types at a glance, each type keeps its own action inside
-    const byVan = []; for (const g of groups) { const k = g.van || '_'; let b = byVan.find(x => x.k === k); if (!b) byVan.push(b = { k, gs: [] }); b.gs.push(g); }
-    const vanBlock = b => { const v = vsrOf(b.k), open = L['alv:' + b.k] || b.k === '_';
-      if (b.k === '_') return h('div', null, b.gs.map(alertRow));
-      return h('div', { class: 'alert-van' }, h('button', { type: 'button', class: 'list-row click alert-van-h', 'aria-expanded': String(!!open), on: { click: () => { L['alv:' + b.k] = !open; FD.render(); } } },
-        FD.avatar(v), h('span', { class: 'grow', style: { minWidth: 0 } }, h('span', { class: 'fu-t' }, FD.nameOf(v)), h('span', { class: 'row wrap alert-types' }, b.gs.map(g => h('span', { class: 'alert-type ' + (g.type === 'A_MISSED' ? 'bad' : 'warn') }, I(ALERT_IC[g.type], 's14'), FD.fmt.num(g.count))))),
-        I(open ? 'chevron-up' : 'chevron-down', 's16')), open ? h('div', { class: 'alert-van-b' }, b.gs.map(alertRow)) : null); };
+    const pill = (ic, tone, n) => h('span', { class: 'alert-type ' + tone }, I(ic, 's14'), FD.fmt.num(n));
+    const vanBlock = b => { const open = L['alv:' + b.v.id];
+      return h('div', { class: 'alert-van' }, h('button', { type: 'button', class: 'list-row click alert-van-h', 'aria-expanded': String(!!open), on: { click: () => { L['alv:' + b.v.id] = !open; FD.render(); } } },
+        FD.avatar(b.v), h('span', { class: 'grow', style: { minWidth: 0 } }, h('span', { class: 'fu-t' }, FD.nameOf(b.v)), h('span', { class: 'row wrap alert-types' },
+          b.cx ? pill('calendar', b.cx.score >= 20 ? 'bad' : 'warn', b.cx.list.reduce((a, x) => a + x[1], 0)) : null,
+          b.gs.map(g => pill(ALERT_IC[g.type], g.type === 'A_MISSED' ? 'bad' : 'warn', g.count)), b.fs.length ? pill('bell', b.fs.some(f => f.pri === 1) ? 'bad' : 'warn', b.fs.length) : null)),
+        I(open ? 'chevron-up' : 'chevron-down', 's16')),
+        open ? h('div', { class: 'alert-van-b' },
+          b.cx ? h('div', { class: 'list-row' }, h('span', { class: 'fu-ic ' + (b.cx.score >= 20 ? 'bad' : 'warn') }, I('calendar', 's16')), h('span', { class: 'grow' }, h('span', { class: 'fu-t' }, t('L_CHECK_BEFORE_RELEASE')), h('span', { class: 'fu-c', style: { display: 'block' } }, b.cx.list.map(([k, n]) => tx(gid(k + '_G', n), { n })).join(' · '))), FD.btn(t('L_OPEN_PLAN'), () => S.vsrDrawer(b.v.id, false, 'day'), 'secondary sm')) : null,
+          b.gs.map(alertRow), b.fs.map(S.fuRow)) : null); };
+    const common = groups.filter(g => !g.van);
     const alerts = h('div', { 'data-tour': 'sup2' },
-      byVan.length ? byVan.map(vanBlock) : h('div', { class: 'card-b' }, FD.empty('E_NO_ALERTS', null, 'check')));
+      blocks.length || common.length ? [common.map(alertRow), blocks.map(vanBlock)] : h('div', { class: 'card-b' }, FD.empty('E_NO_ALERTS', null, 'check')));
     strip.appendChild(tab === 'ALERTS' ? alerts : h('div', { class: 'card-b' }, h('div', { class: 'van-grid' }, vans.map(vanTile))));
     // morning: each unreleased plan with what to check, one row per van
-    const pending = vans.filter(v => ['PLAN_READY', 'DISPATCHED'].includes(FD.stageFor(s, v.id, d)) && v.kind !== 'inactive');
-    const coach = pending.length ? S.coachList(pending) : []; const top = coach[0];
+    const top = null; // release checks now sit in each salesman's block
     const checks = top ? h('button', { type: 'button', class: 'card fu-bar', on: { click: () => S.coachDrawer() } },
       h('span', { class: 'fu-ic ' + (top.score >= 20 ? 'bad' : top.score ? 'warn' : ''), style: { width: '32px', height: '32px' } }, I('check', 's16')),
       h('span', { class: 'grow', style: { minWidth: 0 } }, h('b', null, tx(gid('L_COACH_BAR', coach.length), { n: coach.length })),
         h('span', { class: 'small muted ellipsis', style: { display: 'block' } }, top.list.length ? FD.nameOf(top.v) + ' · ' + tx(gid(top.list[0][0] + '_G', top.list[0][1]), { n: top.list[0][1] }) : t('E_NO_EXCEPTIONS'))),
       h('span', { class: 'btn secondary sm' }, t('L_VIEW_ALL', { n: FD.fmt.num(coach.length) }))) : null;
-    const fu = FD.followUps(s); const fuBar = fu.length ? h('button', { type: 'button', class: 'card fu-bar', on: { click: () => S.followupsDrawer() } },
+    const fu = fuAll.filter(f => !S.fuVsr(f)).sort((a, b) => a.pri - b.pri); const fuBar = fu.length ? h('button', { type: 'button', class: 'card fu-bar', on: { click: () => S.followupsDrawer() } },
       h('span', { class: 'fu-ic', style: { width: '32px', height: '32px' } }, I('bell', 's16')), h('span', { class: 'grow', style: { minWidth: 0 } }, h('b', null, tx('L_FU_WAITING', { n: fu.length })), h('span', { class: 'small muted ellipsis', style: { display: 'block' } }, tx(fu[0].tpl, fu[0].slots))),
       h('span', { class: 'btn secondary sm' }, t('L_VIEW_ALL', { n: FD.fmt.num(fu.length) }))) : null;
     // evening: tomorrow's plans with suggested changes, sent in one go
@@ -8200,7 +8216,7 @@ button.list-row > .grow { text-align:start; }
    {key:'s',label:t('SC_SCORE'),num:true,render:r=>r.score==null?'—':h('span',{title:t('SC_N_OF_M',{n:FD.fmt.num(r.finalStores),m:FD.fmt.num(r.stores)})},FD.fmt.num(r.score,1))},
    paired?{key:'c',label:t('L_COL_CHANGE'),num:true,render:r=>r.change==null?'—':h('span',{title:t('SC_PAIRED',{n:FD.fmt.num(r.paired)})},t('SC_CHANGE',{change:(r.change>0?'+':r.change<0?'−':'')+FD.fmt.num(Math.abs(r.change),1)}))}:null,
    {key:'f',label:t('SC_FIXES'),num:true,render:r=>r.fixes.total?t('SC_N_OF_M',{n:FD.fmt.num(r.fixes.verified),m:FD.fmt.num(r.fixes.total)}):'—'},
-   {key:'o',label:t('SC_OPEN'),num:true,render:r=>FD.fmt.num(r.open)},
+   {key:'o',label:t('SC_OPEN'),num:true,render:r=>r.open?h('button',{type:'button',class:'link-btn tabular',on:{click:e=>{e.stopPropagation();S.scIssues(r);}}},FD.fmt.num(r.open)):FD.fmt.num(0)},
    {key:'b',label:t('SC_BLOCKERS'),num:true,render:r=>FD.fmt.num(r.blockers)},
    {key:'p',label:t('SC_COL_PHOTOS'),num:true,render:r=>r.photos?t('SC_N_OF_M',{n:FD.fmt.num(r.photosOk),m:FD.fmt.num(r.photos)}):'—'}].filter(Boolean);
   // Phone: name, score, fixes and open issues; the row drawer carries the rest.
@@ -8219,6 +8235,10 @@ button.list-row > .grow { text-align:start; }
   // narrow: the card sits beside Team on Analytics, so it always uses the short columns
   return S.card(t('SC_TEAM'),null,!rows.length?FD.empty('SC_NO_TEAM'):narrow?FD.table({id:'scTeamCompact',rows,columns:compact,onRow:open}):h('div',{class:'team-comparison'},h('div',{class:'team-wide'},FD.table({id:'scTeam',rows,columns:cols,onRow:open})),h('div',{class:'team-compact'},FD.table({id:'scTeamCompact',rows,columns:compact,onRow:open}))),{flush:true,icon:'camera'});
  };
+ // Every open issue of one salesman, grouped by store; each opens its check
+ S.scIssues=r=>FD.drawer.open({title:t('SC_OPEN')+' · '+FD.nameOf(st().world.vsrs.find(v=>v.id===r.vsr)),render:()=>h('div',{class:'stack s12'},r.stores_.filter(x=>x.s.open).sort((x,y)=>y.s.open-x.s.open).map(({a,s})=>
+   h('div',{class:'card'},h('button',{type:'button',class:'list-row click',on:{click:()=>S.pgOpen(a.store,a.id)}},h('span',{class:'grow'},h('b',{style:{display:'block'}},FD.nameOf(st().world.stores.find(x=>x.id===a.store))),h('span',{class:'small muted'},FD.fmt.date(a.date))),FD.scChip(s.current),FD.icon('chevron-right','s16')),
+    s.findings.concat(s.fresh).filter(f=>f.status!=='FIXED').map(f=>h('div',{class:'list-row sc-issue-row'},h('span',{class:'grow'},t('SC_CHK_'+f.check)),f.outcome?FD.chip(t('SC_OUT_'+f.outcome),['NOT_IN_VAN','OWNER_NO','NEED_HELP','OWNER_AWAY'].includes(f.outcome)?'warn':''):null,FD.chip(t('SC_ST_'+(f.status==='OPEN'&&f.outcome==='DONE'?'WAIT':f.status)),f.status==='STILL'||f.status==='NEW'?'bad':''))))))});
  // Settings: the three area weights. Check importance inside each area is fixed and shown read-only.
  S.scWeightsBody=()=>{
   const saved=FD.scWeights(st()),draft=L['sc:weights']=L['sc:weights']||{...saved},keys=Object.keys(FD.SC_DEFAULT_WEIGHTS),total=keys.reduce((s,k)=>s+draft[k],0);
