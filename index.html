@@ -1213,6 +1213,7 @@ button.list-row > .grow { text-align:start; }
 .prof-h { display:flex;align-items:center;gap:8px;width:100%;min-height:48px;padding:12px 14px;border:0;background:none;font:inherit;font-weight:500;color:var(--ink);text-align:start;cursor:pointer; }
 .prof-sec.open .prof-h { background:var(--hover); }
 .prof-b { padding:12px 14px 14px; }
+.sc-head { justify-content:flex-start;align-items:center;gap:8px; } .sc-head .btn.ghost { margin-inline-start:auto; }
 </style>
 </head>
 <body>
@@ -6551,7 +6552,7 @@ button.list-row > .grow { text-align:start; }
   const card=f=>{const s=f.status==='OPEN'&&f.outcome==='DONE'?'WAIT':f.status;
    return h('article',{class:'sc-finding'+(f.urgent?' urgent':'')},
     h('div',{class:'row between wrap'},h('span',{class:'row'},h('span',{class:'sc-num'},FD.fmt.num(f.n)),h('b',null,t('SC_CHK_'+f.check))),FD.chip(t('SC_ST_'+s),TONE[s])),
-    h('p',{class:'small'},t('SC_DO_'+f.check)),outcomes(f),h('p',{class:'small muted sc-next'},FD.icon('arrow-right','s14'),t(nextStep(f))),
+    h('p',{class:'small'},t('SC_DO_'+f.check)),outcomes(f),nextStep(f)==='SC_NEXT_THIS'?null:h('p',{class:'small muted sc-next'},FD.icon('arrow-right','s14'),t(nextStep(f))), // the section heading already says 'to do on this visit'
     role==='SUP'&&f.status!=='NEW'?FD.btn(t('SC_NOT_CORRECT'),()=>{FD.dx('SC_DISMISS',{id,check:f.check});redraw();},'ghost sm'):null);};
   const main=listed.filter(f=>f.status!=='NEW'),fresh=listed.filter(f=>f.status==='NEW'),first=role==='VSR'?main.slice(0,3):main,rest=role==='VSR'?main.slice(3):[];
   const fx=S.fixes,fixes=fx.total?h('p',{class:'small'},h('b',null,t('SC_FIXES')),' ',t('SC_N_OF_M',{n:FD.fmt.num(fx.verified),m:FD.fmt.num(fx.total)}),fx.waiting?' · '+t('SC_WAITING',{n:FD.fmt.num(fx.waiting)}):null):null;
