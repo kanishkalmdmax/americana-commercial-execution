@@ -72,7 +72,7 @@
 }
 </style>
 <style>/* FieldDrive — LMDmax palette (spec §12). Logical properties throughout so RTL mirrors for free. */
-:root {
+:root { --on-navy-muted: #A9BDDC;
   --brand: #0067D4; --brand-600: #0058B5; --brand-vivid: #017DFF; --focus: #0073EB; --navy: #092556; --navy-2: #0F3170; --ice: #E8F1FF; --steel: #7FA8D9;
   --good: #2E7D4F; --good-tint: #EFF9F4; --warn: #C9821A; --warn-ink: #8A5300; --warn-tint: #FDF5E7; --bad: #B3372F; --bad-tint: #FDF3F2;
   --ink: #0B1420; --ink-2: #3E4C5E; --ink-3: #586573; --muted: #8A96A3; --line: #E2E8F0; --line-2: #C7D0DA;
@@ -308,7 +308,7 @@ table.t tbody tr:last-child td { border-bottom: 0; }
 .kpi .lbl { font-size: 12px; color: var(--ink-3); font-weight: 500; display: flex; align-items: center; gap: 6px; }
 .kpi .val { font-size: 22px; white-space: nowrap; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .kpi.hero { background: linear-gradient(135deg, var(--navy), var(--navy-2)); color: #fff; border-color: transparent; }
-.kpi.hero .lbl { color: #A9BDDC; } .kpi.hero .val { font-size: 30px; } .kpi.hero .delta.up { color: #7FE0A8; }
+.kpi.hero .lbl { color: var(--on-navy-muted); } .kpi.hero .val { font-size: 30px; } .kpi.hero .delta.up { color: #7FE0A8; }
 .kpi .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-3); }
 .kpi.hero .foot { color: #A9BDDC; }
 .grid-2 { display: grid; grid-template-columns: 1.25fr 1fr; gap: 20px; align-items: start; }
@@ -5038,6 +5038,8 @@ button.list-row > .grow { text-align:start; }
   };
   // ---------- SKU icons: professional line icons (same stroke as the UI set) + one flavour accent ----------
   // Outline in currentColor; the flavour colour fills only the key part (frosting, cream, crumb, pack band).
+  // a theme colour by token name, for places that need a literal value (map pins); follows light/dark
+  FD.tok = name => (typeof getComputedStyle === 'function' && getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim()) || '';
   const FLAV = { vanilla: '#E3B55B', chocolate: '#7A4A2E', strawberry: '#E0668A', marble: '#A0724A', fruit: '#E0892F', brown: '#A06B3B', red: '#C0463A', diet: '#6F9A3B', butter: '#2F6FD0', choco: '#6B4226' };
   function flavour(k) { const n = k.name.toLowerCase();
     if (k.group === 'GRP_RUSK') return n.includes('red') ? 'red' : n.includes('diet') ? 'diet' : 'brown';
@@ -6560,7 +6562,7 @@ button.list-row > .grow { text-align:start; }
     const spark = rank.spark;
     const body = [
       h('div', { class: 'v-card', style: { padding: '16px', marginTop: '4px', background: 'linear-gradient(135deg, var(--navy), var(--navy-2))', color: '#fff', border: 0 } },
-        h('div', { class: 'small', style: { color: '#A9BDDC' } }, t('M_PRIMARY')),
+        h('div', { class: 'small', style: { color: 'var(--on-navy-muted)' } }, t('M_PRIMARY')),
         h('div', { style: { fontSize: '30px', fontWeight: 600, letterSpacing: '-.02em' } }, FD.metricText('primary', m.lev.primary))),
       h('section', { class: 'v-section' }, h('h3', null, t('L_MY_SCORE')),
         h('div', { class: 'v-card' }, h('div', { class: 'row', style: { padding: '16px', gap: '16px' } },
@@ -7319,8 +7321,8 @@ button.list-row > .grow { text-align:start; }
     const box = h('div', { class: 'snap map-box', style: { height: '460px' } });
     FD.sheet.open({ center: true, title: FD.nameOf(route), render: () => { setTimeout(() => FD.snapMap(box, stores.map((s, i) => {
       const need = attnIds.has(s.id); const g = FD.storeGlance(st(), s.id, today());
-      return { lat: s.lat, lng: s.lng, label: FD.fmt.num(i + 1), color: need ? '#B3372F' : '#0067D4', name: FD.nameOf(s), sub: t('L_G_LAST_ORDER') + ' · ' + S.ago(g.daysSinceOrder), open: () => { FD.sheet.close(); S.storeDrawer(s.id); } };
-    })), 60); return h('div', null, box, h('div', { class: 'legend', style: { marginTop: '8px' } }, [['#0067D4', 'L_ALL_STORES'], ['#B3372F', 'L_ATTN_ONLY']].map(([c, k]) => h('span', null, h('span', { class: 'sw', style: { background: c } }), t(k))))); } });
+      return { lat: s.lat, lng: s.lng, label: FD.fmt.num(i + 1), color: need ? FD.tok('bad') : FD.tok('brand'), name: FD.nameOf(s), sub: t('L_G_LAST_ORDER') + ' · ' + S.ago(g.daysSinceOrder), open: () => { FD.sheet.close(); S.storeDrawer(s.id); } };
+    })), 60); return h('div', null, box, h('div', { class: 'legend', style: { marginTop: '8px' } }, [['var(--brand)', 'L_ALL_STORES'], ['var(--bad)', 'L_ATTN_ONLY']].map(([c, k]) => h('span', null, h('span', { class: 'sw', style: { background: c } }), t(k))))); } });
   };
 
   // Returns watchlist: status, before vs since, what it holds back, and the review decision
