@@ -1161,7 +1161,6 @@ details:not(.rc-grp)[open]>summary::after { transform:rotate(-135deg);margin-blo
 .sc-visit { padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--paper); }
 .sc-visit .row b:last-child { font-variant-numeric:tabular-nums; }
 .card-h > .grow { flex:1 1 200px;min-width:0; } /* the title keeps room; a switch or button wraps below it */
-.grid-eq:has(.empty) { align-items:start; }
 .van-head { padding-inline-end:26px; } /* clear the locate pin in the corner */
 .team-wide table.t th.n { min-width:0; }
 @media (max-width:768px) { .watch-card .list-row { flex-wrap:wrap; } .watch-card .list-row>.grow { flex-basis:100%; } }
@@ -1214,6 +1213,23 @@ button.list-row > .grow { text-align:start; }
 .prof-sec.open .prof-h { background:var(--hover); }
 .prof-b { padding:12px 14px 14px; }
 .sc-head { justify-content:flex-start;align-items:center;gap:8px; } .sc-head .btn.ghost { margin-inline-start:auto; }
+/* paired cards: equal height; an empty card centres its message instead of leaving a gap */
+.grid-eq > .card { display:flex;flex-direction:column; }
+.grid-eq > .card > :last-child { flex:1 1 auto;min-height:0; }
+.grid-eq > .card > :last-child > .empty:only-child, .grid-eq > .card > .empty { height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center; }
+.grid-eq > .card .rules-scroll { display:flex;flex-direction:column; }
+.grid-eq > .card .rules-scroll > .empty { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center; }
+.sc-summary { display:flex;flex-wrap:wrap;align-items:center;gap:8px; }
+.sc-photos-bar { display:flex;align-items:center;gap:8px;flex-wrap:wrap; } .sc-photos-bar:empty { display:none; } .sc-photos-bar > .btn { margin-inline-start:auto; }
+.sc-photos-bar .sc-side-sw { margin:0; }
+.btn.is-done { color:var(--good);border-color:var(--good);background:var(--good-tint); }
+.al-types { display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;border-block-end:1px solid var(--line); }
+.al-types::-webkit-scrollbar { display:none; }
+.al-type { flex:none;display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 10px;border:1px solid var(--line-2);border-radius:999px;background:var(--paper);color:var(--ink-2);font:inherit;font-size:12px;cursor:pointer; }
+.al-type.on { background:var(--ink);border-color:var(--ink);color:var(--paper); }
+.al-type .tabular { font-weight:600; }
+.playbook .list-row { padding:12px 14px;gap:12px;align-items:flex-start; } .pb-n { flex:none;width:24px;height:24px;border-radius:999px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600; }
+.todo-h { display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:4px 2px;border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--ink-2);text-align:start;cursor:pointer; }
 </style>
 </head>
 <body>
@@ -3359,6 +3375,10 @@ button.list-row > .grow { text-align:start; }
   R.SUP_STOP_REMOVE = (st, p) => { const v = st.visits.find(x => x.date === (p.date || st.clock.date) && x.store === p.store && x.status === 'PLANNED'); if (!v) return;
     v.status = 'SKIPPED'; v.skipReason = 'SK_SUP'; v.bySup = true; st.planChanges.push({ vsr: v.vsr, store: v.store, date: v.date, reason: 'SK_SUP', at: now(st), bySup: true }); planNote(st, v.vsr, v.store); };
   R.SUP_STOP_RESTORE = (st, p) => { const v = st.visits.find(x => x.date === (p.date || st.clock.date) && x.store === p.store && x.status === 'SKIPPED' && x.bySup); if (!v) return; if (st.visits.some(x => x !== v && x.date === v.date && x.store === v.store && (x.status === 'PLANNED' || x.status === 'ARRIVED'))) return; v.status = 'PLANNED'; v.skipReason = null; v.bySup = false; planNote(st, v.vsr, v.store); };
+  // undo a supervisor-added stop that has not been visited: the plan goes back to how it was
+  R.SUP_STOP_UNADD = (st, p) => { const d = p.date || st.clock.date; const i = st.visits.findIndex(v => v.date === d && v.store === p.store && v.supAdded && v.status === 'PLANNED'); if (i < 0) return;
+    const v = st.visits[i]; st.visits.splice(i, 1); st.recs = st.recs.filter(r => !(r.store === p.store && r.date === d && r.outcome == null && r.stage === 'SENT'));
+    const c = st.planChanges.findIndex(x => x.store === p.store && x.date === d && x.reason === 'SK_SUP_ADDED'); if (c >= 0) st.planChanges.splice(c, 1); planNote(st, v.vsr, v.store); };
   R.OFFPLAN_ADD = (st, p) => {
     const d = p.date || st.clock.date; if (!FD.isSellingDay(d)) return; FD.ensureDay(st, d);
     if (st.visits.some(v => v.date === d && v.store === p.store && (v.status === 'PLANNED' || v.status === 'ARRIVED'))) return;
@@ -5413,6 +5433,59 @@ button.list-row > .grow { text-align:start; }
     PG_VALUE_LINE: E('Better value per gram than {label}', 'قيمة أفضل لكل غرام من {label}'),
     L_SUGGESTIONS_N: E('{n} suggestions', '{n} اقتراحات'),
     L_MORE_DETAILS: E('More details', 'تفاصيل أكثر'),
+    L_ADDED: E('Added', 'تمت الإضافة'), L_REMOVED: E('Removed', 'تمت الإزالة'), L_SUGS_DONE: E('All suggestions done', 'تمت كل الاقتراحات'), L_NO_PLAN_CHANGES: E('No changes suggested for this plan', 'لا توجد تغييرات مقترحة لهذه الخطة'),
+    L_SEND_PLANS_HELP: E('Adding or removing a store changes the plan at once. Send plans then shares each plan with its salesman and notifies him; it is not a message or a recommendation.', 'إضافة محل أو إزالته تغيّر الخطة فوراً. ثم يرسل زر إرسال الخطط كل خطة إلى مندوبها مع تنبيه؛ وليس رسالة أو توصية.'),
+    L_ALT_ALL: E('All', 'الكل'), L_ALT_REL: E('Release checks', 'فحوص قبل الإرسال'), L_ALT_A_MISSED: E('Missed', 'فائتة'), L_ALT_A_OFFPLAN: E('Off plan', 'خارج الخطة'), L_ALT_A_PACE: E('Pace', 'الوتيرة'), L_ALT_A_PREORDER: E('Pre-orders', 'طلبات مسبقة'), L_ALT_FU: E('Follow-ups', 'متابعات'),
+    L_FUT_ALL: E('All', 'الكل'), L_FUT_WATCH: E('Watchlist', 'المراقبة'), L_FUT_COMP: E('Competition', 'المنافسة'), L_FUT_PROD: E('Products', 'المنتجات'), L_FUT_OTHER: E('Other', 'أخرى'),
+    L_PLAYBOOK: E('How to move this', 'كيف نحرّك هذا المقياس'),
+    L_METRIC_OPEN_NOW: E('Open now', 'مفتوح الآن'),
+    PB_P1: E('Find the weakest of the four drivers', 'حدّد أضعف المحركات الأربعة'),
+    PB_P1_D: E('Net sales per day = visits × visits with a sale × average sale × (1 − returns). Fix the one that fell most.', 'صافي المبيعات اليومي = الزيارات × الزيارات ببيع × متوسط البيع × (١ − المرتجعات). عالج الأكثر انخفاضاً.'),
+    PB_P2: E('Plan the high-value stores first', 'ابدأ الخطة بالمحلات الأعلى قيمة'),
+    PB_P2_D: E('The top fifth of stores bring about half of sales. Keep them on the plan when they are due.', 'أعلى خُمس المحلات يحقق نحو نصف المبيعات. أبقها في الخطة عند استحقاقها.'),
+    PB_P3: E('Add one or two extra lines per stop', 'أضف صنفاً أو صنفين في كل زيارة'),
+    PB_P3_D: E('Lines that similar nearby stores already sell, only when the van has them.', 'أصناف تبيعها محلات مشابهة قريبة، فقط عند توفرها في السيارة.'),
+    PB_P4: E('Keep trial quantities small', 'اجعل كميات التجربة صغيرة'),
+    PB_P4_D: E('Returns are deducted from net sales; a small first order protects the gain.', 'تُخصم المرتجعات من صافي المبيعات؛ الطلب الأول الصغير يحمي المكسب.'),
+    PB_V1: E('Carry missed priority stores into the next plan', 'انقل المحلات المهمة الفائتة إلى الخطة التالية'),
+    PB_V1_D: E('Missed stores order later or from someone else. Add them back before sending plans.', 'المحلات الفائتة تطلب لاحقاً أو من غيرنا. أعدها قبل إرسال الخطط.'),
+    PB_V2: E('Drop stores that rarely order', 'أزل المحلات التي نادراً ما تطلب'),
+    PB_V2_D: E('Free the time for stores that are due.', 'وفّر الوقت للمحلات المستحقة.'),
+    PB_V3: E('Release plans before loading', 'أرسل الخطط قبل التحميل'),
+    PB_V3_D: E('A salesman who leaves the depot with a ready plan starts selling sooner.', 'المندوب الذي يغادر المستودع بخطة جاهزة يبدأ البيع أسرع.'),
+    PB_V4: E('Clear depot and printing blockers early', 'عالج عوائق المستودع والطباعة مبكراً'),
+    PB_V4_D: E('In the field visit a new salesman lost three hours at the office because he could not print invoices.', 'في الزيارة الميدانية خسر مندوب جديد ثلاث ساعات في المكتب لعدم قدرته على طباعة الفواتير.'),
+    PB_V5: E('Keep nearby stores in one run', 'اجمع المحلات المتقاربة في جولة واحدة'),
+    PB_V5_D: E('Stores sit close together; avoid going back and forth across areas.', 'المحلات متقاربة؛ تجنّب التنقل ذهاباً وإياباً بين المناطق.'),
+    PB_S1: E('Pair collection stops with a refill offer', 'اربط زيارات التحصيل بعرض إعادة تعبئة'),
+    PB_S1_D: E('About a third of visits were for cash only. Send a tip so each one also offers a refill.', 'نحو ثلث الزيارات كانت للتحصيل فقط. أرسل نصيحة ليعرض المندوب إعادة التعبئة في كل منها.'),
+    PB_S2: E('Visit when the store is likely low', 'زر المحل عندما يُرجَّح أن مخزونه قليل'),
+    PB_S2_D: E('Use stores due to order instead of a fixed habit cycle.', 'استخدم المحلات المستحقة للطلب بدلاً من دورة ثابتة.'),
+    PB_S3: E('Resolve credit holds before the visit', 'عالج إيقاف الائتمان قبل الزيارة'),
+    PB_S3_D: E('A blocked store cannot buy; settle it with the credit team first.', 'المحل الموقوف لا يستطيع الشراء؛ سوِّ الأمر مع فريق الائتمان أولاً.'),
+    PB_S4: E('Do not send the van without what the store needs', 'لا ترسل السيارة دون ما يحتاجه المحل'),
+    PB_S4_D: E('Check products short on the van before release.', 'راجع المنتجات الناقصة في السيارة قبل الإرسال.'),
+    PB_S5: E('Act on the top no-sale reason', 'عالج السبب الأول لعدم البيع'),
+    PB_S5_D: E('Use the no-sale reasons chart and coach the salesman on the biggest one.', 'استخدم مخطط أسباب عدم البيع ودرّب المندوب على السبب الأكبر.'),
+    PB_A1: E('Offer one or two extra lines', 'اعرض صنفاً أو صنفين إضافيين'),
+    PB_A1_D: E('Lines similar stores carry and this one does not; top opportunities first.', 'أصناف تحملها محلات مشابهة ولا يحملها هذا المحل؛ ابدأ بأهم الفرص.'),
+    PB_A2: E('Fill gaps in the core range', 'أكمل نقص التشكيلة الأساسية'),
+    PB_A2_D: E('Empty shelf space next to rival cookies is a ready opening.', 'المساحة الفارغة بجانب بسكويت المنافس فرصة جاهزة.'),
+    PB_A3: E('Right refill quantity on lines it already buys', 'الكمية المناسبة للأصناف التي يشتريها'),
+    PB_A3_D: E('Match what the store sells between visits; not more, not less.', 'طابق ما يبيعه المحل بين الزيارتين؛ لا أكثر ولا أقل.'),
+    PB_A4: E('Load the van to the plan', 'حمّل السيارة حسب الخطة'),
+    PB_A4_D: E('Stock-outs on the van cap the sale; fix shortages before release.', 'نفاد المخزون في السيارة يحدّ من البيع؛ عالج النقص قبل الإرسال.'),
+    PB_A5: E('Record unmet demand', 'سجّل الطلب غير الملبّى'),
+    PB_A5_D: E('When a store wants more than the van carries, log it to plan the next load.', 'عندما يطلب المحل أكثر مما في السيارة، سجّله لتخطيط التحميل التالي.'),
+    PB_R1: E('Cut quantity where a store keeps returning', 'خفّض الكمية حيث تتكرر المرتجعات'),
+    PB_R1_D: E('Put the product on the watchlist and check returns after two weeks.', 'ضع المنتج في قائمة المراقبة وراجع المرتجعات بعد أسبوعين.'),
+    PB_R2: E('Keep first orders small', 'اجعل الطلبات الأولى صغيرة'),
+    PB_R2_D: E('Use the first order limit for new lines.', 'استخدم حد الطلب الأول للأصناف الجديدة.'),
+    PB_R3: E('Rotate older stock to the front', 'قدّم البضاعة الأقدم إلى الأمام'),
+    PB_R3_D: E('Make it a stop task and confirm it with a Shelf Check.', 'اجعلها مهمة في الزيارة وأكدها بفحص الرف.'),
+    PB_R4: E('Watch products with high returns', 'راقب المنتجات ذات المرتجعات العالية'),
+    PB_R4_D: E('Most returns referred to earlier orders; slow-selling lines need smaller quantities.', 'معظم المرتجعات تخص طلبات سابقة؛ الأصناف بطيئة البيع تحتاج كميات أقل.'),
+    N_PLAN_SUP_G: E('{sup} updated your plan ({n} stores)', 'حدّث {sup} خطتك ({n} محلات)'),
     L_NO_STORE_ORDERS: E('No orders from this store in the last 4 weeks', 'لا توجد طلبات من هذا المحل خلال آخر ٤ أسابيع'),
     L_PITCH_EACH: E('Store sells it at {price} SAR each', 'يبيعه المحل بسعر {price} ريال للقطعة'),
     L_PILOT_ADOPTION: E('Field Adoption Metrics & Support Needed', 'مقاييس الاستخدام الميداني والدعم المطلوب'),
@@ -5969,11 +6042,23 @@ button.list-row > .grow { text-align:start; }
       footer: () => [FD.btn(t('L_DONE'), () => FD.sheet.close(), 'primary lg block')] });
   };
 
+  V.planChangesSheet = items => { items.forEach(n => { if (!n.read) FD.dx('NOTIF_READ', { id: n.id }); });
+    FD.sheet.open({ title: tx('N_PLAN_SUP_G', { supId: 'S1', n: items.length }), render: () => h('div', { class: 'v-card' }, items.map(n => h('button', { type: 'button', class: 'list-row click', on: { click: () => { FD.sheet.closeAll(); FD.openNotifTarget(n); } } },
+      h('span', { class: 'grow' }, FD.nameOf(storeOf(n.slots.storeId))), h('span', { class: 'small muted' }, FD.fmt.time(n.at.time)), I('chevron-right', 's16')))) }); };
   V.inbox = function (vsrId) {
     const list = () => {
-      const ns = st().notifs.filter(n => n.vsr === vsrId).slice().reverse();
-      if (!ns.length) return FD.empty('X_INBOX', null, 'bell');
-      return h('div', { class: 'v-card' }, ns.slice(0, 60).map(n => { const { title, body } = FD.notifText(n);
+      const all = st().notifs.filter(n => n.vsr === vsrId).slice().reverse();
+      if (!all.length) return FD.empty('X_INBOX', null, 'bell');
+      // plan changes from the supervisor on one day arrive as one notification that opens the list of stores
+      const ns = [], seen = {};
+      for (const n of all) { if (n.tpl !== 'N_PLAN_SUP') { ns.push(n); continue; } const k = n.at.date; if (seen[k]) { seen[k].items.push(n); continue; } ns.push(seen[k] = { group: true, at: n.at, items: [n], slots: n.slots }); }
+      const planRow = g => { const unread = g.items.some(n => !n.read);
+        return h('button', { type: 'button', class: 'list-row click', style: { width: '100%', textAlign: 'start', padding: '12px 14px', alignItems: 'flex-start' }, on: { click: () => V.planChangesSheet(g.items) } },
+          h('span', { class: 'fu-ic' }, I('route', 's16')),
+          h('div', { class: 'grow' }, h('div', { style: { fontWeight: unread ? 600 : 400 } }, g.items.length > 1 ? tx('N_PLAN_SUP_G', { supId: 'S1', n: g.items.length }) : FD.notifText(g.items[0]).title),
+            h('div', { class: 'small muted' }, (g.at.date === today() ? '' : FD.fmt.date(g.at.date) + ' ') + FD.fmt.time(g.at.time))),
+          unread ? h('span', { style: { width: '8px', height: '8px', borderRadius: '50%', background: 'var(--brand)', marginTop: '6px' }, 'aria-label': t('L_UNREAD') }) : null); };
+      return h('div', { class: 'v-card' }, ns.slice(0, 60).map(n => { if (n.group) return planRow(n); const { title, body } = FD.notifText(n);
         return h('button', { type: 'button', class: 'list-row click', style: { width: '100%', textAlign: 'start', padding: '12px 14px', alignItems: 'flex-start' },
           on: { click: () => { FD.dx('NOTIF_READ', { id: n.id }); FD.sheet.close(); FD.openNotifTarget(n); } } },
           h('span', { class: 'fu-ic' + (n.tpl === 'N_NOT_SOLD' || n.tpl === 'N_EOD' ? ' p2' : '') }, I({ N_MSG: 'message', N_SOLD: 'check-circle', N_NOT_SOLD: 'alert', N_ARRIVE: 'map-pin', N_ARRIVE_ONE: 'map-pin', N_EOD: 'clock', N_REPLY: 'message', N_REPLY_STORE: 'message', N_TIP: 'bulb', N_REMOVED: 'ban' }[n.tpl] || 'bell', 's16')),
@@ -6407,7 +6492,11 @@ button.list-row > .grow { text-align:start; }
   };
   FD.registerView('vsr', 'todo', (r, vsr) => {
     const items = V.todoItems(vsr.id);
-    const sec = (kind, label, render) => { const xs = items.filter(i => i.kind === kind); return xs.length ? h('section', { class: 'v-section' }, h('h3', null, t(label), h('span', { class: 'pill-count' }, FD.fmt.num(xs.length))), h('div', { class: 'v-card' }, xs.slice(0, 40).map(render))) : null; };
+    // each section folds; the ones that need doing start open, messages and tips start closed
+    const OPEN0 = { revisit: true, reason: true, shelf: true };
+    const sec = (kind, label, render) => { const xs = items.filter(i => i.kind === kind); if (!xs.length) return null; const k = 'todo:' + kind, open = L[k] ?? !!OPEN0[kind];
+      return h('section', { class: 'v-section' }, h('button', { type: 'button', class: 'todo-h', 'aria-expanded': String(open), on: { click: () => { L[k] = !open; FD.render(); } } },
+        h('span', { class: 'grow' }, t(label)), h('span', { class: 'pill-count' }, FD.fmt.num(xs.length)), I(open ? 'chevron-up' : 'chevron-down', 's16')), open ? h('div', { class: 'v-card' }, xs.slice(0, 40).map(render)) : null); };
     const row = (icon, tone, title, sub, onClick, extra) => h('div', { class: 'list-row click', role: 'button', tabindex: '0', style: { padding: '12px 14px' }, on: { click: onClick, keydown: e => { if (e.key === 'Enter') onClick(); } } },
       h('span', { class: 'fu-ic ' + tone }, I(icon, 's16')), h('div', { class: 'grow' }, h('div', { style: { fontWeight: 500 } }, title), sub ? h('div', { class: 'small muted' }, sub) : null), extra || I('chevron-right', 's16'));
     const body = [];
@@ -6529,13 +6618,13 @@ button.list-row > .grow { text-align:start; }
    :h('div',{class:'sc-col sc-col-empty'+(side==='AFTER'?' on':'')},head2(t('PG_AFTER'),[],null),h('div',{class:'sc-empty'},FD.icon('camera','s20'),h('b',null,t('SC_NO_AFTER')),
      h('span',{class:'small muted'},t(role==='VSR'&&editable?'SC_NO_AFTER_VSR':'SC_NO_AFTER_SUP')),role==='VSR'&&editable?FD.btn(t('PG_CAPTURE_AFTER'),()=>FD.pgCaptureSheet({store:FD.pgAssessment(st(),id).store,visitId:FD.pgAssessment(st(),id).visitId,assessmentId:id,phase:'AFTER'}),'secondary sm','camera'):null));
   const sideSw=beforeCol&&afterCol?h('div',{class:'sc-side-sw'},FD.seg([{id:'BEFORE',label:t('PG_BEFORE')},{id:'AFTER',label:t('PG_AFTER')}],side,v=>{FD.ui.local['sc:side:'+id]=v;redraw();})):null;
-  const photos=h('div',null,sideSw,h('div',{class:'sc-cols'},beforeCol,afterCol));
+  const swap=bPs.length&&aPs.length&&S.cmp?.afterSource!=='NEXT'&&(editable||role==='SUP')?FD.btn(t('SC_SWAP'),()=>{FD.dx('SC_SWAP',{id});redraw();},'ghost sm','refresh'):null;
+  const photos=h('div',null,h('div',{class:'sc-photos-bar'},sideSw,swap),h('div',{class:'sc-cols'},beforeCol,afterCol));
   if(!S.analysed)return h('div',{class:'stack s12 sc-panel'},photos);
   const pending=[S.before,S.after].some(s=>s&&!s.final&&!s.none),none=[S.before,S.after].some(s=>s&&s.none);
-  const both=S.photos.some(x=>x.p.phase==='BEFORE')&&S.photos.some(x=>x.p.phase==='AFTER');
-  const head=h('div',{class:'row wrap sc-head'},S.change!=null?FD.chip(t('SC_CHANGE',{change:signed(S.change)}),S.change>0?'good':S.change<0?'bad':''):null,
-   S.nextVisit?FD.chip(t('SC_NEXT_VISIT',{date:FD.fmt.date(S.nextVisit)}),'info'):null,h('span',{class:'grow'}),
-   both&&(editable||role==='SUP')?FD.btn(t('SC_SWAP'),()=>{FD.dx('SC_SWAP',{id});redraw();},'ghost sm','refresh'):null);
+  // one line: Shelf Score before → after and the change, so the points never float without context
+  const head=S.before||S.after?h('div',{class:'sc-summary'},h('span',{class:'small muted'},t('SC_SCORE')),S.before?FD.scChip(S.before):null,S.before&&S.after?FD.icon('arrow-right','s14'):null,S.after?FD.scChip(S.after):null,
+   S.change!=null?FD.chip(t('SC_CHANGE',{change:signed(S.change)}),S.change>0?'good':S.change<0?'bad':''):null,S.nextVisit?FD.chip(t('SC_NEXT_VISIT',{date:FD.fmt.date(S.nextVisit)}),'info'):null):null;
   // area bars only when the score is real; an unclear photo never shows 100s
   const cur=S.current&&S.current.final?S.current:null,areas=cur?h('div',{class:'sc-areas'},FD.SC_AREAS.map(a=>{const v=cur.areas[a.id].score;
    return h('div',{class:'sc-area'},h('span',null,t('SC_AREA_'+a.id)),h('span',{class:'sc-meter'},h('i',{style:{width:(v==null?0:v)+'%'}})),h('span',{class:'small tabular'},v==null?'—':FD.fmt.num(v,0)));})):null;
@@ -6811,8 +6900,8 @@ button.list-row > .grow { text-align:start; }
       case 'learn': FD.go('#/sup/learn'); break;
     }
   };
-  const FU_ICON = { F_WATCH_OK: 'trending-down', F_WATCH_BAD: 'alert', F_RETURN_UPSELL: 'undo', F_MISSING_REASONS: 'alert', F_REPEAT_DECLINE: 'x-circle', F_COMPETITOR: 'flag', F_GAP_CLUSTER: 'target', F_VSR_BELOW: 'trending-down', F_NOT_OFFERED: 'eye-off',
-    F_CREDIT: 'wallet', F_CORRECTION: 'edit', F_VSR_COMMENT: 'message', F_VSR_STORE_MSG: 'message', F_PLANOGRAM:'camera', F_PHOTO: 'camera', F_ENGINE_MISS: 'cpu', F_WATCHLIST: 'alert', F_SKIPPED: 'x', F_PROMO_LOW: 'tag', F_COVER: 'users' };
+  const FU_ICON = { F_WATCH_OK: 'check-circle', F_WATCH_BAD: 'alert', F_RETURN_UPSELL: 'undo', F_MISSING_REASONS: 'list', F_REPEAT_DECLINE: 'x-circle', F_COMPETITOR: 'flag', F_GAP_CLUSTER: 'target', F_VSR_BELOW: 'trending-down', F_NOT_OFFERED: 'eye-off',
+    F_CREDIT: 'wallet', F_CORRECTION: 'edit', F_VSR_COMMENT: 'message', F_VSR_STORE_MSG: 'message', F_PLANOGRAM:'camera', F_PHOTO: 'camera', F_ENGINE_MISS: 'trending-up', F_WATCHLIST: 'eye', F_SKIPPED: 'x', F_PROMO_LOW: 'tag', F_COVER: 'user-switch' };
   S.fuRow = f => {
     const row = h('div', { class: 'fu-row' },
       h('span', { class: 'fu-ic p' + f.pri }, I(FU_ICON[f.tpl] || 'info', 's16')),
@@ -6890,11 +6979,16 @@ button.list-row > .grow { text-align:start; }
   // ================= DRAWERS =================
   S.followupsDrawer = () => FD.drawer.open({ title: t('L_FOLLOWUPS_ALL'), render: () => {
     // shared items only: anything for one salesman lives in that salesman's block on Today
-    const all = FD.followUps(st()).filter(inRoute).filter(f => !S.fuVsr(f)).sort((a, b) => a.pri - b.pri); const drafts = FD.coachDrafts(st()).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route);
+    const shared = FD.followUps(st()).filter(inRoute).filter(f => !S.fuVsr(f)).sort((a, b) => a.pri - b.pri);
+    const CAT = f => ({ F_WATCH_OK: 'WATCH', F_WATCH_BAD: 'WATCH', F_WATCHLIST: 'WATCH', F_COMPETITOR: 'COMP', F_GAP_CLUSTER: 'COMP', F_ENGINE_MISS: 'PROD', F_PROMO_LOW: 'PROD' })[f.tpl] || 'OTHER';
+    const fType = L['fu:type'] || 'ALL', all = shared.filter(f => fType === 'ALL' || CAT(f) === fType);
+    const typeBar = h('div', { class: 'al-types', style: { padding: '0 0 4px', border: 0 } }, ['ALL', 'WATCH', 'COMP', 'PROD', 'OTHER'].map(k => [k, k === 'ALL' ? shared.length : shared.filter(f => CAT(f) === k).length]).filter(([k, n]) => k === 'ALL' || n)
+      .map(([k, n]) => h('button', { type: 'button', class: 'al-type' + (fType === k ? ' on' : ''), 'aria-pressed': String(fType === k), on: { click: () => { L['fu:type'] = k; FD.drawer.refresh(); } } }, t('L_FUT_' + k), h('span', { class: 'tabular' }, FD.fmt.num(n)))));
+    const drafts = FD.coachDrafts(st()).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route);
     const tab = L['fu:tab'] || 'open';
     const tabs = h('div', { class: 'tabs', style: { padding: 0 } }, [['open', 'L_FU_OPEN', all.length], ['done', 'L_FU_DONE', st().fuHistory.length]].map(([id, lb, n]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['fu:tab'] = id; FD.drawer.refresh(); } } }, t(lb), ' ', h('span', { class: 'pill-count' }, FD.fmt.num(n)))));
     if (tab === 'done') return h('div', { class: 'stack s16' }, tabs, S.fuHistoryList(null));
-    return h('div', { class: 'stack s16' }, tabs, h('div', { class: 'card' }, all.length ? all.map(S.fuRow) : FD.empty('X_FU_DONE', { time: '' })),
+    return h('div', { class: 'stack s16' }, tabs, shared.length ? typeBar : null, h('div', { class: 'card' }, all.length ? all.map(S.fuRow) : FD.empty('X_FU_DONE', { time: '' })),
       drafts.length ? h('div', null, h('h3', { style: { fontSize: '14px', margin: '0 0 8px' } }, t('L_TIP_DRAFTS')), h('div', { class: 'card' }, S.draftGroups(drafts))) : null);
   } });
   // ---- follow-up detail: what happened, what is pending, what was done ----
@@ -6953,11 +7047,13 @@ button.list-row > .grow { text-align:start; }
   S.draftGroups = drafts => { const by = []; for (const d of drafts) { let g = by.find(x => x.vsr === d.vsr); if (!g) by.push(g = { vsr: d.vsr, ds: [] }); g.ds.push(d); }
     return h('div', null, by.map(g => h('button', { type: 'button', class: 'list-row click draft-group', on: { click: () => S.draftSheet(g.vsr) } },
       FD.avatar(vsrOf(g.vsr)), h('span', { class: 'grow' }, h('span', { class: 'fu-t', style: { display: 'block' } }, FD.nameOf(vsrOf(g.vsr))), h('span', { class: 'fu-c', style: { display: 'block' } }, t(g.ds.length === 1 ? 'L_TIPS_1' : 'L_TIPS_N', { n: FD.fmt.num(g.ds.length) }))),
-      h('span', { class: 'btn secondary sm' }, t('L_OPEN')), I('chevron-right', 's16')))); };
+      h('span', { class: 'btn ghost sm' }, t('L_OPEN')),
+      h('button', { type: 'button', class: 'btn secondary sm', on: { click: e => { e.stopPropagation(); S.sendDrafts(g.vsr); } } }, I('send', 's14'), t('L_SEND_ALL', { n: FD.fmt.num(g.ds.length) }))))); };
+  S.sendDrafts = vsrId => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId); ds.forEach(d => FD.dx('TIP_SEND', { vsr: d.vsr, tpl: d.tpl, slots: d.slots, draftKey: d.key })); FD.toast('S_SENT', { vsrId }); FD.render(); };
   S.draftSheet = vsrId => FD.sheet.open({ center: true, title: () => t('L_TIP_DRAFTS') + ' · ' + FD.nameOf(vsrOf(vsrId)), render: () => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId);
       return ds.length ? h('div', { class: 'card' }, ds.map(d => S.draftRow(d, true))) : FD.empty('L_NONE_YET', null, 'check'); },
     footer: () => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId); return [FD.btn(t('L_CANCEL'), () => FD.sheet.close(), 'secondary'), h('span', { class: 'grow' }),
-      ds.length ? FD.btn(t('L_SEND_ALL', { n: FD.fmt.num(ds.length) }), () => { ds.forEach(d => FD.dx('TIP_SEND', { vsr: d.vsr, tpl: d.tpl, slots: d.slots, draftKey: d.key })); FD.sheet.close(); FD.toast('S_SENT', { vsrId }); FD.render(); }, 'primary', 'send') : null]; } });
+      ds.length ? FD.btn(t('L_SEND_ALL', { n: FD.fmt.num(ds.length) }), () => { FD.sheet.close(); S.sendDrafts(vsrId); }, 'primary', 'send') : null]; } });
   S.tipComposer = function (vsrId, tpl, slots, draftKey, onSent, preset={}) {
     const templates = ['K_PRICE', 'K_ENOUGH', 'K_NO_SHELF', 'K_BUYER_NO', 'K_COMPETITOR', 'K_BUYER_ABSENT', 'K_NOT_OFFERED', 'K_REASONS', 'K_RETURN', 'K_PROMO', 'K_GOOD'];
     const X = { vsr: vsrId, tpl, text: preset.text||null, title: preset.title||'', slots: Object.assign({}, slots) };
@@ -7851,7 +7947,9 @@ button.list-row > .grow { text-align:start; }
     const pendingV = vans.filter(v => ['PLAN_READY', 'DISPATCHED'].includes(FD.stageFor(s, v.id, d)) && v.kind !== 'inactive');
     const coachBy = pendingV.length ? Object.fromEntries(S.coachList(pendingV).filter(c => c.list.length).map(c => [c.v.id, c])) : {};
     const fuAll = FD.followUps(s), fuMine = fuAll.filter(f => S.fuVsr(f));
-    const blocks = vans.map(v => { const gs = groups.filter(g => g.van === v.id), fs = fuMine.filter(f => S.fuVsr(f) === v.id).sort((a, b) => a.pri - b.pri), cx = coachBy[v.id];
+    // one optional type filter across all salesmen; the grouping per salesman stays
+    const aType = L['al:type'] || 'ALL', want = k => aType === 'ALL' || aType === k;
+    const blocks = vans.map(v => { const gs = groups.filter(g => g.van === v.id && want(g.type)), fs = want('FU') ? fuMine.filter(f => S.fuVsr(f) === v.id).sort((a, b) => a.pri - b.pri) : [], cx = want('REL') ? coachBy[v.id] : null;
       const crit = (gs.some(g => g.type === 'A_MISSED') ? 4 : gs.length ? 2 : 0) + (fs.some(f => f.pri === 1) ? 3 : fs.length ? 1 : 0) + (cx && cx.score >= 20 ? 2 : cx ? 1 : 0);
       return { v, gs, fs, cx, crit, n: gs.length + fs.length + (cx ? 1 : 0) }; }).filter(b => b.n).sort((a, b) => b.crit - a.crit || b.n - a.n);
     // count = salesmen needing action, plus shared alerts
@@ -7872,9 +7970,12 @@ button.list-row > .grow { text-align:start; }
         open ? h('div', { class: 'alert-van-b' },
           b.cx ? h('div', { class: 'list-row' }, h('span', { class: 'fu-ic ' + (b.cx.score >= 20 ? 'bad' : 'warn') }, I('calendar', 's16')), h('span', { class: 'grow' }, h('span', { class: 'fu-t' }, t('L_CHECK_BEFORE_RELEASE')), h('span', { class: 'fu-c', style: { display: 'block' } }, b.cx.list.map(([k, n]) => tx(gid(k + '_G', n), { n })).join(' · '))), FD.btn(t('L_OPEN_PLAN'), () => S.vsrDrawer(b.v.id, false, 'day'), 'secondary sm')) : null,
           b.gs.map(alertRow), b.fs.map(S.fuRow)) : null); };
-    const common = groups.filter(g => !g.van);
+    const common = groups.filter(g => !g.van && want(g.type));
+    const typeN = { ALL: null, REL: Object.keys(coachBy).length, A_MISSED: groups.filter(g => g.type === 'A_MISSED').length, A_OFFPLAN: groups.filter(g => g.type === 'A_OFFPLAN').length, A_PACE: groups.filter(g => g.type === 'A_PACE').length, A_PREORDER: groups.filter(g => g.type === 'A_PREORDER').length, FU: fuMine.length };
+    const typeBar = h('div', { class: 'al-types', role: 'group', 'aria-label': t('L_FILTERS') }, Object.entries(typeN).filter(([k, n]) => k === 'ALL' || n).map(([k, n]) => h('button', { type: 'button', class: 'al-type' + (aType === k ? ' on' : ''), 'aria-pressed': String(aType === k), on: { click: () => { L['al:type'] = k; FD.render(); } } },
+      k === 'ALL' ? null : I(k === 'REL' ? 'calendar' : k === 'FU' ? 'bell' : ALERT_IC[k], 's14'), t('L_ALT_' + k), n != null ? h('span', { class: 'tabular' }, FD.fmt.num(n)) : null)));
     const alerts = h('div', { 'data-tour': 'sup2' },
-      blocks.length || common.length ? [common.map(alertRow), blocks.map(vanBlock)] : h('div', { class: 'card-b' }, FD.empty('E_NO_ALERTS', null, 'check')));
+      typeBar, blocks.length || common.length ? [common.map(alertRow), blocks.map(vanBlock)] : h('div', { class: 'card-b' }, FD.empty('E_NO_ALERTS', null, 'check')));
     strip.appendChild(tab === 'ALERTS' ? alerts : h('div', { class: 'card-b' }, h('div', { class: 'van-grid' }, vans.map(vanTile))));
     // morning: each unreleased plan with what to check, one row per van
     const top = null; // release checks now sit in each salesman's block
@@ -7949,7 +8050,7 @@ button.list-row > .grow { text-align:start; }
             h('span', { class: 'fu-ic' }, I(X_IC[type], 's16')), h('span', { class: 'grow fu-t' }, tx(gid(type + '_G', list.length), { n: list.length })), I(open ? 'chevron-up' : 'chevron-down', 's16'))),
             open ? h('div', { class: 'alert-items' }, list.map(x => h('div', { class: 'list-row' },
               h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500 } }, x.store ? FD.nameOf(storeOf(x.store)) : FD.skuLabel(x.sku)), h('div', { class: 'small muted' }, tx(type, x.slots))),
-              type === 'X_DUE' ? FD.btn(t('ACT_ADD_TO_PLAN'), () => FD.dx('OFFPLAN_ADD', { vsr: vsrId, store: x.store, bySup: true }), 'secondary sm') : null,
+              type === 'X_DUE' ? S.planBtn(vsrId, x, d, () => FD.drawer.refresh()) : null,
               x.store ? FD.iconBtn('chevron-right', t('L_OPEN'), () => S.storeDrawer(x.store, null, true)) : null))) : null); })
           : h('div', { class: 'card-b' }, FD.empty('E_NO_EXCEPTIONS', null, 'check')));
     }
@@ -7961,23 +8062,34 @@ button.list-row > .grow { text-align:start; }
   // ================= PLAN TOMORROW =================
   // suggested changes per van: carry over missed stores, add stores due to order, drop stores that rarely order; then send all plans
   S.tomorrowSugs = () => { const s = st(); const tm = FD.nextSellingDay(today()); return S.vans().filter(v => v.kind === 'sales').map(v => ({ v, list: FD.planSuggestions(s, v.id, tm) })).filter(x => x.list.length); };
-  S.sugRow = (vsrId, x, tm) => { const done = () => { FD.drawer.refresh(); };
-    const act = x.type === 'X_QUESTION' ? FD.btn(t('ACT_REMOVE_FROM_PLAN'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: tm }); done(); }, 'ghost sm', 'trash')
-      : x.type === 'X_PREORDER' ? null : FD.btn(t('ACT_ADD_TO_PLAN'), () => { FD.dx('OFFPLAN_ADD', { vsr: vsrId, store: x.store, bySup: true, date: tm }); done(); }, 'secondary sm', 'plus');
-    return h('div', { class: 'list-row sug-row' }, h('span', { class: 'fu-ic' }, I(X_IC[x.type] || 'repeat', 's16')),
+  // add/remove buttons show their result and undo on a second tap; the state comes from the plan itself
+  S.planBtn = (vsrId, x, tm, after) => { const s = st(), done = () => { (after || FD.drawer.refresh)(); };
+    if (x.type === 'X_PREORDER') return null;
+    if (x.type === 'X_QUESTION') { const removed = s.visits.some(v => v.date === tm && v.store === x.store && v.status === 'SKIPPED' && v.bySup);
+      return removed ? FD.btn(t('L_REMOVED'), () => { FD.dx('SUP_STOP_RESTORE', { store: x.store, date: tm }); done(); }, 'secondary sm is-done', 'check')
+        : FD.btn(t('ACT_REMOVE_FROM_PLAN'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: tm }); S.planActed(tm, vsrId, x); done(); }, 'ghost sm', 'trash'); }
+    const added = s.visits.some(v => v.date === tm && v.store === x.store && v.supAdded && v.status === 'PLANNED');
+    return added ? FD.btn(t('L_ADDED'), () => { FD.dx('SUP_STOP_UNADD', { store: x.store, date: tm }); done(); }, 'secondary sm is-done', 'check')
+      : FD.btn(t('ACT_ADD_TO_PLAN'), () => { FD.dx('OFFPLAN_ADD', { vsr: vsrId, store: x.store, bySup: true, date: tm }); S.planActed(tm, vsrId, x); done(); }, 'secondary sm', 'plus'); };
+  // rows the supervisor acted on stay visible (with their undo) instead of vanishing from the list
+  S.planActed = (tm, vsrId, x) => { const k = 'tm:acted:' + tm; L[k] = (L[k] || []).filter(y => !(y.x.store === x.store && y.x.type === x.type)).concat([{ vsr: vsrId, x }]); };
+  S.planRows = (vsrId, tm) => { const list = FD.planSuggestions(st(), vsrId, tm), acted = (L['tm:acted:' + tm] || []).filter(y => y.vsr === vsrId && !list.some(x => x.store === y.x.store && x.type === y.x.type)).map(y => y.x);
+    return { list, acted, rows: list.concat(acted) }; };
+  S.sugRow = (vsrId, x, tm) => h('div', { class: 'list-row sug-row' }, h('span', { class: 'fu-ic' }, I(X_IC[x.type] || 'repeat', 's16')),
       h('div', { class: 'grow', style: { minWidth: 0 } }, h('button', { type: 'button', class: 'link-btn ellipsis', style: { maxWidth: '100%', fontWeight: 500, display: 'block' }, on: { click: () => S.storeDrawer(x.store, null, true) } }, FD.nameOf(storeOf(x.store))),
-        h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '2px' } }, h('span', { class: 'small muted' }, tx(x.type, x.slots)), S.leverChip(FD.leverOf(x.type)))), act); };
+        h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '2px' } }, h('span', { class: 'small muted' }, tx(x.type, x.slots)), S.leverChip(FD.leverOf(x.type)))), S.planBtn(vsrId, x, tm));
   // plans for the coming selling days: pick a date, open one salesman at a time, act on suggestions
   S.planDates = () => { const out = []; let d = today(); for (let i = 0; i < 5; i++) { d = FD.nextSellingDay(d); out.push(d); } return out; };
   S.tomorrowDrawer = () => FD.drawer.open({ title: () => tx('L_TOMORROW_TITLE', { date: L['tm:date'] && S.planDates().includes(L['tm:date']) ? L['tm:date'] : FD.nextSellingDay(today()) }), render: () => {
     const s = st(); const dates = S.planDates(); const tm = dates.includes(L['tm:date']) ? L['tm:date'] : dates[0]; const vans = S.vans().filter(v => v.kind === 'sales'); const unsent = vans.filter(v => !s.released[v.id + '|' + tm]);
     const daySw = FD.seg(dates.map(d => ({ id: d, label: FD.fmt.date(d) })), tm, v => { L['tm:date'] = v; FD.drawer.refresh(); });
-    return h('div', { class: 'stack s16' }, daySw, h('div', { class: 'small muted' }, t('L_TOMORROW_HELP')),
-      vans.map(v => { const list = FD.planSuggestions(s, v.id, tm); const n = FD.planFor(s, v.id, tm).stops.filter(x => x.status !== 'SKIPPED').length; const open = L['tm:open:' + v.id];
+    return h('div', { class: 'stack s16' }, daySw, h('div', { class: 'small muted' }, t('L_TOMORROW_HELP') + ' ' + t('L_SEND_PLANS_HELP')),
+      vans.map(v => { const { list, acted, rows } = S.planRows(v.id, tm); const n = FD.planFor(s, v.id, tm).stops.filter(x => x.status !== 'SKIPPED').length; const open = L['tm:open:' + v.id];
         return h('div', { class: 'card plan-van' }, h('button', { type: 'button', class: 'list-row click plan-van-h', 'aria-expanded': String(!!open), on: { click: () => { L['tm:open:' + v.id] = !open; FD.drawer.refresh(); } } },
             FD.avatar(v), h('span', { class: 'grow', style: { minWidth: 0 } }, h('b', null, FD.nameOf(v)), h('span', { class: 'small muted', style: { display: 'block' } }, t('L_PLAN_STOPS', { n: FD.fmt.num(n) }) + (list.length ? ' · ' + t('L_SUGGESTIONS_N', { n: FD.fmt.num(list.length) }) : ''))),
+            !list.length && acted.length ? FD.chip([I('check', 's14'), t('L_SUGS_DONE')], 'good') : null,
             s.released[v.id + '|' + tm] ? FD.chip(t('L_SENT'), 'good') : null, I(open ? 'chevron-up' : 'chevron-down', 's16')),
-          open ? h('div', null, list.length ? list.map(x => S.sugRow(v.id, x, tm)) : h('div', { class: 'card-b small muted' }, t('E_NO_EXCEPTIONS')),
+          open ? h('div', null, rows.length ? rows.map(x => S.sugRow(v.id, x, tm)) : h('div', { class: 'card-b small muted' }, t('L_NO_PLAN_CHANGES')),
             tm === dates[0] ? h('div', { class: 'card-f' }, FD.btn(t('L_OPEN_PLAN'), () => { L['vd:day'] = 'TOM'; S.vsrDrawer(v.id, false, 'day'); }, 'ghost sm')) : null) : null); }),
       unsent.length ? h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, FD.btn(tx('L_SEND_PLANS', { n: unsent.length }), () => { FD.dx('VAN_RELEASE_ALL', { vans: unsent.map(v => v.id), date: tm }); FD.toast(null, null, { text: tx('L_PLANS_SENT', { date: tm }) }); FD.drawer.refresh(); }, 'primary', 'send')) : FD.chip(tx('L_PLANS_SENT', { date: tm }), 'good'));
   } });
@@ -8142,6 +8254,17 @@ button.list-row > .grow { text-align:start; }
   S.baseDelta = (m, big) => !m || !m.hasBaseline ? FD.chip(t('L_NO_BASELINE'), 'outline')
     : h('span', { class: 'delta ' + (Math.abs(m.vsBaseline) < 0.5 ? 'flat' : m.vsBaseline > 0 ? 'up' : 'down') + (big ? ' big' : ''), title: t('L_VS_MY_BASE') },
       Math.abs(m.vsBaseline) < 0.5 ? null : I(m.vsBaseline > 0 ? 'arrow-up' : 'arrow-down', big ? 's20' : 's14'), FD.fmt.pct(Math.abs(m.vsBaseline)));
+  // What moves each metric: a short, fixed playbook from the pilot plan and field visits; each move opens where it is done
+  const PLAY = {
+    primary: [['PB_P1', 'weekly'], ['PB_P2', 'plans'], ['PB_P3', 'opps'], ['PB_P4', 'rules']],
+    visits: [['PB_V1', 'plans'], ['PB_V2', 'plans'], ['PB_V3', 'today'], ['PB_V4', 'msgs'], ['PB_V5', 'today']],
+    withSale: [['PB_S1', 'team'], ['PB_S2', 'stores'], ['PB_S3', 'stores'], ['PB_S4', 'today'], ['PB_S5', 'weekly']],
+    avgSale: [['PB_A1', 'opps'], ['PB_A2', 'opps'], ['PB_A3', 'skus'], ['PB_A4', 'today'], ['PB_A5', 'weekly']],
+    returns: [['PB_R1', 'rules'], ['PB_R2', 'rules'], ['PB_R3', 'stores'], ['PB_R4', 'skus']] };
+  const GO = { plans: () => S.tomorrowDrawer(), weekly: '#/sup/weekly', today: '#/sup/today', opps: '#/sup/opps', rules: '#/sup/rules', msgs: '#/sup/msgs', team: '#/sup/team', stores: '#/sup/stores', skus: '#/sup/skus' };
+  S.playbook = k => !PLAY[k] ? null : h('section', null, h('h3', { class: 'sec-h' }, t('L_PLAYBOOK')), h('div', { class: 'card playbook' },
+    PLAY[k].map(([id, go], i) => h('button', { type: 'button', class: 'list-row click', on: { click: () => { const g = GO[go]; FD.drawer.close(); typeof g === 'function' ? setTimeout(g, 320) : FD.go(g); } } },
+      h('span', { class: 'pb-n' }, FD.fmt.num(i + 1)), h('span', { class: 'grow' }, h('span', { class: 'fu-t', style: { display: 'block' } }, t(id)), h('span', { class: 'fu-c', style: { display: 'block', whiteSpace: 'normal' } }, t(id + '_D'))), I('chevron-right', 's16')))));
   S.leverChip = k => k ? h('span', { class: 'chip lever lv-' + k, title: t(meta(k).info) }, I(meta(k).icon, 's14'), t(meta(k).label)) : null;
 
   // The same primary KPI and four supporting KPIs as the approved deck.
@@ -8190,7 +8313,8 @@ button.list-row > .grow { text-align:start; }
           by ? FD.bars(rows.sort((a, b) => meta(lk || 'avgSale').lowerBetter ? a.v - b.v : b.v - a.v).map(r => ({ label: FD.nameOf(vsrOf(r.id)), value: r.v,
               display: h('span', { class: 'row', style: { gap: '6px', justifyContent: 'flex-end' } }, fmt(r.v), r.base ? S.leverDelta(lk || 'avgSale', r.v, r.base) : null), onClick: () => S.vsrDrawer(r.id, true) })))
             : FD.line([{ name: lb, values: series }], days.map(d => FD.fmt.date(d)), { h: 170, fmt, label: lb })); })(),
-      lk ? h('section', null, h('h3', { class: 'sec-h' }, t('L_METRIC_MOVES')),
+      S.playbook(k === 'primary' || k === 'net' ? 'primary' : lk),
+      lk ? h('section', null, h('h3', { class: 'sec-h' }, t('L_METRIC_OPEN_NOW')),
         acts.rows.length || acts.fus.length ? h('div', { class: 'card', style: { padding: 0 } },
           acts.rows.map(a => h('button', { type: 'button', class: 'list-row click lever-act', on: { click: a.open } }, h('span', { class: 'fu-ic ' + a.tone }, I(a.icon, 's16')), h('span', { class: 'grow' }, a.text), I('chevron-right', 's16'))),
           acts.fus.slice(0, 6).map(S.fuRow)) : FD.empty('L_METRIC_MOVES_NONE', null, 'check-circle')) : null,
