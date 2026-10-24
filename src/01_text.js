@@ -1,6 +1,6 @@
 (function () {
   const FD = globalThis.FD;
-  FD.SLOTS = ['vsr', 'vsr2', 'sup', 'store', 'sku', 'sku2', 'sku_small', 'sku_have', 'sku_list', 'sku_group', 'alt', 'n', 'qty', 'got', 'unit', 'pcs', 'price', 'cost', 'rev', 'earn', 'days', 'pct', 'ratio', 'tag', 'label', 'size', 'pack_type', 'category', 'type', 'area', 'reason', 'gate', 'brand', 'promo', 'date', 'time', 'route', 'status', 'change', 'snippet', 'tip', 'tip_title', 'rank', 'move', 'topic', 'money'];
+  FD.SLOTS = ['m', 'vsr', 'vsr2', 'sup', 'store', 'sku', 'sku2', 'sku_small', 'sku_have', 'sku_list', 'sku_group', 'alt', 'n', 'qty', 'got', 'unit', 'pcs', 'price', 'cost', 'rev', 'earn', 'days', 'pct', 'ratio', 'tag', 'label', 'size', 'pack_type', 'category', 'type', 'area', 'reason', 'gate', 'brand', 'promo', 'date', 'time', 'route', 'status', 'change', 'snippet', 'tip', 'tip_title', 'rank', 'move', 'topic', 'money'];
 
   // Ids the spec lists as prose (not tables) plus ids introduced by the plan.
   // Spec tables are generated into 01_text_catalog.js by gen_catalog.py.

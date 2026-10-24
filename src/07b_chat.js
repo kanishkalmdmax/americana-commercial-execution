@@ -32,7 +32,7 @@
   const seenAt = (th, who, vsr) => (who === 'SUP' ? th.seenSup : th.team ? (th.seenVsrs || {})[vsr] : th.seenVsr) || '';
   FD.chatSnippet = (m, who, vsr) => (isMine(m, who, vsr) ? t('L_YOU') + ': ' : '') + (m.text || ((m.files || []).length || m.photo ? t('L_ATTACHMENT') : ''));
   FD.chatTitle = (a, who) => a.type === 'team' ? t('L_WHOLE_TEAM') : who === 'SUP' ? nameBy(a.id) : FD.nameOf(st().world.supervisor);
-  FD.chatSub = (a, who) => a.type === 'team' ? t('L_TEAM_SUB', { n: FD.fmt.num(st().world.vsrs.length) }) : who === 'SUP' ? FD.nameOf(st().world.routes.find(r => r.id === (st().world.vsrs.find(v => v.id === a.id) || {}).route)) : t('L_SUPERVISOR');
+  FD.chatSub = (a, who) => a.type === 'team' ? t('L_TEAM_SUB', { n: FD.fmt.num(st().world.vsrs.length) }) : who === 'SUP' ? FD.routeArea(st().world.routes.find(r => r.id === (st().world.vsrs.find(v => v.id === a.id) || {}).route)) : t('L_SUPERVISOR');
   FD.chatIcon = a => a.type === 'team' ? 'megaphone' : 'user';
 
   // where a Message button points: the salesman's conversation, pre-filtered and pre-tagged with its store / product
@@ -54,8 +54,8 @@
   const mark = (text, q) => { if (!q) return text; const out = []; const low = text.toLowerCase(); let i = 0, j;
     while ((j = low.indexOf(q, i)) >= 0) { out.push(text.slice(i, j), h('mark', null, text.slice(j, j + q.length))); i = j + q.length; } out.push(text.slice(i)); return out; };
   function fileNode(f) {
-    if (f.kind === 'img') { const img = h('img', { alt: f.name, class: 'chat-img', on: { click: async () => { const d = await FD.fileGet(f.id); if (d) FD.lightbox(d); } } });
-      FD.fileGet(f.id).then(d => { if (d) img.src = d; else img.replaceWith(h('span', { class: 'chat-file gone' }, I('image', 's16'), t('L_FILE_GONE'))); }); return img; }
+    if (f.kind === 'img') { const button=FD.photoButton({src:'',label:f.name,onOpen:async()=>{const d=await FD.fileGet(f.id);if(d)FD.lightbox(d,{label:f.name,returnFocus:button});}});const img=button.querySelector('img');
+      FD.fileGet(f.id).then(d=>{if(d)img.src=d;else button.replaceWith(h('span',{class:'chat-file gone'},t('L_FILE_GONE')));});return button; }
     return h('a', { class: 'chat-file', href: '#', title: f.name, on: { click: async e => { e.preventDefault(); const d = await FD.fileGet(f.id); if (!d) return FD.toast(null, null, { text: t('L_FILE_GONE') });
         const l = h('a', { href: d, download: f.name }); document.body.appendChild(l); l.click(); l.remove(); } } },
       h('span', { class: 'chat-file-ic' }, I('file', 's16')), h('span', { class: 'grow', style: { minWidth: 0 } }, h('span', { class: 'ellipsis', style: { display: 'block' } }, f.name),
@@ -129,7 +129,7 @@
       const mine = isMine(m, who, vsr);
       if (!divDone && !q && C.divider[slot] != null && stamp(m.at) > C.divider[slot] && !mine) { divDone = true; nodes.push(h('div', { class: 'chat-new' }, h('span', null, t('L_NEW_MSGS')))); }
       if (m.system) { nodes.push(h('div', { class: 'msg sys', id: 'm-' + (m.id || '') }, h('div', { class: 'bubble sys' }, tagLine(m), h('b', null, t('L_REASON_IS', { reason: t(m.reason) })), m.text ? h('div', { dir: 'auto' }, mark(m.text, q)) : null,
-        m.photo ? h('img', { src: m.photo, alt: '', on: { click: () => FD.lightbox(m.photo) } }) : null, h('div', { class: 'msg-meta' }, h('time', null, nameBy(m.by) + ' · ' + FD.fmt.time(m.at.time)))))); continue; }
+        m.photo ? FD.photoButton({src:m.photo,label:t('PG_PHOTO_LABEL')}) : null, h('div', { class: 'msg-meta' }, h('time', null, nameBy(m.by) + ' · ' + FD.fmt.time(m.at.time)))))); continue; }
       const photos = (m.photos || []).concat(m.photo ? [m.photo] : []); const files = m.files || [];
       const quoted = m.replyTo && msgs.find(x => x.id === m.replyTo);
       const seen = mine && (th.team && who === 'SUP' ? s.world.vsrs.every(v => ((th.seenVsrs || {})[v.id] || '') >= stamp(m.at)) : (who === 'SUP' ? (th.seenVsr || '') : (th.seenSup || '')) >= stamp(m.at));
@@ -141,7 +141,7 @@
           m.topic ? h('div', { class: 'msg-topic' }, t(m.topic)) : null,
           quoted ? h('button', { type: 'button', class: 'msg-quote', on: { click: () => jump(quoted.id) } }, h('b', null, isMine(quoted, who, vsr) ? t('L_YOU') : nameBy(quoted.by)), h('span', { class: 'ellipsis', dir: 'auto' }, quoted.text || t('L_ATTACHMENT'))) : null,
           m.text ? h('div', { class: 'msg-text', dir: 'auto' }, mark(m.text, q)) : null,
-          photos.length || files.some(f => f.kind === 'img') ? h('div', { class: 'msg-photos' }, photos.map(p => h('img', { src: p, alt: '', class: 'chat-img', on: { click: () => FD.lightbox(p) } })), files.filter(f => f.kind === 'img').map(fileNode)) : null,
+          photos.length || files.some(f => f.kind === 'img') ? h('div', { class: 'msg-photos' }, photos.map(p => FD.photoButton({src:p,label:t('PG_PHOTO_LABEL')})), files.filter(f => f.kind === 'img').map(fileNode)) : null,
           files.filter(f => f.kind !== 'img').map(fileNode),
           h('div', { class: 'msg-meta' }, h('time', null, FD.fmt.time(m.at.time)), mine ? h('span', { class: 'tick' + (seen ? ' seen' : ''), title: t(seen ? 'L_SEEN' : 'L_SENT'), 'aria-label': t(seen ? 'L_SEEN' : 'L_SENT') }, I(seen ? 'check-check' : 'check', 's14')) : null)),
         m.id && mode !== 'popup' ? h('button', { type: 'button', class: 'msg-reply', 'aria-label': t('L_REPLY'), title: t('L_REPLY'), on: { click: () => { D.replyTo = m.id; C.typing = key; rerender(); } } }, I('reply', 's14')) : null));

@@ -12,15 +12,19 @@
   // Append-only index over orders and recs. ponytail: in-place deletions or store edits need FD.invalidate(ctx).
   function idx(ctx) {
     let x = ctx._idx;
-    if (!x || x.orders !== ctx.orders || x.recs !== ctx.recs || x.storesArr !== ctx.world.stores || x.no > ctx.orders.length || x.nr > (ctx.recs || []).length) {
+    if (!x || x.orders !== ctx.orders || x.recs !== ctx.recs || x.returns !== ctx.returns || x.storesArr !== ctx.world.stores || x.no > ctx.orders.length || x.nr > (ctx.recs || []).length || x.nret > (ctx.returns || []).length) {
       const peers = new Map();
-      for (const s of ctx.world.stores) peers.set(s.id, ctx.world.stores.filter(p => p.id !== s.id && p.size === s.size && (p.label === s.label || p.tags.some(t => s.tags.includes(t)))));
-      x = { orders: ctx.orders, recs: ctx.recs, storesArr: ctx.world.stores, no: 0, nr: 0, by: new Map(), rby: new Map(), stores: new Map(ctx.world.stores.map(s => [s.id, s])), peers };
+      // ponytail: similar stores = same van, same size, shared class or area tag, capped at 40 (about 1,400 stores)
+      const byVan = new Map(); for (const s of ctx.world.stores) (byVan.get(s.vsr) || byVan.set(s.vsr, []).get(s.vsr)).push(s);
+      for (const s of ctx.world.stores) peers.set(s.id, byVan.get(s.vsr).filter(p => p.id !== s.id && p.size === s.size && (p.label === s.label || p.tags.some(t => s.tags.includes(t)))).slice(0, 40));
+      x = { orders: ctx.orders, recs: ctx.recs, returns: ctx.returns, storesArr: ctx.world.stores, no: 0, nr: 0, nret: 0, by: new Map(), byStore: new Map(), retByStore: new Map(), last: new Map(), rby: new Map(), stores: new Map(ctx.world.stores.map(s => [s.id, s])), peers };
       Object.defineProperty(ctx, '_idx', { value: x, writable: true, configurable: true, enumerable: false });
     }
-    for (; x.no < ctx.orders.length; x.no++) { const o = ctx.orders[x.no]; const k = o.store + '|' + o.sku; (x.by.get(k) || x.by.set(k, []).get(k)).push(o); }
+    for (; x.no < ctx.orders.length; x.no++) { const o = ctx.orders[x.no]; const k = o.store + '|' + o.sku; (x.by.get(k) || x.by.set(k, []).get(k)).push(o); (x.byStore.get(o.store) || x.byStore.set(o.store, []).get(o.store)).push(o); if (!(x.last.get(k) >= o.date)) x.last.set(k, o.date); }
     const recs = ctx.recs || [];
     for (; x.nr < recs.length; x.nr++) { const r = recs[x.nr]; (x.rby.get(r.store) || x.rby.set(r.store, []).get(r.store)).push(r); }
+    const rets = ctx.returns || [];
+    for (; x.nret < rets.length; x.nret++) { const rt = rets[x.nret]; (x.retByStore.get(rt.store) || x.retByStore.set(rt.store, []).get(rt.store)).push(rt); }
     return x;
   }
   FD.invalidate = ctx => { if (ctx) ctx._idx = null; };
@@ -32,8 +36,14 @@
   FD.lastOrder = (ctx, storeId, code, before) => {
     let last = null; for (const o of ordersOf(ctx, storeId, code)) if (o.date < before && (!last || o.date > last)) last = o.date; return last;
   };
-  FD.carries = (ctx, storeId, code, asOf, win = 28) => ordersOf(ctx, storeId, code).some(o => o.date <= asOf && FD.daysBetween(o.date, asOf) <= win);
+  // fast path: the latest order is on or before asOf (always true up to today); otherwise scan
+  FD.carries = (ctx, storeId, code, asOf, win = 28) => { const last = idx(ctx).last.get(storeId + '|' + code); if (!last) return false;
+    if (last <= asOf) return FD.daysBetween(last, asOf) <= win; return ordersOf(ctx, storeId, code).some(o => o.date <= asOf && FD.daysBetween(o.date, asOf) <= win); };
   FD.peers = (ctx, s) => idx(ctx).peers.get(s.id) || [];
+  // products a store carried in the 28 days to iso, memoised per store order count (the GAP check asks this for every peer x product)
+  const carriedSet = (ctx, storeId, iso) => { const x = idx(ctx); const os = x.byStore.get(storeId) || []; const k = storeId + '|' + iso + '|' + os.length; let v = (x.cs || (x.cs = new Map())).get(k);
+    if (!v) { v = new Set(); const minD = FD.addDays(iso, -28); for (const o of os) if (o.date <= iso && o.date >= minD) v.add(o.sku); x.cs.set(k, v); } return v; };
+  FD.carriedSet = carriedSet;
   FD.activePromo = (ctx, code, iso) => (ctx.world.promos || []).find(p => p.skus.includes(code) && p.start <= iso && p.end >= iso);
   const mustStock = (ctx, s, code) => { const m = ctx.rules.mustStock || {}; return [s.label, ...s.tags].some(k => (m[k] || []).includes(code)); };
   const pinnedFor = (ctx, s, code, iso) => (ctx.pins || []).some(p => p.sku === code && (!p.until || p.until >= iso) &&
@@ -41,26 +51,29 @@
 
   FD.candidates = function (ctx, storeId, iso) {
     const s = storeOf(ctx, storeId); const out = []; const peers = FD.peers(ctx, s);
+    const peerCarry = new Map(); for (const p of peers) for (const c of carriedSet(ctx, p.id, iso)) peerCarry.set(c, (peerCarry.get(c) || 0) + 1);
     for (const sku of FD.SKUS) {
+      if (sku.category === 'other') continue; // grocery lines are sold, never recommended (R7-12)
       const code = sku.code; const all = ordersOf(ctx, storeId, code).filter(o => o.date < iso);
       const last = all.length ? all.reduce((m, o) => o.date > m ? o.date : m, all[0].date) : null;
-      if (all.length >= 2 && FD.daysBetween(last, iso) >= ctx.rules.lapsedDays) {
+      // tuned to the real data: stores order about monthly, so one past order is enough history for lapsed
+      if (all.length >= 1 && FD.daysBetween(last, iso) >= ctx.rules.lapsedDays) {
         const avg = Math.max(1, Math.round(all.reduce((a, o) => a + o.units, 0) / all.length));
         out.push({ sku: code, type: 'LAPSED', reasonId: 'B_LAPSED', slots: { days: FD.daysBetween(last, iso), qty: avg } });
         continue;
       }
       if (all.length === 0) {
         if (!peers.length) continue;
-        const carryPct = Math.round(100 * peers.filter(p => FD.carries(ctx, p.id, code, iso)).length / peers.length);
+        const carryPct = Math.round(100 * (peerCarry.get(code) || 0) / peers.length);
         const must = mustStock(ctx, s, code);
-        if (carryPct >= 40 && (must || carryPct >= 60)) {
+        if (carryPct >= 25 && (must || carryPct >= 35)) {
           const sharedTag = s.tags.find(t => peers.some(p => p.tags.includes(t)));
-          out.push({ sku: code, type: 'GAP', reasonId: must ? 'B_GAP_MUST' : (sharedTag ? 'B_GAP_TAG' : 'B_GAP_LABEL'), slots: { pct: carryPct, tagId: sharedTag, labelId: s.label } });
+          out.push({ sku: code, type: 'GAP', reasonId: must ? 'B_GAP_MUST' : (sharedTag ? 'B_GAP_TAG' : 'B_GAP_LABEL') + (carryPct >= 50 ? '_MOST' : '_MANY'), slots: { pct: carryPct, tagId: sharedTag, labelId: s.label } });
         }
         continue;
       }
-      const recent = all.filter(o => FD.daysBetween(o.date, iso) <= 28).length;
-      if (recent >= 3) {
+      const recent = new Set(all.filter(o => FD.daysBetween(o.date, iso) <= 28).map(o => o.date)).size;
+      if (recent >= 2) {
         if (sku.bigger && !ordersOf(ctx, storeId, sku.bigger).some(o => o.date < iso && FD.daysBetween(o.date, iso) <= 60))
           out.push({ sku: sku.bigger, type: 'UPGRADE', reasonId: 'B_UP_PACK', slots: { skuSmall: code } });
         for (const sis of sku.sisters) if (!ordersOf(ctx, storeId, sis).some(o => o.date < iso) && !out.some(c => c.sku === sis)) {
@@ -89,7 +102,7 @@
     if (cand.type === 'GAP') {
       // ponytail: gated per product group (cupcake boxes, cake bars...), not the handoff's whole "cake" category, which blocked almost every gap
       const open = srecs.some(r => r.date < iso && r.type === 'GAP' && FD.sku(r.sku).group === sku.group && ['FULL', 'PARTIAL', 'ALT'].includes(r.outcome) && r.maturity === 'PENDING');
-      const returned = ctx.returns.some(x => x.store === storeId && FD.sku(x.sku).group === sku.group && x.date <= iso && FD.daysBetween(x.date, iso) < ctx.rules.maturityDays);
+      const returned = (idx(ctx).retByStore.get(storeId) || []).some(x => FD.sku(x.sku).group === sku.group && x.date <= iso && FD.daysBetween(x.date, iso) < ctx.rules.maturityDays);
       if (open || returned) return 'GATE_FIRSTFILL';
     }
     if (s.shelf === 'low' && sku.pcs >= 18) return 'GATE_SHELF';
@@ -98,13 +111,10 @@
     return null;
   };
 
+  // quantity = the product's real median order line (packs), scaled by shelf space; capped by past average (lapsed) and van stock
   FD.qty = function (ctx, storeId, cand, vsr) {
     const s = storeOf(ctx, storeId); const sku = FD.sku(cand.sku);
-    const days = Math.ceil(7 / s.days.length);
-    const rates = FD.peers(ctx, s).map(p => (p.carry && p.carry[cand.sku]) || 0).filter(Boolean);
-    const weekly = rates.length ? rates.reduce((a, b) => a + b, 0) / rates.length : sku.pcs;
-    const caps = [Math.max(1, Math.round(weekly / 7 * days / sku.pcs)), { low: 1, med: 2, high: 3 }[s.shelf]];
-    if (cand.type === 'GAP') caps.push(ctx.rules.firstFillMax);
+    const caps = [Math.max(1, Math.round((sku.line || 1) * { low: 0.5, med: 1, high: 1.5 }[s.shelf]))];
     if (cand.type === 'LAPSED') caps.push(cand.slots.qty);
     if (ctx.rules.vanFeed) caps.push((ctx.vanStock[vsr || s.vsr] || {})[cand.sku] || 0);
     return Math.max(1, Math.min(...caps));
@@ -122,7 +132,9 @@
       recs.push({ store: storeId, sku: c.sku, type: c.type, qty, reasonId: c.reasonId, slots: c.slots, promo: c.promo || null, pinned: !!pin,
         ev: +(margin * PRIOR[c.type]).toFixed(2), value: +(qty * sku.cost).toFixed(2), score: margin * PRIOR[c.type] * (WEIGHT[c.type] + pin) });
     }
-    const nonPromo = recs.filter(r => r.type !== 'PROMO').sort((a, b) => b.score - a.score);
+    // priority is growing what the store already buys: at most one new product per store, unless the supervisor pinned it
+    let gaps = 0;
+    const nonPromo = recs.filter(r => r.type !== 'PROMO').sort((a, b) => b.score - a.score).filter(r => r.type !== 'GAP' || r.pinned || gaps++ < 1);
     const promos = recs.filter(r => r.type === 'PROMO').sort((a, b) => b.score - a.score);
     const max = ctx.rules.maxPerStore;
     let out = nonPromo.slice(0, max);

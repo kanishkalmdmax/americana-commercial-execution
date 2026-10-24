@@ -1,130 +1,111 @@
 (function () {
   const FD = globalThis.FD;
+  const R = FD.REAL;
   const E = (en, ar) => ({ en, ar });
   Object.assign(FD.CATALOG, {
-    PROMO_CB_51: E('5 boxes + 1 free', '٥ علب + ١ مجاناً'), PROMO_BC_1OFF: E('1 SAR off per box', 'خصم ١ ريال لكل علبة'), PROMO_SR_10: E('10% off', 'خصم ١٠٪'),
+    PROMO_CB_51: E('5 cartons + 1 free', '٥ كراتين + ١ مجاناً'), PROMO_BC_1OFF: E('1 SAR off per pack', 'خصم ١ ريال لكل عبوة'), PROMO_SR_10: E('10% off', 'خصم ١٠٪'),
     LBL_PERFECT: E('Perfect Store', 'متجر مثالي'), LBL_A: E('Class A', 'فئة أ'), LBL_B: E('Class B', 'فئة ب'), LBL_C: E('Class C', 'فئة ج'), LBL_PRESALES: E('Pre-Sales', 'ما قبل البيع'),
     SIZE_SMALL: E('Small baqala', 'بقالة صغيرة'), SIZE_LARGE: E('Large baqala', 'بقالة كبيرة'), SIZE_MINI: E('Mini-market', 'ميني ماركت'),
-    CAT_CAKE: E('Cakes', 'الكيك'), CAT_BISCUIT: E('Cookies', 'البسكويت'), CAT_RUSK: E('Rusks', 'الشابورة'),
+    CAT_CAKE: E('Cakes', 'الكيك'), CAT_BISCUIT: E('Cookies', 'البسكويت'), CAT_RUSK: E('Rusks', 'الشابورة'), CAT_OTHER: E('Grocery', 'مواد غذائية'),
   });
 
-  // [code, name, name_ar, group, category, unit, pcs, cost, street, life, rank] — spec §5.1
-  const RAW = [
-    ['3040421754', 'Vanilla Cupcake 18s', 'كب كيك فانيلا ١٨ قطعة', 'GRP_CUPBOX', 'cake', 'box', 18, 8.81, 1.00, 21, 88],
-    ['3040421723', 'Vanilla Cupcake Single', 'كب كيك فانيلا مفرد', 'GRP_SINGLES', 'cake', 'inner', 10, 5.55, 1.00, 21, 34],
-    ['3040421779', 'Chocolate Cupcake 18s', 'كب كيك شوكولاتة ١٨ قطعة', 'GRP_CUPBOX', 'cake', 'box', 18, 9.55, 1.00, 21, 84],
-    ['3040421724', 'Chocolate Cupcake Single', 'كب كيك شوكولاتة مفرد', 'GRP_SINGLES', 'cake', 'inner', 10, 5.68, 1.00, 21, 32],
-    ['3040421778', 'Strawberry Cupcake 18s', 'كب كيك فراولة ١٨ قطعة', 'GRP_CUPBOX', 'cake', 'box', 18, 9.29, 1.00, 21, 74],
-    ['3040430755', 'Cake Bar Chocolate 12s', 'كيك بار شوكولاتة ١٢', 'GRP_CAKEBAR', 'cake', 'box', 12, 14.13, 1.50, 60, 12],
-    ['3040430754', 'Cake Bar Vanilla 12s', 'كيك بار فانيلا ١٢', 'GRP_CAKEBAR', 'cake', 'box', 12, 14.24, 1.50, 60, 10],
-    ['3040430756', 'Cake Bar Strawberry 12s', 'كيك بار فراولة ١٢', 'GRP_CAKEBAR', 'cake', 'box', 12, 14.06, 1.50, 60, 15],
-    ['3040421650', 'Vanilla Slice Cake 70g', 'كيك شرائح فانيلا ٧٠ غ', 'GRP_SLICE', 'cake', 'box', 24, 22.48, 1.50, 30, 52],
-    ['3040421651', 'Fruit Slice Cake 70g', 'كيك شرائح فواكه ٧٠ غ', 'GRP_SLICE', 'cake', 'box', 24, 23.24, 1.50, 30, 58],
-    ['3040311723', 'Swiss Roll Chocolate 3 pcs', 'سويس رول شوكولاتة ٣ قطع', 'GRP_SWISS', 'cake', 'carton', 8, 28.07, 5.50, 45, 3],
-    ['3040311722', 'Swiss Roll Strawberry 3 pcs', 'سويس رول فراولة ٣ قطع', 'GRP_SWISS', 'cake', 'carton', 8, 27.87, 5.50, 45, 5],
-    ['3040311721', 'Swiss Roll Vanilla 3 pcs', 'سويس رول فانيلا ٣ قطع', 'GRP_SWISS', 'cake', 'carton', 8, 27.15, 5.50, 45, 7],
-    ['3040321140', 'Pound Cake Vanilla Packet', 'باوند كيك فانيلا', 'GRP_POUND', 'cake', 'carton', 6, 72.11, 17.00, 30, 2],
-    ['3040321142', 'Pound Cake Chocolate Packet', 'باوند كيك شوكولاتة', 'GRP_POUND', 'cake', 'carton', 6, 70.00, 17.00, 30, 4],
-    ['3040321144', 'Pound Cake Marble Packet', 'باوند كيك رخامي', 'GRP_POUND', 'cake', 'carton', 6, 68.92, 17.00, 30, 16],
-    ['3040421157', 'Pound Cake Chocolate 220g', 'باوند كيك شوكولاتة ٢٢٠ غ', 'GRP_POUND', 'cake', 'carton', 6, 64.25, 14.50, 30, 6],
-    ['3040421156', 'Pound Cake Vanilla 220g', 'باوند كيك فانيلا ٢٢٠ غ', 'GRP_POUND', 'cake', 'carton', 6, 62.31, 14.50, 30, 9],
-    ['3040441124', 'Butter Cookies Blue 12×44g', 'بسكويت زبدة أزرق ١٢×٤٤ غ', 'GRP_BUTTER', 'biscuit', 'box', 12, 9.60, 1.50, 270, 28],
-    ['3040441106', 'Butter Cookies Tin 454g', 'بسكويت زبدة علبة معدنية ٤٥٤ غ', 'GRP_BUTTER', 'biscuit', 'tin', 1, 15.28, 21.00, 365, 19],
-    ['3040441206', 'Choco Cookies Tin 605g', 'كوكيز شوكولاتة علبة معدنية ٦٠٥ غ', 'GRP_BUTTER', 'biscuit', 'tin', 1, 16.15, 25.75, 365, 67],
-    ['3050402701', 'Fresh Rusk Brown 375g', 'شابورة بر ٣٧٥ غ', 'GRP_RUSK', 'rusk', 'bag', 1, 4.83, 8.00, 120, 56],
-    ['3050402703', 'Fresh Rusk Red 375g', 'شابورة حمراء ٣٧٥ غ', 'GRP_RUSK', 'rusk', 'bag', 1, 4.71, 8.00, 120, 59],
-    ['3050402704', 'Fresh Rusk Diet 350g', 'شابورة دايت ٣٥٠ غ', 'GRP_RUSK', 'rusk', 'bag', 1, 4.64, 9.25, 120, 61],
-  ];
-  const UNIT = { box: ['box', 'boxes', 'علبة', 'علب'], inner: ['inner', 'inners', 'كرتونة صغيرة', 'كراتين صغيرة'], carton: ['carton', 'cartons', 'كرتونة', 'كراتين'], tin: ['tin', 'tins', 'علبة معدنية', 'علب معدنية'], bag: ['bag', 'bags', 'كيس', 'أكياس'] };
-  FD.SKUS = RAW.map(([code, name, name_ar, group, category, unit, pcs, cost, street, life, rank]) => ({
-    code, name, name_ar, group, category, unit: UNIT[unit][0], units: UNIT[unit][1], unit_ar: UNIT[unit][2], units_ar: UNIT[unit][3],
-    pcs, cost, street, retail: +(pcs * street).toFixed(2), life, rank, sisters: [], bigger: null }));
+  // ---------- products (SalesBuzz EA pack is the unit; a CRT line = pcsPerCrt packs) ----------
+  const LIFE = { cake: 30, biscuit: 270, rusk: 120, other: 365 };
+  const shelf = c => Math.max(c + 0.25, Math.round(c * 1.3 * 4) / 4); // ponytail: shelf price = pack price x 1.3 (pricing only shows upsell value)
+  FD.SKUS = R.skus.map(k => {
+    const retail = shelf(k.cost);
+    return { code: k.code, name: k.name_en, name_ar: k.name_ar, group: k.group, category: k.category, unit: 'pack', units: 'packs', unit_ar: 'عبوة', units_ar: 'عبوات',
+      pcs: 1, cost: k.cost, street: retail, retail, life: LIFE[k.category], rank: k.rank, crt: k.crt, pcsPerCrt: k.pcsPerCrt, sisters: [], bigger: null };
+  });
   const byCode = Object.fromEntries(FD.SKUS.map(s => [s.code, s]));
+  { const q = {}; for (const l of R.lines) (q[l[4]] || (q[l[4]] = [])).push(l[5]); // median packs per real order line
+    for (const k of FD.SKUS) { const v = (q[k.code] || [1]).sort((a, b) => a - b); k.line = v[Math.floor(v.length / 2)]; } }
   FD.sku = code => byCode[code];
-  for (const s of FD.SKUS) s.sisters = FD.SKUS.filter(o => o !== s && o.group === s.group && o.pcs === s.pcs && o.unit === s.unit).map(o => o.code);
-  byCode['3040421723'].bigger = '3040421754'; byCode['3040421724'].bigger = '3040421779';
-  byCode['3040421157'].bigger = '3040321142'; byCode['3040421156'].bigger = '3040321140';
+  FD.recommendable = code => { const k = byCode[code]; return !!k && k.category !== 'other'; };
+  const flavour = n => (n.match(/Vanilla|Chocolate|Strawberry|Marble|Fruit|Original|Peanut|Raspberry/) || [''])[0];
+  for (const s of FD.SKUS) {
+    s.sisters = FD.SKUS.filter(o => o !== s && o.group === s.group && o.cost === s.cost && o.category !== 'other').map(o => o.code);
+    const grams = n => +((n.match(/(\d+)g/) || [0, 0])[1]);
+    if (s.group === 'GRP_SINGLES') { const b = FD.SKUS.filter(o => o.group === 'GRP_CUPBOX' && flavour(o.name) === flavour(s.name)).sort((x, y) => Math.abs(grams(x.name) - grams(s.name)) - Math.abs(grams(y.name) - grams(s.name)))[0]; if (b) s.bigger = b.code; }
+  }
 
-  const VSRS = [['V1', 'Omar Farooq', 'عمر فاروق'], ['V2', 'Imran Siddiqui', 'عمران صديقي'], ['V3', 'Ahmed Saleh', 'أحمد صالح'],
-    ['V4', 'Faisal Al-Harbi', 'فيصل الحربي'], ['V5', 'Rashid Khan', 'راشد خان'], ['V6', 'Yousef Nasser', 'يوسف ناصر']];
-  const HOODS = [['Al Olaya', 'Al Malaz', 'Al Naseem'], ['Al Rawdah', 'Al Sulay', 'Al Aziziyah'], ['Al Shifa', 'Al Suwaidi', 'Al Badiah'],
-    ['Al Yarmouk', 'Al Nahdah', 'Al Hamra'], ['Al Uraija', 'Al Munsiyah', 'Tuwaiq'], ['Al Dar Al Baida', 'Al Qirawan', 'Al Nakheel']];
-  FD.HOOD_AR = { 'Al Olaya': 'العليا', 'Al Malaz': 'الملز', 'Al Naseem': 'النسيم', 'Al Rawdah': 'الروضة', 'Al Sulay': 'السلي', 'Al Aziziyah': 'العزيزية', 'Al Shifa': 'الشفا', 'Al Suwaidi': 'السويدي', 'Al Badiah': 'البديعة', 'Al Yarmouk': 'اليرموك', 'Al Nahdah': 'النهضة', 'Al Hamra': 'الحمراء', 'Al Uraija': 'عريجاء', 'Al Munsiyah': 'المونسية', 'Tuwaiq': 'طويق', 'Al Dar Al Baida': 'الدار البيضاء', 'Al Qirawan': 'القيروان', 'Al Nakheel': 'النخيل' };
-  const CENTER = [[24.69, 46.68], [24.73, 46.77], [24.57, 46.69], [24.80, 46.80], [24.60, 46.57], [24.55, 46.85]];
-  const NAMES = [['Baqala Al Nour', 'بقالة النور'], ['Al Rayyan Grocery', 'تموينات الريان'], ['Tamayoz Mini Market', 'ميني ماركت التميز'], ['Baqala Al Salam', 'بقالة السلام'], ['Al Waha Grocery', 'تموينات الواحة'], ['Baqala Al Fajr', 'بقالة الفجر'], ['Al Madina Market', 'أسواق المدينة'], ['Baqala Al Khair', 'بقالة الخير'], ['Al Hayat Grocery', 'تموينات الحياة'], ['Baqala Al Rawabi', 'بقالة الروابي'], ['Al Yamamah Mini Market', 'ميني ماركت اليمامة'], ['Baqala Al Amal', 'بقالة الأمل'], ['Al Diyar Grocery', 'تموينات الديار'], ['Baqala Al Sadaqah', 'بقالة الصداقة'], ['Al Bayan Market', 'أسواق البيان']];
   FD.TAGS = ['TAG_SCHOOL', 'TAG_MOSQUE', 'TAG_DENSE', 'TAG_VILLA', 'TAG_WORKERS', 'TAG_OFFICE', 'TAG_PETROL', 'TAG_HOSPITAL', 'TAG_UNI'];
-  FD.LABELS = ['PERFECT', 'A', 'B', 'C', 'PRESALES'];
+  FD.LABELS = ['A', 'B', 'C'];
   FD.SIZES = ['SMALL', 'LARGE', 'MINI'];
-  const BASE = { GRP_SINGLES: 20, GRP_CUPBOX: 10, GRP_CAKEBAR: 14, GRP_SLICE: 12, GRP_SWISS: 6, GRP_POUND: 3, GRP_BUTTER: 8, GRP_RUSK: 4 };
-  const MULT = { TAG_SCHOOL: { GRP_SINGLES: 3, GRP_CAKEBAR: 2.5 }, TAG_DENSE: { GRP_CUPBOX: 2, GRP_POUND: 2 }, TAG_VILLA: { GRP_CUPBOX: 1.8, GRP_POUND: 2.2, GRP_BUTTER: 1.5 },
-    TAG_WORKERS: { GRP_RUSK: 2.5, GRP_SWISS: 2, GRP_POUND: 0.4 }, TAG_OFFICE: { GRP_CAKEBAR: 1.6, GRP_SLICE: 1.5 }, TAG_PETROL: { GRP_SINGLES: 1.8, GRP_SLICE: 1.6 } };
+  FD.HOOD_AR = Object.fromEntries(R.stores.map(s => [s.hood_en, s.hood_ar]));
 
-  FD.buildWorld = function (seed) {
-    const r = FD.rng(seed);
-    const routes = HOODS.map((h, i) => ({ id: 'R' + (i + 1), name: `Route ${i + 1} · ${h[0]} – ${h[2]}`, name_ar: `المسار ${i + 1} · ${FD.HOOD_AR[h[0]]} – ${FD.HOOD_AR[h[2]]}`, hoods: h, remote: i === 5 }));
-    const vsrs = VSRS.map(([id, name, name_ar], i) => ({ id, name, name_ar, route: routes[i].id }));
-    const labels = ['PERFECT', 'A', 'A', 'B', 'B', 'B', 'B', 'C', 'C', 'PRESALES'];
-    const stores = []; let n = 0;
-    routes.forEach((rt, ri) => {
-      for (let k = 0; k < 15; k++) {
-        n++; const [nm, nmAr] = NAMES[(k + ri * 4) % NAMES.length];
-        const hood = rt.hoods[k % 3];
-        const tags = [FD.TAGS[FD.int(r, 0, FD.TAGS.length - 1)]];
-        if (r() < 0.5) { const t = FD.pick(r, FD.TAGS); if (!tags.includes(t)) tags.push(t); }
-        const days = rt.remote ? [[6, 2], [0, 3], [1, 4]][k % 3] : (k < 8 ? [6, 1, 3] : [0, 2, 4]);
-        const s = { id: 'ST-' + String(n).padStart(3, '0'), name: `${nm}, ${hood}`, name_ar: `${nmAr}، ${FD.HOOD_AR[hood]}`,
-          route: rt.id, vsr: vsrs[ri].id, hood, lat: +(CENTER[ri][0] + (r() - 0.5) * 0.04).toFixed(5), lng: +(CENTER[ri][1] + (r() - 0.5) * 0.04).toFixed(5),
-          label: FD.pick(r, labels), size: FD.pick(r, ['SMALL', 'SMALL', 'LARGE', 'MINI']), tags, shelf: FD.pick(r, ['low', 'med', 'med', 'high']),
-          credit: 'OK', onboarding: 'APPROVED', days, phone: '+9665' + String(FD.int(r, 10000000, 99999999)), carry: {}, dropped: {} };
-        for (const sku of FD.SKUS) {
-          let w = BASE[sku.group] * (0.6 + r() * 0.8);
-          for (const t of tags) w *= (MULT[t] && MULT[t][sku.group]) || 1;
-          if (r() < Math.min(0.9, 0.25 + w / 60)) s.carry[sku.code] = Math.round(w);
-        }
-        const carried = Object.keys(s.carry);
-        if (carried.length > 2 && r() < 0.25) s.dropped[FD.pick(r, carried)] = FD.addDays(FD.TODAY, -FD.int(r, 22, 40));
-        stores.push(s);
-      }
+  // ---------- real feeds by date ----------
+  const byDate = (rows, at = 0) => { const m = new Map(); for (const r of rows) (m.get(r[at]) || m.set(r[at], []).get(r[at])).push(r); return m; };
+  const PLAN = byDate(R.plan), STOPS = byDate(R.stops), LINES = byDate(R.lines), PAYS = byDate(R.pays), RETS = byDate(R.returns);
+  FD.realPlan = iso => (PLAN.get(iso) || []).map(([, van, store, seq]) => ({ van, store, seq }));
+  FD.realStops = iso => (STOPS.get(iso) || []).map(([, van, store, start, end, nc, onPlan]) => ({ van, store, start, end, nc, onPlan: !!onPlan }));
+  FD.realLines = (iso, van, store) => (LINES.get(iso) || []).filter(l => l[2] === van && l[3] === store).map(([, time, , , sku, units, value]) => ({ sku, units, value, time }));
+  FD.realPays = iso => (PAYS.get(iso) || []).map(([, time, van, store, amount]) => ({ time, van, store, amount }));
+  // open balance a store already owed before a day (documents still open at extract time)
+  FD.dueBefore = (store, iso) => ((FD.REAL.dues || {})[store] || []).filter(([d]) => d < iso).reduce((a, [, v]) => a + v, 0);
+  FD.realReturns = iso => (RETS.get(iso) || []).map(([, van, store, sku, units, value, reason, saleDate]) => ({ van, store, sku, units, value, reason, saleDate: saleDate || null }));
+  FD.ncReason = id => { const e = FD.CATALOG['NC_' + id]; return e ? [e.en, e.ar] : null; }; // fixed text per SalesBuzz no-sale code
+  const DAYS = new Map(); for (const l of R.lines) { const k = l[3] + '|' + l[4]; (DAYS.get(k) || DAYS.set(k, new Set()).get(k)).add(l[0]); }
+  FD.orderedElsewhen = (store, sku, iso) => { const d = DAYS.get(store + '|' + sku); return !!d && [...d].some(x => x !== iso); }; // store buys it on some other day in the extract
+
+  FD.buildWorld = function () {
+    const hood = {}; for (const s of R.stores) hood[s.van] = [s.hood_en, s.hood_ar];
+    const routes = R.vans.filter(v => v.kind !== 'inactive').map(v => ({ id: v.route, name: `${v.route} · ${(hood[v.id] || [''])[0]}`, name_ar: `${v.route.replace('RYD_', 'مسار ')} · ${(hood[v.id] || ['', ''])[1]}`, hoods: [(hood[v.id] || [''])[0]], remote: false }));
+    const vans = R.vans.filter(v => v.kind !== 'inactive'); // a van with a plan and no visits all month adds nothing to the mockup
+    const vsrs = vans.map(v => ({ id: v.id, name: v.name_en, name_ar: v.name_ar, route: v.route, kind: v.kind, sup: v.sup, first: v.first, last: v.last }));
+    const routeOf = Object.fromEntries(vsrs.map(v => [v.id, v.route]));
+    // weekly packs per product per store over the history weeks (drives quantities and future-day orders)
+    const weeks = FD.daysBetween(FD.BASE_START, FD.TODAY) / 7; const carry = {};
+    for (const l of R.lines) if (l[0] < FD.TODAY) { const c = carry[l[3]] || (carry[l[3]] = {}); c[l[4]] = (c[l[4]] || 0) + l[5] / weeks; }
+    const hash = s => { let x = 2166136261; for (const c of s) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); } return x >>> 0; };
+    const stores = R.stores.map(s => {
+      const r = FD.rng(hash(s.id)); const tags = [FD.TAGS[FD.int(r, 0, FD.TAGS.length - 1)]];
+      if (r() < 0.5) { const t = FD.pick(r, FD.TAGS); if (!tags.includes(t)) tags.push(t); }
+      const c = {}; for (const [k, w] of Object.entries(carry[s.id] || {})) c[k] = Math.max(1, Math.round(w));
+      return { id: s.id, sb: s.sb, name: s.name_en, name_ar: s.name_ar, route: routeOf[s.van], vsr: s.van, hood: s.hood_en, lat: s.lat, lng: s.lng,
+        label: s.cls, size: FD.pick(r, ['SMALL', 'SMALL', 'LARGE', 'MINI']), tags, shelf: FD.pick(r, ['low', 'med', 'med', 'high']),
+        credit: s.credit || 'OK', balance: s.balance || 0, creditLimit: s.creditLimit || 0, onboarding: 'APPROVED', days: s.days, phone: '+9665' + String(10000000 + hash(s.sb) % 89999999), carry: c, dropped: {} };
     });
-    ['ST-004', 'ST-033', 'ST-061'].forEach(id => { stores.find(s => s.id === id).credit = 'WATCH'; });
-    stores.find(s => s.id === 'ST-047').credit = 'BLOCKED';
-    stores.find(s => s.id === 'ST-078').onboarding = 'PENDING';
+    const top = FD.SKUS.filter(k => k.category !== 'other').slice(0, 8);
     const promos = [
-      { id: 'P1', skus: ['3040430754'], promoId: 'PROMO_CB_51', start: '2026-11-01', end: '2026-11-30' },
-      { id: 'P2', skus: ['3040441124'], promoId: 'PROMO_BC_1OFF', start: '2026-11-05', end: '2026-11-25' },
-      { id: 'P3', skus: ['3040311723'], promoId: 'PROMO_SR_10', start: '2026-11-10', end: '2026-11-21' },
-      { id: 'P4', skus: ['3040421754'], promoId: 'PROMO_SR_10', start: '2026-10-12', end: '2026-10-25' },
-      { id: 'P5', skus: ['3050402701'], promoId: 'PROMO_BC_1OFF', start: '2026-10-15', end: '2026-10-31' },
+      { id: 'P1', skus: [top[0].code], promoId: 'PROMO_CB_51', start: '2026-10-01', end: '2026-10-31' },
+      { id: 'P2', skus: [top[3].code], promoId: 'PROMO_BC_1OFF', start: '2026-10-10', end: '2026-10-31' },
+      { id: 'P3', skus: [top[5].code], promoId: 'PROMO_SR_10', start: '2026-10-15', end: '2026-10-25' },
+      { id: 'P4', skus: [top[7].code], promoId: 'PROMO_SR_10', start: '2026-09-22', end: '2026-10-14' },
     ];
-    return { supervisor: { id: 'S1', name: 'Khalid Al-Mutairi', name_ar: 'خالد المطيري' }, vsrs, routes, stores, promos };
+    const sups = R.sups.map(s => ({ id: s.id, name: s.name_en, name_ar: s.name_ar }));
+    return { supervisor: sups[0], sups, vsrs, routes, stores, promos };
   };
 
-  // Baseline order lines for one store visit (shared by history and pilot simulation).
+  // Order lines for a future day (beyond the extract), from each store's real weekly packs.
   FD.baselineLines = function (r, s, d) {
     const out = [];
     if (s.credit === 'BLOCKED' || s.onboarding === 'PENDING') return out;
     for (const [code, weekly] of Object.entries(s.carry)) {
       if (s.dropped[code] && d >= s.dropped[code]) continue;
-      const sku = FD.sku(code);
-      const units = Math.floor(weekly / s.days.length * (0.7 + r() * 0.6) / sku.pcs + r());
+      const units = Math.floor(weekly / Math.max(1, s.days.length) * (0.7 + r() * 0.6) + r());
       if (units > 0) out.push({ sku: code, units });
     }
     return out;
   };
 
+  // Real visits, orders and returns between two dates (inclusive), plus pre-baseline order history in R.lines for 14-28d lookback.
   FD.buildHistory = function (world, seed, from, to) {
-    const r = FD.rng(seed + 1); const visits = [], orders = [], returns = [];
-    let oid = 0, vid = 0;
+    const visits = [], orders = [], returns = []; let vid = 0, oid = 0, rid = 0;
+    for (const [d, time, van, store, sku, units, value] of R.lines) if (d < from)
+      orders.push({ id: 'OH' + (++oid), store, vsr: van, date: d, sku, units, value, time, src: 'SB' });
     for (let d = from; d <= to; d = FD.addDays(d, 1)) {
-      if (!FD.isSellingDay(d)) continue;
-      const dw = FD.dow(d);
-      for (const v of world.vsrs) {
-        world.stores.filter(s => s.vsr === v.id && s.days.includes(dw)).forEach((s, i) => {
-          visits.push({ id: 'VI' + (++vid), store: s.id, vsr: v.id, date: d, seq: i + 1, status: 'DONE' });
-          for (const l of FD.baselineLines(r, s, d))
-            orders.push({ id: 'O' + (++oid), store: s.id, vsr: v.id, date: d, sku: l.sku, units: l.units, value: +(l.units * FD.sku(l.sku).cost).toFixed(2), src: 'SB' });
-        });
-      }
+      const stops = FD.realStops(d); const key = (v, s) => v + '|' + s;
+      const done = new Map(stops.map(x => [key(x.van, x.store), x])); const routeOf = v => (world.vsrs.find(x => x.id === v) || {}).route;
+      const plan = FD.realPlan(d); const planned = new Set(plan.map(p => key(p.van, p.store)));
+      for (const p of plan) { const x = done.get(key(p.van, p.store));
+        visits.push({ id: 'VH' + (++vid), store: p.store, vsr: p.van, route: routeOf(p.van), date: d, seq: p.seq, status: x ? 'DONE' : 'MISSED', arrivedAt: x ? x.start : null, leftAt: x ? x.end : null, nc: x ? x.nc : 0, real: true }); }
+      const maxSeq = {}; for (const p of plan) maxSeq[p.van] = Math.max(maxSeq[p.van] || 0, p.seq);
+      for (const x of stops) if (!planned.has(key(x.van, x.store)))
+        visits.push({ id: 'VH' + (++vid), store: x.store, vsr: x.van, route: routeOf(x.van), date: d, seq: (maxSeq[x.van] = (maxSeq[x.van] || 0) + 1), status: 'DONE', arrivedAt: x.start, leftAt: x.end, nc: x.nc, offPlan: true, real: true });
+      for (const x of stops) for (const l of FD.realLines(d, x.van, x.store))
+        orders.push({ id: 'OH' + (++oid), store: x.store, vsr: x.van, date: d, sku: l.sku, units: l.units, value: l.value, time: l.time, src: 'SB' });
+      for (const x of FD.realReturns(d)) returns.push({ id: 'RH' + (++rid), store: x.store, sku: x.sku, date: d, saleDate: x.saleDate || null, units: x.units, value: x.value, reason: x.reason, vsr: x.van });
     }
     return { visits, orders, returns };
   };

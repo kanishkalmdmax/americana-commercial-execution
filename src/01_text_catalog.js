@@ -175,8 +175,8 @@
   "ar": "تأكيد القائمة"
  },
  "L_OPEN_SB": {
-  "en": "Open SalesBuzz",
-  "ar": "فتح SalesBuzz"
+  "en": "Place order",
+  "ar": "تسجيل طلب"
  },
  "L_NAVIGATE": {
   "en": "Navigate",
@@ -251,8 +251,8 @@
   "ar": "بيانات تجريبية"
  },
  "L_FOOTER": {
-  "en": "Simulated data for demonstration · Not live SalesBuzz data",
-  "ar": "بيانات تجريبية للعرض · ليست بيانات SalesBuzz مباشرة"
+  "en": "Simulated data for demonstration · Not live data",
+  "ar": "بيانات تجريبية للعرض · ليست بيانات مباشرة"
  },
  "L_HEALTH": {
   "en": "Assortment health",
@@ -347,8 +347,8 @@
   "ar": "غير متوفر في السيارة اليوم"
  },
  "D_DATA_AGE": {
-  "en": "Store data from SalesBuzz · {date} {time}",
-  "ar": "بيانات المحل من SalesBuzz · {date} {time}"
+  "en": "Store data updated · {date} {time}",
+  "ar": "تم تحديث بيانات المحل · {date} {time}"
  },
  "D_EXPIRES": {
   "en": "Valid until end of this visit",
@@ -363,8 +363,8 @@
   "ar": "تغطية عن {vsr} اليوم"
  },
  "E_WAITING": {
-  "en": "Waiting for SalesBuzz order…",
-  "ar": "بانتظار طلب SalesBuzz…"
+  "en": "Waiting for order…",
+  "ar": "بانتظار الطلب…"
  },
  "E_FULL": {
   "en": "Sold in full",
@@ -407,8 +407,8 @@
   "ar": "لا يوجد سبب"
  },
  "E_CORRECTED": {
-  "en": "Corrected after SalesBuzz edit",
-  "ar": "صُحّح بعد تعديل في SalesBuzz"
+  "en": "Corrected after order update",
+  "ar": "صُحّح بعد تحديث الطلب"
  },
  "E_BLOCKED": {
   "en": "Blocked by supervisor",
@@ -419,8 +419,8 @@
   "ar": "غير مؤهل: {gate}"
  },
  "E_NO_ORDER": {
-  "en": "No order found in SalesBuzz",
-  "ar": "لم يُعثر على طلب في SalesBuzz"
+  "en": "No order found",
+  "ar": "لم يُعثر على طلب"
  },
  "N_ARRIVE": {
   "en": "At {store}",
@@ -831,8 +831,8 @@
   "ar": "ابدأ من هنا كل صباح: راجع توصيات اليوم وأكّدها."
  },
  "O_V2": {
-  "en": "When you reach a store, you'll get what to offer. Sell as usual in SalesBuzz.",
-  "ar": "عند وصولك للمحل ستصلك المنتجات المقترحة. بِع كالمعتاد في SalesBuzz."
+  "en": "When you reach a store, you'll get what to offer. Place orders as usual.",
+  "ar": "عند وصولك للمحل ستصلك المنتجات المقترحة. سجّل الطلبات كالمعتاد."
  },
  "O_V3": {
   "en": "If something doesn't sell, tell us why in two taps.",
@@ -875,20 +875,20 @@
   "ar": "بانتظار المزامنة"
  },
  "S_SB_DATA": {
-  "en": "SalesBuzz data updated {time}",
-  "ar": "تم تحديث بيانات SalesBuzz الساعة {time}"
+  "en": "Data updated {time}",
+  "ar": "تم تحديث البيانات الساعة {time}"
  },
  "S_SB_OPENING": {
-  "en": "Opening SalesBuzz… Place the order there. FieldDrive reads it automatically.",
-  "ar": "جارٍ فتح SalesBuzz… سجّل الطلب هناك، وسيقرأه فيلد درايف تلقائياً."
+  "en": "Opening orders… Place the order as usual. It will update here automatically.",
+  "ar": "جارٍ فتح الطلبات… سجّل الطلب كالمعتاد وسيُحدّث هنا تلقائياً."
  },
  "S_MAP_OFFLINE": {
   "en": "Map needs internet. Showing list",
   "ar": "الخريطة تحتاج إنترنت، يتم عرض القائمة"
  },
  "S_VAN_OFF": {
-  "en": "Van stock not verified. SalesBuzz feed not connected",
-  "ar": "مخزون السيارة غير مؤكد، لم يتم ربط SalesBuzz"
+  "en": "Van stock not verified. Stock data is not connected",
+  "ar": "مخزون السيارة غير مؤكد، بيانات المخزون غير متصلة"
  },
  "S_SAVED": {
   "en": "Saved",
@@ -1063,8 +1063,8 @@
   "ar": "نُقل محل {store} إلى {vsr}"
  },
  "F_ASSIGN_PENDING_C": {
-  "en": "Pending SalesBuzz update",
-  "ar": "بانتظار التحديث في SalesBuzz"
+  "en": "Awaiting data update",
+  "ar": "بانتظار تحديث البيانات"
  }
 });
 })();

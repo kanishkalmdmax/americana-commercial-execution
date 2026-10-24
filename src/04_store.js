@@ -1,6 +1,6 @@
 (function () {
   const FD = globalThis.FD;
-  const KEY = 'fielddrive.v2'; // v2: one chat thread per salesman (v1 logs would replay with shifted ids)
+  const KEY = 'fielddrive.v5'; // v5: real October 2026 data through 22 Oct (salesbuzz_2026-10-23)
   const subs = [];
   let storage = null, chan = null, replaying = false;
 
@@ -40,21 +40,25 @@
       exempted: false, exemptNote: null, corrected: false, prevOutcome: null, maturity: null, blockedAt: null, qtyModified: null, untickedAt: null, coveredBy: null, viewedAt: null }, draft);
   }
   function genRecs(st, store, date, vsr, exclude = [], limit) {
+    if (!FD.salesVan(st, vsr)) return; // collection / inactive vans never get recommendations
     const { recs } = FD.recommend(st, store.id, date, vsr);
     recs.filter(r => !exclude.includes(r.sku)).slice(0, limit ?? st.rules.maxPerStore).forEach(d => st.recs.push(makeRec(st, d, vsr, date)));
   }
+  FD.salesVan = (st, id) => { const v = st.world.vsrs.find(x => x.id === id); return !!v && v.kind === 'sales'; };
   FD.ensureDay = function (st, iso) {
     if (st.planned[iso]) return;
     st.planned[iso] = true;
     if (!FD.isSellingDay(iso)) return;
-    const dw = FD.dow(iso);
-    for (const rt of st.world.routes) {
-      const vid = FD.routeOwner(st, rt.id, iso);
-      st.world.stores.filter(s => s.route === rt.id && s.days.includes(dw)).forEach((s, i) => {
-        st.visits.push({ id: nextId(st, 'VI'), store: s.id, vsr: vid, route: s.route, date: iso, seq: i + 1, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false });
-        genRecs(st, s, iso, vid, FD.openTemps(st, s.id, iso).map(r => r.sku));
-      });
+    const routeOf = id => (st.world.vsrs.find(v => v.id === id) || {}).route;
+    if (!st.visits.some(v => v.date === iso)) { // past days already hold the real visits
+      let plan = FD.realPlan(iso);
+      if (!plan.length) { const dw = FD.dow(iso); plan = []; // beyond the extract: each store's usual weekdays
+        for (const v of st.world.vsrs) st.world.stores.filter(s => s.vsr === v.id && s.days.includes(dw)).forEach((s, i) => plan.push({ van: v.id, store: s.id, seq: i + 1 })); }
+      for (const p of plan) { const s = storeById(st, p.store); if (!s || (st.world.vsrs.find(v => v.id === p.van) || {}).kind === 'inactive') continue; const route = s.movedFrom && s.movedFrom <= iso ? s.route : routeOf(p.van); if (!route) continue;
+        st.visits.push({ id: nextId(st, 'VI'), store: p.store, vsr: FD.routeOwner(st, route, iso) || p.van, route, date: iso, seq: p.seq, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false }); }
     }
+    for (const v of st.visits.filter(x => x.date === iso && !x.offPlan && x.status !== 'SKIPPED'))
+      if (FD.salesVan(st, v.vsr) && !recsFor(st, iso, v.store).length) genRecs(st, storeById(st, v.store), iso, v.vsr, FD.openTemps(st, v.store, iso).map(r => r.sku));
     for (const rv of (st.revisitQueue || []).filter(x => x.date === iso)) addRevisit(st, rv);
     const vr = new Map(st.visits.filter(v => v.date === iso).map(v => [v.store, v.route]));
     for (const c of st.covers.filter(c => c.date === iso)) st.recs.filter(r => r.date === iso && vr.get(r.store) === c.route).forEach(r => { r.coveredBy = c.vsr; });
@@ -95,11 +99,11 @@
   }
 
   // ---------- orders and grading ----------
-  function applyLines(st, visit, lines, date, time) {
+  function applyLines(st, visit, lines, date, time, opts = {}) {
     const store = visit.store; const known = knownSkus(st, store, date);
     const recs = recsFor(st, date, store).filter(r => !r.blockedAt && (r.outcome === null || r.outcome === 'WAITING'));
     const temps = FD.openTemps(st, store, date, visit.id);
-    for (const l of lines) st.orders.push({ id: nextId(st, 'O'), store, vsr: visit.vsr, date, sku: l.sku, units: l.units, value: +(l.units * FD.sku(l.sku).cost).toFixed(2), src: 'SB' });
+    if (opts.push !== false) for (const l of lines) st.orders.push({ id: nextId(st, 'O'), store, vsr: visit.vsr, date, sku: l.sku, units: l.units, value: l.value ?? +(l.units * FD.sku(l.sku).cost).toFixed(2), time: l.time || time, src: opts.src || 'SB' });
     const hist = known.map(sku => ({ sku }));
     const graded = [];
     for (const r of recs) {
@@ -114,7 +118,8 @@
       else r.revisitClosed = true; // offered again on the next visit and still not taken
     }
     const recSkus = new Set(recs.concat(temps).map(r => r.sku)), altSkus = new Set(recs.concat(temps).filter(r => r.alt).map(r => r.alt));
-    for (const l of lines) if (!known.includes(l.sku) && !recSkus.has(l.sku) && !altSkus.has(l.sku)) st.misses.push({ id: nextId(st, 'M'), store, vsr: visit.vsr, date, sku: l.sku, type: 'UNREC', recSku: null, mark: null });
+    // a miss only means something when the visit had recommendations to compare against
+    if (recs.length || temps.length) for (const l of lines) if (FD.recommendable(l.sku) && !known.includes(l.sku) && !FD.orderedElsewhen(store, l.sku, date) && !recSkus.has(l.sku) && !altSkus.has(l.sku)) st.misses.push({ id: nextId(st, 'M'), store, vsr: visit.vsr, date, sku: l.sku, type: 'UNREC', recSku: null, mark: null });
     for (const r of recs.concat(temps.filter(x => x.revisit && x.soldOn === date))) if (r.outcome === 'ALT') st.misses.push({ id: nextId(st, 'M'), store, vsr: visit.vsr, date, sku: r.alt, type: 'ALT', recSku: r.sku, mark: null });
     visit.status = 'DONE'; visit.leftAt = visit.leftAt || time;
     st.lastOrder = { store, date };
@@ -146,24 +151,81 @@
   }
 
   // ---------- simulation ----------
-  const VSR_FACTOR = { V1: 1.1, V2: 0.8, V3: 1.0, V4: 1.05, V5: 0.9, V6: 1.0 };
   const REASONS = [['R_PRICE', 18], ['R_ENOUGH', 16], ['R_NO_SHELF', 12], ['R_BUYER_NO', 10], ['R_BUYER_ABSENT', 10], ['R_COMPETITOR', 10], ['R_NOT_ON_VAN', 6], ['R_CREDIT', 5], ['R_SYSTEM', 3], ['R_OTHER', 3]];
   const BRANDS = [['BR_LUSINE', 50], ['BR_7DAYS', 35], ['BR_SABAHOO', 10], ['BR_OTHER', 5]];
+  // SalesBuzz no-sale reason of the visit -> our reason code
+  const NC_REASON = { 1: 'R_BUYER_ABSENT', 3: 'R_BUYER_ABSENT', 2: 'R_CREDIT', 6: 'R_ENOUGH', 7: 'R_BUYER_NO' };
   const weighted = (r, list) => { const tot = list.reduce((a, x) => a + x[1], 0); let x = r() * tot; for (const [k, w] of list) { if ((x -= w) < 0) return k; } return list[0][0]; };
-  function drawReason(r, rec, vsr) {
+  const factor = (st, vsr) => (st.vanFactor && st.vanFactor[vsr]) || 1;
+  function drawReason(r, rec, vsr, st) {
     let list = REASONS;
-    // seeds: Imran hears "price" far more than others (cupcake boxes most), Rashid often skips reasons
-    if (vsr === 'V2') list = REASONS.map(([k, w]) => [k, k === 'R_PRICE' ? w * (FD.sku(rec.sku).group === 'GRP_CUPBOX' ? 16 : 7) : w]);
-    if (r() < (vsr === 'V5' ? 0.25 : 0.015)) return;
+    // seeds from the real data: the lowest-converting van hears "price" more; the next one often skips reasons
+    if (vsr === st.priceVan) list = REASONS.map(([k, w]) => [k, k === 'R_PRICE' ? w * (FD.sku(rec.sku).group === 'GRP_CUPBOX' ? 16 : 7) : w]);
+    if (r() < (vsr === st.skipVan ? 0.4 : 0.015)) return;
     rec.reason = weighted(r, list);
     if (rec.reason === 'R_COMPETITOR') rec.brand = weighted(r, BRANDS);
     if (rec.reason === 'R_OTHER') rec.comment = 'Owner travelling this week';
   }
+  // Past days: real visits and real order lines; recommendations taken up at the engine's priors are added as UPLIFT lines.
+  function simulatePast(st, d) {
+    FD.ensureDay(st, d);
+    const r = FD.rng(st.seed * 7919 + FD.daysBetween(FD.BASE_START, d));
+    const done = st.visits.filter(v => v.date === d && v.status === 'DONE' && !v.offPlan).sort((a, b) => a.vsr.localeCompare(b.vsr) || a.seq - b.seq);
+    for (const v of done) {
+      const recs = recsFor(st, d, v.store).filter(x => !x.blockedAt && x.outcome === null && x.vsr === v.vsr);
+      if (!recs.length) continue;
+      const lines = FD.realLines(d, v.vsr, v.store).map(l => ({ sku: l.sku, units: l.units }));
+      const known = knownSkus(st, v.store, d); const extra = [];
+      for (const rec of recs) {
+        rec.stage = 'VIEWED'; rec.viewedAt = v.arrivedAt;
+        if (!lines.length) continue;
+        if (r() < 0.10) { rec.outcome = 'NOT_OFFERED'; if (r() > 0.05) rec.reason = FD.pick(r, ['NF_FIT', 'NF_FIT', 'NF_TIME', 'NF_BUSY']); continue; }
+        if (lines.some(l => l.sku === rec.sku) || r() >= FD.PRIOR[rec.type] * factor(st, v.vsr)) continue;
+        const x = r(), q = rec.qty, s = FD.sku(rec.sku);
+        if (x < 0.6 || q < 2) extra.push({ sku: rec.sku, units: q });
+        else if (x < 0.85) extra.push({ sku: rec.sku, units: Math.max(1, Math.floor(q / 2)) });
+        else { const alt = [...s.sisters, s.bigger].filter(Boolean).find(c => !known.includes(c) && !lines.concat(extra).some(l => l.sku === c)); extra.push(alt ? { sku: alt, units: 1 } : { sku: rec.sku, units: q }); }
+      }
+      for (const l of extra) st.orders.push({ id: nextId(st, 'O'), store: v.store, vsr: v.vsr, date: d, sku: l.sku, units: l.units, value: +(l.units * FD.sku(l.sku).cost).toFixed(2), time: v.leftAt, src: 'UPLIFT' });
+      const graded = applyLines(st, v, lines.concat(extra), d, v.leftAt || '12:00', { push: false });
+      for (const rec of graded) {
+        if (rec.outcome === 'NOT_SOLD') { if (!lines.length && NC_REASON[v.nc]) rec.reason = NC_REASON[v.nc]; else drawReason(r, rec, v.vsr, st); }
+        if (FD.SOLD.includes(rec.outcome) && ++st.soldCount % 60 === 0) { rec.corrected = true; rec.prevOutcome = 'NOT_SOLD'; } // SalesBuzz edits an order now and then
+      }
+    }
+    for (const rec of st.recs) if (rec.date === d && rec.outcome === null && !rec.blockedAt) rec.outcome = 'CARRIED';
+    settlePending(st, d);
+  }
+  // Today: the real visits and orders of the day appear as the clock passes their time. A stop the salesman already closed in the app is left as is.
+  FD.applyRealUntil = function (st, time) {
+    const d = FD.TODAY; if (st.clock.date !== d) return;
+    FD.ensureDay(st, d); st.realApplied = st.realApplied || {};
+    for (const x of FD.realStops(d)) {
+      const k = x.van + '|' + x.store; if (st.realApplied[k] || x.start > time) continue;
+      st.realApplied[k] = true;
+      const route = (st.world.vsrs.find(v => v.id === x.van) || {}).route;
+      let v = st.visits.find(y => y.date === d && y.store === x.store && (y.route === route || (y.reassigned && y.reassigned.from === x.van)) && y.status !== 'SKIPPED');
+      if (v && v.status === 'DONE') continue;
+      if (!v) { v = { id: nextId(st, 'VI'), store: x.store, vsr: x.van, route, date: d, seq: Math.max(0, ...st.visits.filter(y => y.date === d && y.route === route).map(y => y.seq)) + 1, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false, offPlan: true }; st.visits.push(v); }
+      v.arrivedAt = v.arrivedAt || x.start; v.nc = x.nc; v.real = true;
+      gradeNotify(st, applyLines(st, v, FD.realLines(d, x.van, x.store), d, x.end), v);
+      v.leftAt = x.end;
+      for (const rt of FD.realReturns(d).filter(y => y.store === x.store && y.van === x.van)) st.returns.push({ id: nextId(st, 'RT'), store: rt.store, sku: rt.sku, date: d, saleDate: null, units: rt.units, value: rt.value, reason: rt.reason, vsr: rt.van });
+    }
+  };
+  function closeToday(st, d) {
+    FD.applyRealUntil(st, '23:59');
+    const visited = new Set(st.visits.filter(v => v.date === d && v.status === 'DONE').map(v => v.store));
+    for (const v of st.visits) if (v.date === d && v.status === 'PLANNED') v.status = visited.has(v.store) ? 'SKIPPED' : 'MISSED';
+    for (const rec of st.recs) if (rec.date === d && rec.outcome === null && !rec.blockedAt) rec.outcome = 'CARRIED';
+    settlePending(st, d);
+  }
   function simulateDay(st, d) {
+    if (d < FD.TODAY) return simulatePast(st, d);
+    if (d === FD.TODAY) { const c = st.clock; st.clock = { date: d, time: '23:59' }; closeToday(st, d); st.clock = c; return; }
     FD.ensureDay(st, d);
     const r = FD.rng(st.seed * 7919 + FD.daysBetween(FD.BASE_START, d));
     const todays = st.visits.filter(v => v.date === d && (v.status === 'PLANNED' || v.status === 'ARRIVED')).sort((a, b) => a.vsr.localeCompare(b.vsr) || a.seq - b.seq);
-    if (d >= '2026-11-02' && !st.watchSeeded) { st.watchSeeded = true; if (!st.watchlist.includes('3040421651')) { st.watchlist.push('3040421651'); st.watchMeta['3040421651'] = { since: d, review: FD.addDays(d, FD.WATCH_DAYS) }; } }
     for (const v of todays) {
       const store = storeById(st, v.store); const start = 8 * 60 + (v.seq - 1) * 55;
       if (st.pendingOrders[v.store] && (st.pendingOrders[v.store].date || d) === d) { const p = st.pendingOrders[v.store]; delete st.pendingOrders[v.store]; restoreWaiting(st, p); applyLines(st, st.visits.find(x => x.id === p.visitId) || v, p.lines, d, p.time); continue; }
@@ -174,7 +236,7 @@
       for (const rec of recs) {
         rec.stage = 'VIEWED'; rec.viewedAt = hhmm(start);
         if (r() < 0.10) { rec.outcome = 'NOT_OFFERED'; if (r() > 0.05) rec.reason = FD.pick(r, ['NF_FIT', 'NF_FIT', 'NF_TIME', 'NF_BUSY']); continue; }
-        const win = r() < FD.PRIOR[rec.type] * (VSR_FACTOR[vsr] || 1);
+        const win = r() < FD.PRIOR[rec.type] * factor(st, vsr);
         if (win) { const x = r(); rec._m = x < 0.6 ? 'FULL' : x < 0.85 ? 'PARTIAL' : 'ALT'; } else rec._m = 'NOT_SOLD';
         plannedLines.push(rec);
       }
@@ -193,20 +255,18 @@
       for (const tr of FD.openTemps(st, v.store, d, v.id)) if (r() < 0.35 && !lines.some(l => l.sku === tr.sku)) lines.push({ sku: tr.sku, units: tr.qty });
       if (r() < 0.03) { const cand = FD.SKUS.filter(s => !known.includes(s.code) && !lines.some(l => l.sku === s.code) && !recs.some(x => x.sku === s.code)); if (cand.length) lines.push({ sku: FD.pick(r, cand).code, units: 1 }); }
       // expiry returns on regular stock: Fruit Slice is the known problem SKU (watchlist), other cakes rarely
-      for (const l of lines) { const s = FD.sku(l.sku); const pr = l.sku === '3040421651' ? (st.watchlist.includes(l.sku) ? 0.12 : 0.35) : // ponytail: flat drop once watched (no upsell overstock), a real feed would show it
-           s.category === 'cake' ? 0.01 : 0;
+      for (const l of lines) { const s = FD.sku(l.sku); const pr = s.category === 'cake' ? 0.01 : 0;
         if (pr && r() < pr) st.returns.push({ id: nextId(st, 'RT'), store: v.store, sku: l.sku, date: FD.addDays(d, FD.int(r, 5, 12)), saleDate: d, units: 1, value: +s.cost.toFixed(2), expiry: true }); }
       v.leftAt = hhmm(start + 20);
       const graded = applyLines(st, v, lines, d, hhmm(start + 15));
       for (const rec of graded) {
-        if (rec.outcome === 'NOT_SOLD') drawReason(r, rec, vsr);
+        if (rec.outcome === 'NOT_SOLD') drawReason(r, rec, vsr, st);
         if (FD.SOLD.includes(rec.outcome)) {
           st.soldCount = (st.soldCount || 0) + 1;
           if (st.soldCount % 300 === 0) { rec.corrected = true; rec.prevOutcome = 'NOT_SOLD'; }
           const sku = rec.alt || rec.sku;
-          const fixedReturn = (v.store === 'ST-012' || v.store === 'ST-055') && rec.type === 'GAP' && !st.returns.some(x => x.store === v.store);
-          if (fixedReturn || (sku === '3040421651' && r() < 0.10))
-            st.returns.push({ id: nextId(st, 'RT'), store: v.store, sku, date: FD.addDays(d, fixedReturn ? 9 : 7), saleDate: d, units: rec.got || 1, value: +((rec.got || 1) * FD.sku(sku).cost).toFixed(2) });
+          if (st.watchlist.includes(sku) && r() < 0.10)
+            st.returns.push({ id: nextId(st, 'RT'), store: v.store, sku, date: FD.addDays(d, 7), saleDate: d, units: rec.got || 1, value: +((rec.got || 1) * FD.sku(sku).cost).toFixed(2) });
         }
       }
     }
@@ -231,42 +291,92 @@
   // ---------- fresh state ----------
   function fresh(seed) {
     const world = FD.buildWorld(seed);
-    const hist = FD.buildHistory(world, seed, FD.BASE_START, FD.addDays(FD.PILOT_START, -1));
-    const r = FD.rng(seed + 99);
-    const vanStock = {};
-    for (const v of world.vsrs) { vanStock[v.id] = {}; const zero = [FD.pick(r, FD.SKUS).code]; for (const s of FD.SKUS) vanStock[v.id][s.code] = zero.includes(s.code) ? 0 : FD.int(r, 6, 14); }
+    const hist = FD.buildHistory(world, seed, FD.BASE_START, FD.addDays(FD.TODAY, -1));
+    const r = FD.rng(seed + 99); const sales = world.vsrs.filter(v => v.kind === 'sales');
+    // van stock from HH_CarStore when available, falling back to each van's weekly store mix with one stocked-out product
+    const vanStock = {}; const realVS = (FD.REAL && FD.REAL.vanStock) || {};
+    for (const v of world.vsrs) { vanStock[v.id] = {}; const mine = world.stores.filter(s => s.vsr === v.id); const rv = realVS[v.id] || {};
+      const recSkus = FD.SKUS.filter(k => FD.recommendable(k.code)); const realZeros = recSkus.filter(k => rv[k.code] === 0);
+      const zero = (realZeros.length ? realZeros[0] : FD.pick(r, recSkus)).code;
+      for (const k of FD.SKUS) { const wk = mine.reduce((a, s) => a + (s.carry[k.code] || 0), 0); const realQty = rv[k.code];
+        vanStock[v.id][k.code] = k.code === zero ? 0 : (realQty > 0 ? realQty : Math.max(FD.int(r, 4, 10), Math.round(wk / 4))); } }
+    // conversion factor per van from its real order rate (orders per visit), 0.8-1.2
+    const rate = {}; for (const v of sales) { const vis = hist.visits.filter(x => x.vsr === v.id && x.status === 'DONE').length; const ord = new Set(hist.orders.filter(o => o.vsr === v.id).map(o => o.store + o.date)).size; rate[v.id] = vis ? ord / vis : 0; }
+    const avg = Object.values(rate).reduce((a, b) => a + b, 0) / Math.max(1, sales.length);
+    const vanFactor = {}; for (const v of sales) vanFactor[v.id] = Math.max(0.8, Math.min(1.2, avg ? rate[v.id] / avg : 1));
+    // seeded behaviours go to the vans with the most real visits (enough outcomes for the patterns to show)
+    const doneN = {}; for (const x of hist.visits) if (x.status === 'DONE') doneN[x.vsr] = (doneN[x.vsr] || 0) + 1;
+    const byRate = sales.slice().sort((a, b) => (doneN[b.id] || 0) - (doneN[a.id] || 0));
     const mustStock = FD.computeMustStock(world, hist.orders, null);
+    // watchlist seed: the cake with the highest real return rate
+    const sold = {}, ret = {}; for (const o of hist.orders) sold[o.sku] = (sold[o.sku] || 0) + o.units; for (const x of hist.returns) ret[x.sku] = (ret[x.sku] || 0) + x.units;
+    const watch = FD.SKUS.filter(k => k.category === 'cake' && (sold[k.code] || 0) > 50).sort((a, b) => (ret[b.code] || 0) / sold[b.code] - (ret[a.code] || 0) / sold[a.code])[0];
+    const planned = {}; for (let d = FD.BASE_START; d < FD.PILOT_START; d = FD.addDays(d, 1)) planned[d] = true;
     const st = {
-      v: 1, dv: 0, seed, clock: { date: FD.PILOT_START, time: '07:00' }, lang: 'en', digits: 'arab', role: 'sup', vsrId: 'V1', textSize: 'normal', theme: 'auto',
+      v: 1, dv: 0, seed, clock: { date: FD.PILOT_START, time: '07:00' }, lang: 'en', digits: 'arab', role: 'sup', vsrId: (sales.find(v => v.id === 'V06') || sales[0]).id, textSize: 'normal', theme: 'auto',
       world, orders: hist.orders, returns: hist.returns, visits: hist.visits, recs: [], misses: [], threads: [], tips: [], notifs: [], corrections: [],
-      rules: { lapsedDays: 21, cooldownDays: 14, maturityDays: 28, maxPerStore: 3, firstFillMax: 1, vanFeed: true, mustStock },
-      blocks: [], pins: [], watchlist: [], watchMeta: {}, watchHistory: [], reasonEdit: { custom: {}, hidden: [], names: {} }, vanStock, cooldownOverrides: [], covers: [{ date: '2026-11-02', route: 'R1', vsr: 'V4' }],
+      rules: { lapsedDays: 14, cooldownDays: 14, maturityDays: 28, maxPerStore: 3, firstFillMax: 1, vanFeed: true, mustStock },
+      blocks: [], pins: [], watchlist: watch ? [watch.code] : [], watchMeta: watch ? { [watch.code]: { since: FD.PILOT_START, review: FD.addDays(FD.PILOT_START, FD.WATCH_DAYS) } } : {}, watchHistory: [],
+      reasonEdit: { custom: {}, hidden: [], names: {} }, vanStock, vanFactor, priceVan: byRate[0] && byRate[0].id, skipVan: byRate[1] && byRate[1].id, cooldownOverrides: [], covers: [],
       followupDone: {}, followupSnooze: {}, tipDone: {}, tourSeen: { sup: false, vsr: false }, dayConfirmed: {}, offline: false, queue: [], log: [], audit: [],
-      planned: {}, pendingOrders: {}, fuHistory: [], revisitQueue: [], planChanges: [], routeAssign: [], sbPending: [], photos: [], delaySync: false, notifSent: {}, seq: 0, simulatedThrough: null, lastOrder: null, keys: {}, soldCount: 0, watchSeeded: false
+      planned, pendingOrders: {}, fuHistory: [], revisitQueue: [], planChanges: [], routeAssign: [], sbPending: [], photos: [], delaySync: false, notifSent: {}, seq: 0, simulatedThrough: null, lastOrder: null, keys: {}, soldCount: 0,
+      realApplied: {}, released: {}, vanClosed: {}, dayClosed: {}, preorders: [], freqChanges: [], ownerMsgs: [],
+      planogram: { assessments: [], observations: [], columnPrefs: {}, deferred: {} }
     };
     FD.simulatePilot(st, FD.PILOT_START, FD.addDays(FD.TODAY, -1));
     st.clock = { date: FD.TODAY, time: '07:00' };
-    FD.refreshMaturity(st); // statuses first, so today's plan is built on current first-fill gates
+    FD.refreshMaturity(st);
     FD.ensureDay(st, FD.TODAY);
     seedExtras(st);
     return st;
   }
+  // seeded text that a store owner or supervisor would really write, in the language the viewer reads
+  FD.txtOf = v => (v && typeof v === 'object' ? (v[FD.lang] || v.en) : v);
+  const E2 = (en, ar) => ({ en, ar });
+  function seedOwnerChats(st) {
+    const y = FD.addDays(FD.TODAY, -1), y2 = FD.addDays(FD.TODAY, -2);
+    const withOrders = st.world.stores.filter(s => FD.salesVan(st, s.vsr) && st.orders.some(o => o.store === s.id && o.date < FD.TODAY));
+    const promo = (st.world.promos || []).find(p => p.start <= FD.TODAY && p.end >= FD.TODAY);
+    const [a, b, c] = [withOrders[3], withOrders[11], withOrders[24]];
+    if (a && promo) { R.OWNER_MSG_SEND(st, { store: a.id, kind: 'PROMO', ref: promo.id, at: { date: y2, time: '10:05' } });
+      R.OWNER_MSG_IN(st, { store: a.id, kind: 'PHOTO', photo: FD.PHOTOS ? FD.PHOTOS[7] : null, text: E2('This is my shelf now. Good, send 3 cartons with the next visit please.', 'هذا الرف الآن. تمام، أرسلوا ٣ كراتين مع الزيارة القادمة لو سمحتم.'), at: { date: y2, time: '11:40' } }); }
+    if (b) { R.OWNER_MSG_IN(st, { store: b.id, kind: 'PHOTO', photo: FD.PHOTOS ? FD.PHOTOS[2] : null, text: E2('Cake shelf is almost empty.', 'رف الكيك شبه فاضي.'), at: { date: y, time: '18:20' } });
+      R.OWNER_MSG_SEND(st, { store: b.id, kind: 'TEXT', text: E2('Thank you. Our salesman will bring cake bars tomorrow.', 'شكرًا لك. مندوبنا سيحضر كيك بار غدًا.'), at: { date: y, time: '18:42' } }); }
+    if (c) { R.OWNER_MSG_SEND(st, { store: c.id, kind: 'INVOICE', at: { date: y, time: '19:05' } });
+      R.OWNER_MSG_IN(st, { store: c.id, text: E2('Received, thanks.', 'وصلت، شكرًا.'), at: { date: y, time: '19:30' } });
+      R.OWNER_MSG_IN(st, { store: c.id, kind: 'PHOTO', photo: FD.PHOTOS ? FD.PHOTOS[12] : null, text: E2('New stock is on the shelf.', 'البضاعة الجديدة على الرف.'), at: { date: y, time: '19:34' } }); }
+    // three pre-orders that came in this morning from stores on today's plan
+    const planned = [...new Set(st.visits.filter(v => v.date === FD.TODAY && v.status === 'PLANNED' && FD.salesVan(st, v.vsr)).map(v => v.store))];
+    const notes = [E2('Please bring 2 cartons of rolls today.', 'لو سمحت أحضر كرتونين رولات اليوم.'), E2('Need cake bars, shelf is empty.', 'نحتاج كيك بار، الرف فاضي.'), E2('Add 1 carton of slice cake to my order.', 'أضف كرتون كيك شرائح لطلبي.')];
+    const later = st.world.stores.find(x => !planned.includes(x.id) && FD.salesVan(st, x.vsr) && !st.visits.some(v => v.store === x.id && v.date === FD.TODAY) && st.orders.some(o => o.store === x.id));
+    [planned[5], planned[17], later ? later.id : planned[40]].filter(Boolean).forEach((sid, i) => R.PREORDER_ADD(st, { store: sid, text: notes[i], photo: i === 1 && FD.PHOTOS ? FD.PHOTOS[4] : null, at: { date: FD.TODAY, time: ['06:12', '06:35', '06:51'][i] } }));
+  }
   function seedExtras(st) {
-    const y = FD.addDays(FD.TODAY, -1);
-    if (FD.PHOTOS) FD.PHOTOS.forEach((src, i) => { const s = st.world.stores[(i * 7 + 3) % st.world.stores.length]; const v = st.visits.filter(x => x.store === s.id && x.status === 'DONE' && x.date < FD.TODAY).slice(-1 - (i % 3))[0];
-      if (v) st.photos.push({ id: 'PH' + (i + 1), store: s.id, vsr: v.vsr, date: v.date, time: v.leftAt || '12:00', src, seeded: true }); });
-    // a couple of stores get several photos on different visits (timeline)
-    if (FD.PHOTOS) [0, 1, 2, 3].forEach(i => { const s = st.world.stores[3]; const v = st.visits.filter(x => x.store === s.id && x.status === 'DONE' && x.date < FD.TODAY).slice(-1 - i)[0]; if (v) st.photos.push({ id: 'PHx' + i, store: s.id, vsr: v.vsr, date: v.date, time: v.leftAt || '12:00', src: FD.PHOTOS[(i + 5) % FD.PHOTOS.length], seeded: true }); });
+    seedOwnerChats(st);
+    const y = FD.addDays(FD.TODAY, -1); const sales = st.world.vsrs.filter(v => v.kind === 'sales');
+    const doneStores = [...new Set(st.visits.filter(x => x.status === 'DONE' && x.date < FD.TODAY && FD.salesVan(st, x.vsr)).map(x => x.store))];
+    // shelf photos: every store on today's plan and every third visited store has 1-3 photos from its last visits
+    if (FD.PHOTOS) { const P = FD.PHOTOS; let n = 0;
+      const todayStores = new Set(st.visits.filter(x => x.date === FD.TODAY).map(x => x.store));
+      const lastDone = {}; for (const x of st.visits) if (x.status === 'DONE' && x.date < FD.TODAY) (lastDone[x.store] = lastDone[x.store] || []).push(x);
+      st.world.stores.forEach((so, i) => { const vs = (lastDone[so.id] || []).slice(-2);
+        if (!vs.length) vs.push({ vsr: so.vsr, date: FD.addDays(FD.TODAY, -3 - (i % 9)), leftAt: '11:30' });
+        vs.forEach((v, j) => { for (let k = 0; k < (j === vs.length - 1 ? 1 + (i % 2) : 1); k++) { n++; const ref = (i * 7 + j * 3 + k) % P.length; st.photos.push({ id: 'PH' + n, store: so.id, vsr: v.vsr, date: v.date, time: v.leftAt || '12:00', src: P[ref], ref, seeded: true }); } }); });
+      // a reason with a photo is how the salesman proves a full shelf or a competitor on display
+      st.recs.filter(r => ['R_NO_SHELF', 'R_COMPETITOR', 'R_ENOUGH'].includes(r.reason)).forEach((r, i) => { if (i % 4 === 0) r.photo = P[(i * 5) % P.length]; });  if (FD.scSeed) FD.scSeed(st); if (FD.compSeed) FD.compSeed(st); }
     const at = { date: y, time: '16:40' };
-    const pr = st.recs.filter(r => r.vsr === 'V2' && r.reason === 'R_PRICE' && FD.sku(r.sku).group === 'GRP_CUPBOX').pop();
-    if (pr) { postMsg(st, { type: 'rec', id: pr.id }, 'V2', { text: 'Owner says the 18 box is too much. He sells singles only.', at });
+    const pv = st.priceVan; const pr = st.recs.filter(r => r.vsr === pv && r.reason === 'R_PRICE').pop();
+    if (pr) { postMsg(st, { type: 'rec', id: pr.id }, pv, { text: 'Owner says the carton is too much. He wants a few packs only.', at });
       postMsg(st, { type: 'rec', id: pr.id }, 'SUP', { text: FD.CATALOG.QR_ONEBOX.en, qr: 'QR_ONEBOX', at: { date: y, time: '18:05' } });
-      const th = st.threads.find(x => x.anchor.id === 'V2'); th.unreadSup = false; th.seenSup = y + ' 18:05'; }
-    const v5store = st.world.stores.find(s => s.vsr === 'V5');
-    postMsg(st, { type: 'store', id: v5store.id }, 'V5', { text: 'Two expired cake boxes to pick up here.', topic: 'R_T_RETURN', at: { date: y, time: '13:20' } });
-    st.tips.push({ id: nextId(st, 'TP'), vsr: 'V3', tpl: 'K_GOOD', slots: { pct: 12 }, status: 'SENT', sentAt: { date: FD.addDays(FD.TODAY, -6), time: '09:00' }, read: true, text: null });
-    const v3store = st.world.stores.find(s => s.vsr === 'V3' && !s.tags.includes('TAG_SCHOOL'));
-    st.corrections.push({ id: nextId(st, 'CR'), vsr: 'V3', store: v3store.id, kind: 'CORR_TAG', comment: 'There is a girls school opposite now.', status: 'PENDING', at });
+      const th = st.threads.find(x => x.anchor.id === pv); if (th) { th.unreadSup = false; th.seenSup = y + ' 18:05'; } }
+    const sv = st.skipVan; const sstore = st.world.stores.find(s => s.vsr === sv);
+    // the reason-skipping van always shows the pattern: its 4 latest "not sold" have no reason yet
+    st.recs.filter(r => r.vsr === sv && r.outcome === 'NOT_SOLD' && r.date < FD.TODAY && r.reason).slice(-4).forEach(r => { r.reason = null; r.brand = null; r.comment = null; });
+    if (sstore) postMsg(st, { type: 'store', id: sstore.id }, sv, { text: 'Two expired cake packs to pick up here.', topic: 'R_T_RETURN', at: { date: y, time: '13:20' } });
+    const good = sales[sales.length - 1];
+    st.tips.push({ id: nextId(st, 'TP'), vsr: good.id, tpl: 'K_GOOD', slots: { pct: 12 }, status: 'SENT', sentAt: { date: FD.addDays(FD.TODAY, -6), time: '09:00' }, read: true, text: null });
+    const gstore = st.world.stores.find(s => s.vsr === good.id && !s.tags.includes('TAG_SCHOOL'));
+    if (gstore) st.corrections.push({ id: nextId(st, 'CR'), vsr: good.id, store: gstore.id, kind: 'CORR_TAG', comment: 'There is a girls school opposite now.', status: 'PENDING', at });
     for (const r of st.recs.filter(r => r.date === y)) {
       const target = { screen: 'store', store: r.store, rec: r.id };
       if (FD.SOLD.includes(r.outcome)) st.notifs.push({ id: nextId(st, 'N'), vsr: r.vsr, tpl: 'N_SOLD', slots: { skuCode: r.alt || r.sku, storeId: r.store }, target, at: { date: y, time: r.gradedAt || '12:00' }, read: true });
@@ -276,6 +386,7 @@
 
   // ---------- reducers ----------
   const R = {};
+  FD.registerReducer = (type, fn) => { if (R[type]) throw new Error('Reducer already registered: ' + type); if (typeof fn !== 'function') throw new Error('Reducer must be a function'); R[type] = fn; };
   const rec = (st, id) => st.recs.find(r => r.id === id);
   const visitOf = (st, store, date, id, prefer) => {
     if (id) { const v = st.visits.find(x => x.id === id); if (v) return v; }
@@ -307,8 +418,8 @@
       if (from <= FD.addDays(target, -1)) FD.simulatePilot(st, from, FD.addDays(target, -1));
     }
     st.clock = { date: target, time: p.time || st.clock.time };
-    FD.refreshMaturity(st);
     FD.ensureDay(st, target);
+    if (target === FD.TODAY) FD.applyRealUntil(st, st.clock.time);
     FD.refreshMaturity(st);
     if (st.clock.time >= '19:00') for (const v of st.world.vsrs) {
       const n = st.recs.filter(r => r.date === target && FD.recVsr(r) === v.id && (r.outcome === 'NOT_SOLD' || r.outcome === 'NOT_OFFERED') && !r.reason && !r.exempted).length;
@@ -317,10 +428,13 @@
     }
     if (st.clock.time >= '21:30') settlePending(st, target);
   };
+  R.SYNC_NEXT = st => { const h = parseInt(st.clock.time, 10) + 1; R.CLOCK_SET(st, { date: st.clock.date, time: h > 23 ? '23:59' : String(h).padStart(2, '0') + ':00' }); };
   R.DAY_CONFIRM = (st, p) => { st.dayConfirmed[p.vsr + '|' + (p.date || st.clock.date)] = true; };
   R.DAY_UNCONFIRM = (st, p) => { delete st.dayConfirmed[p.vsr + '|' + (p.date || st.clock.date)]; };
   R.REC_UNTICK = (st, p) => { const r = rec(st, p.recId); r.outcome = 'NOT_OFFERED'; r.untickedAt = st.clock.time; r.reason = p.reason || null; r.comment = p.comment || null; };
   R.REC_RETICK = (st, p) => { const r = rec(st, p.recId); r.outcome = null; r.untickedAt = null; r.reason = null; r.comment = null; };
+  // the salesman asked the owner for more shelf space for this product: GOT or NO (null clears it)
+  R.SHELF_ASK = (st, p) => { const r = rec(st, p.recId); r.shelfAsk = p.result || null; r.shelfAskAt = p.result ? now(st) : null; };
   R.REC_VIEW = (st, p) => { const r = rec(st, p.recId); if (r.stage === 'SENT') { r.stage = 'VIEWED'; r.viewedAt = st.clock.time; } };
   R.REC_QTY = (st, p) => { rec(st, p.recId).qtyModified = p.qty; };
   R.REC_NOT_OFFERED = (st, p) => { const r = rec(st, p.recId); r.outcome = 'NOT_OFFERED'; if (p.reason) R.REASON_SAVE(st, p); };
@@ -342,6 +456,9 @@
   R.DEPART = (st, p) => { const v = visitOf(st, p.store, st.clock.date, p.visitId); if (v) { v.status = 'DONE'; v.leftAt = st.clock.time; } };
   R.STOP_SKIP = (st, p) => { const v = visitOf(st, p.store, st.clock.date, p.visitId); if (!v) return; v.status = 'SKIPPED'; v.skipReason = p.reason; v.skipComment = p.comment || null; };
   R.STOP_UNSKIP = (st, p) => { const v = visitOf(st, p.store, st.clock.date, p.visitId, 'SKIPPED'); if (!v) return; v.status = 'PLANNED'; v.skipReason = null; };
+  // supervisor reorders today's plan: two stops swap places
+  R.STOP_SWAP = (st, p) => { const a = st.visits.find(v => v.id === p.a), b = st.visits.find(v => v.id === p.b); if (!a || !b) return; [a.seq, b.seq] = [b.seq, a.seq]; if (a.seq === b.seq) b.seq += 0.5; };
+  R.STOP_ORDER = (st, p) => { const vs = p.ids.map(id => st.visits.find(v => v.id === id)).filter(v => v && v.status === 'PLANNED'); const seqs = vs.map(v => v.seq).sort((a, b) => a - b); vs.forEach((v, i) => { v.seq = seqs[i]; }); };
   R.STOP_MOVE = (st, p) => {
     const v = visitOf(st, p.store, st.clock.date, p.visitId); if (!v) return;
     const max = Math.max(...st.visits.filter(x => x.date === v.date && x.route === v.route).map(x => x.seq));
@@ -467,27 +584,31 @@
     st.recs.push(r); FD.invalidate(st); planNote(st, FD.recVsr(r), p.store); };
   R.SUP_REC_REMOVE = (st, p) => { const r = openRec(st, p.recId); if (!r) return; r.blockedAt = now(st); r.supRemoved = true; FD.invalidate(st); notify(st, FD.recVsr(r), 'N_REMOVED', { skuCode: r.sku, storeId: r.store }, { screen: 'store', store: r.store }); };
   R.SUP_REC_RESTORE = (st, p) => { const r = rec(st, p.recId); if (!r || !r.supRemoved || r.date !== st.clock.date) return; if (recsFor(st, r.date, r.store).some(x => x.id !== r.id && x.sku === r.sku && !x.blockedAt)) return; r.blockedAt = null; r.supRemoved = false; FD.invalidate(st); planNote(st, FD.recVsr(r), r.store); };
-  R.SUP_STOP_REMOVE = (st, p) => { const v = st.visits.find(x => x.date === st.clock.date && x.store === p.store && x.status === 'PLANNED'); if (!v) return;
+  R.SUP_STOP_REMOVE = (st, p) => { const v = st.visits.find(x => x.date === (p.date || st.clock.date) && x.store === p.store && x.status === 'PLANNED'); if (!v) return;
     v.status = 'SKIPPED'; v.skipReason = 'SK_SUP'; v.bySup = true; st.planChanges.push({ vsr: v.vsr, store: v.store, date: v.date, reason: 'SK_SUP', at: now(st), bySup: true }); planNote(st, v.vsr, v.store); };
-  R.SUP_STOP_RESTORE = (st, p) => { const v = st.visits.find(x => x.date === st.clock.date && x.store === p.store && x.status === 'SKIPPED' && x.bySup); if (!v) return; if (st.visits.some(x => x !== v && x.date === v.date && x.store === v.store && (x.status === 'PLANNED' || x.status === 'ARRIVED'))) return; v.status = 'PLANNED'; v.skipReason = null; v.bySup = false; planNote(st, v.vsr, v.store); };
+  R.SUP_STOP_RESTORE = (st, p) => { const v = st.visits.find(x => x.date === (p.date || st.clock.date) && x.store === p.store && x.status === 'SKIPPED' && x.bySup); if (!v) return; if (st.visits.some(x => x !== v && x.date === v.date && x.store === v.store && (x.status === 'PLANNED' || x.status === 'ARRIVED'))) return; v.status = 'PLANNED'; v.skipReason = null; v.bySup = false; planNote(st, v.vsr, v.store); };
+  // undo a supervisor-added stop that has not been visited: the plan goes back to how it was
+  R.SUP_STOP_UNADD = (st, p) => { const d = p.date || st.clock.date; const i = st.visits.findIndex(v => v.date === d && v.store === p.store && v.supAdded && v.status === 'PLANNED'); if (i < 0) return;
+    const v = st.visits[i]; st.visits.splice(i, 1); st.recs = st.recs.filter(r => !(r.store === p.store && r.date === d && r.outcome == null && r.stage === 'SENT'));
+    const c = st.planChanges.findIndex(x => x.store === p.store && x.date === d && x.reason === 'SK_SUP_ADDED'); if (c >= 0) st.planChanges.splice(c, 1); planNote(st, v.vsr, v.store); };
   R.OFFPLAN_ADD = (st, p) => {
-    const d = st.clock.date; if (!FD.isSellingDay(d)) return; FD.ensureDay(st, d);
+    const d = p.date || st.clock.date; if (!FD.isSellingDay(d)) return; FD.ensureDay(st, d);
     if (st.visits.some(v => v.date === d && v.store === p.store && (v.status === 'PLANNED' || v.status === 'ARRIVED'))) return;
-    const removed = st.visits.find(v => v.date === d && v.store === p.store && v.status === 'SKIPPED' && v.bySup); if (removed) return R.SUP_STOP_RESTORE(st, { store: p.store });
+    const removed = st.visits.find(v => v.date === d && v.store === p.store && v.status === 'SKIPPED' && v.bySup); if (removed) return R.SUP_STOP_RESTORE(st, { store: p.store, date: d });
     const s = storeById(st, p.store); const route = st.world.routes.find(r => FD.routeOwner(st, r.id, d) === p.vsr) || st.world.routes.find(r => r.id === s.route);
     const seq = Math.max(0, ...st.visits.filter(v => v.date === d && v.route === route.id).map(v => v.seq)) + 1;
-    st.visits.push({ id: nextId(st, 'VI'), store: s.id, vsr: p.vsr, route: route.id, date: d, seq, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false, offPlan: true });
+    st.visits.push({ id: nextId(st, 'VI'), store: s.id, vsr: p.vsr, route: route.id, date: d, seq, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false, offPlan: !p.bySup, supAdded: !!p.bySup }); // a stop the supervisor adds is part of the plan
     if (!recsFor(st, d, s.id).length) genRecs(st, s, d, p.vsr, FD.openTemps(st, s.id, d).map(r => r.sku));
     { const c = coverFor(st, d, route.id); if (c) recsFor(st, d, s.id).forEach(r => { r.coveredBy = c.vsr; }); }
     st.planChanges.push({ vsr: p.vsr, store: s.id, date: d, reason: p.bySup ? 'SK_SUP_ADDED' : 'SK_OFFPLAN', at: now(st), bySup: !!p.bySup });
     if (p.bySup) planNote(st, p.vsr, s.id);
   };
-  R.STORE_ASSIGN = REGEN((st, p) => {
+  R.STORE_ASSIGN = (st, p) => {
     const s = storeById(st, p.store); const to = st.world.vsrs.find(v => v.id === p.vsr);
     const route = st.world.routes.find(r => FD.routeOwner(st, r.id, FD.addDays(st.clock.date, 1)) === to.id) || st.world.routes.find(r => r.id === to.route);
-    s.vsr = to.id; s.route = route.id; FD.invalidate(st); // plans already made (today) keep their stops; new days use the new owner
+    s.vsr = to.id; s.route = route.id; s.movedFrom = FD.addDays(st.clock.date, 1); FD.invalidate(st); // plans already made (today) keep their stops; new days use the new owner
     st.sbPending = st.sbPending.filter(x => x.store !== s.id); st.sbPending.push({ kind: 'store', store: s.id, vsr: to.id, at: now(st) }); audit(st, 'AU_ASSIGN', { storeId: s.id, vsrId: to.id });
-  });
+  };
   R.ROUTE_ASSIGN = (st, p) => {
     let from = FD.addDays(st.clock.date, 1); if (st.simulatedThrough && from <= st.simulatedThrough) from = FD.addDays(st.simulatedThrough, 1);
     const prev = FD.routeOwner(st, p.route, from);
@@ -497,6 +618,9 @@
     for (const s of st.world.stores) s.vsr = FD.routeOwner(st, s.route, from) || s.vsr;
     st.sbPending.push({ kind: 'route', route: p.route, vsr: p.vsr, at: now(st) }); audit(st, 'AU_ASSIGN', { vsrId: p.vsr });
   };
+  R.ALERT_RESOLVE = (st, p) => { st.alertDone = st.alertDone || {}; for (const k of p.keys) { if (p.undo) delete st.alertDone[k]; else st.alertDone[k] = p.how || 'RESOLVED'; } };
+  R.LIVE_SET = (st, p) => { st.rules.liveNotifs = !!p.on; };
+  R.LIVEDATA_SET = (st, p) => { st.rules.liveData = !!p.on; audit(st, 'AU_DATA_MODE', {}); };
   R.VANFEED_SET = REGEN((st, p) => { st.rules.vanFeed = !!p.on; audit(st, 'AU_VANFEED', {}); });
   R.STORE_EDIT = REGEN((st, p) => { Object.assign(storeById(st, p.store), p.patch); FD.invalidate(st); audit(st, 'AU_STORE', { storeId: p.store }); });
   R.CORRECTION_ADD = (st, p) => { st.corrections.push({ id: nextId(st, 'CR'), vsr: p.vsr, store: p.store, kind: p.kind, comment: p.comment || '', status: 'PENDING', at: now(st) }); };
@@ -563,8 +687,59 @@
     st.recs.filter(r => r.date === date && vr.get(r.store) === p.route).forEach(r => { r.coveredBy = p.vsr || null; });
   };
 
+  // ---------- control room (R7): release, close, move stops, pre-orders ----------
+  const nextSellingDay = iso => { let d = FD.addDays(iso, 1); while (!FD.isSellingDay(d)) d = FD.addDays(d, 1); return d; };
+  // the store's next planned visit day within a week, from `from` (inclusive); null when none
+  const nextPlanned = (st, store, from) => { const s = storeById(st, store); for (let i = 0; i < 7; i++) { const x = FD.addDays(from, i); if (FD.isSellingDay(x) && (FD.realPlan(x).some(q => q.store === store) || (!FD.realPlan(x).length && s.days.includes(FD.dow(x))))) return x; } return null; };
+  R.VAN_RELEASE = (st, p) => { const d = p.date || st.clock.date; const k = p.van + '|' + d; if (st.released[k]) return; st.released[k] = now(st); notify(st, p.van, 'N_RELEASED', {}, { screen: 'today' }); audit(st, 'AU_RELEASE', { vsrId: p.van }); };
+  R.VAN_RELEASE_ALL = (st, p) => { const d = p.date || st.clock.date; for (const v of st.world.vsrs) if ((!p.vans || p.vans.includes(v.id)) && FD.stageFor(st, v.id, d) === 'PLAN_READY') R.VAN_RELEASE(st, { van: v.id, date: d }); };
+  R.VAN_CLOSE = (st, p) => { const d = p.date || st.clock.date; st.vanClosed[p.van + '|' + d] = now(st); audit(st, 'AU_CLOSE_VAN', { vsrId: p.van }); };
+  R.VAN_REOPEN = (st, p) => { delete st.vanClosed[p.van + '|' + (p.date || st.clock.date)]; };
+  R.DAY_CLOSE = (st, p) => {
+    const d = p.date || st.clock.date; if (st.dayClosed[d]) return; st.dayClosed[d] = now(st);
+    const next = nextSellingDay(d);
+    for (const x of st.preorders) {
+      if (x.status === 'DONE' || (x.forDate && x.forDate > d)) continue;
+      if (x.forDate && st.visits.some(v => v.date === x.forDate && v.store === x.store && v.status === 'DONE')) { x.status = 'DONE'; continue; } // delivered on that visit
+      x.forDate = nextPlanned(st, x.store, next);
+    }
+    audit(st, 'AU_CLOSE_DAY', {});
+  };
+  // supervisor moves one of today's stops to another van (not the same as STOP_MOVE, which reorders within a route)
+  R.STOP_REASSIGN = (st, p) => {
+    const v = st.visits.find(x => x.id === p.visitId); const to = st.world.vsrs.find(x => x.id === p.toVan); if (!v || !to || v.status !== 'PLANNED' || to.kind === 'inactive') return;
+    if (st.visits.some(x => x !== v && x.date === v.date && x.store === v.store && x.vsr === to.id && x.status !== 'SKIPPED')) return; // already on that van's plan
+    const from = v.vsr; v.vsr = to.id; v.route = to.route; v.seq = Math.max(0, ...st.visits.filter(x => x.date === v.date && x.route === to.route).map(x => x.seq)) + 1; v.reassigned = { from, at: now(st) };
+    st.recs.filter(r => r.date === v.date && r.store === v.store && r.vsr === from && r.outcome === null).forEach(r => { r.vsr = to.id; r.coveredBy = null; });
+    FD.invalidate(st);
+    st.planChanges.push({ vsr: to.id, store: v.store, date: v.date, reason: 'SK_SUP_ADDED', at: now(st), bySup: true });
+    planNote(st, to.id, v.store); notify(st, from, 'N_REMOVED_STOP', { storeId: v.store }, { screen: 'today' });
+  };
+  R.LOAD_CONFIRM = (st, p) => R.DAY_CONFIRM(st, p);
+  // store owner WhatsApp: the supervisor sends a promotion, an invoice copy or a note; owners send pre-orders, shelf photos and notes
+  const OWNER_OUT = ['PROMO', 'INVOICE', 'TEXT'];
+  const lastInvoice = (st, store) => { const os = st.orders.filter(o => o.store === store && o.units > 0 && o.date <= st.clock.date); if (!os.length) return null;
+    const d = os.reduce((m, o) => (o.date > m ? o.date : m), os[0].date); return { date: d, amount: +os.filter(o => o.date === d).reduce((a, o) => a + o.value, 0).toFixed(2) }; };
+  FD.lastInvoice = lastInvoice;
+  FD.ownerThread = (st, store) => (st.ownerMsgs || []).filter(m => m.store === store);
+  R.OWNER_MSG_SEND = (st, p) => {
+    if (!OWNER_OUT.includes(p.kind)) throw new Error('Not an outbound store message: ' + p.kind);
+    const m = { id: nextId(st, 'WM'), store: p.store, by: 'SUP', kind: p.kind, at: p.at || now(st), text: p.text || null, promo: p.kind === 'PROMO' ? p.ref : null };
+    if (p.kind === 'INVOICE') { const inv = lastInvoice(st, p.store); if (!inv) return; Object.assign(m, inv); }
+    (st.ownerMsgs = st.ownerMsgs || []).push(m);
+  };
+  R.OWNER_MSG_IN = (st, p) => { (st.ownerMsgs = st.ownerMsgs || []).push({ id: nextId(st, 'WM'), store: p.store, by: 'OWNER', kind: p.kind || 'TEXT', at: p.at || now(st), text: p.text || null, photo: p.photo || null }); };
+  R.PREORDER_ADD = (st, p) => {
+    const d = st.clock.date; const vis = st.visits.find(v => v.date === d && v.store === p.store && (v.status === 'PLANNED' || v.status === 'ARRIVED'));
+    const forDate = vis ? d : nextPlanned(st, p.store, FD.addDays(d, 1));
+    st.preorders.push({ id: nextId(st, 'PO'), store: p.store, text: p.text || '', photo: p.photo || null, at: p.at || now(st), status: 'NEW', forDate, via: 'WHATSAPP' });
+    R.OWNER_MSG_IN(st, { store: p.store, kind: 'PREORDER', text: p.text || '', photo: p.photo || null, at: p.at });
+  };
+  R.PREORDER_STATUS = (st, p) => { const x = st.preorders.find(q => q.id === p.id); if (x) { x.status = p.status; if (p.forDate) x.forDate = p.forDate; } };
+  R.FREQ_ACCEPT = (st, p) => { st.freqChanges.push({ store: p.store, freq: p.freq, at: now(st) }); st.sbPending.push({ kind: 'freq', store: p.store, freq: p.freq, at: now(st) }); audit(st, 'AU_FREQ', { storeId: p.store }); };
+
   // ---------- dispatch, persistence, sync ----------
-  const QUEUEABLE = ['REASON_SAVE', 'REC_NOT_OFFERED', 'REC_QTY', 'MSG_SEND', 'STOP_SKIP', 'STOP_MOVE', 'DAY_CONFIRM', 'REC_UNTICK', 'REC_RETICK', 'CORRECTION_ADD'];
+  const QUEUEABLE = ['LOAD_CONFIRM', 'REASON_SAVE', 'REC_NOT_OFFERED', 'REC_QTY', 'MSG_SEND', 'STOP_SKIP', 'STOP_MOVE', 'DAY_CONFIRM', 'REC_UNTICK', 'REC_RETICK', 'CORRECTION_ADD'];
   const LOCAL = ['SET_LANG', 'SET_ROLE', 'SET_VSR', 'SET_DIGITS', 'SET_TEXT_SIZE', 'SET_THEME', 'TOUR_SEEN', 'TOUR_RESET'];
   function apply(st, type, payload, ev) {
     if (st.offline && QUEUEABLE.includes(type) && !payload._remote) { st.queue.push(ev); ev.queued = true; }
@@ -585,9 +760,24 @@
   };
   FD.pending = key => FD.state.queue.some(e => e.payload && (e.payload.recId === key || e.payload.key === key));
   let persistTimer = null, warned = false;
-  function write() { persistTimer = null; if (!storage) return; const ok = storage.set(JSON.stringify({ v: 1, seed: FD.state.seed, log: FD.state.log })); if (!ok && !warned) { warned = true; toast('S_STORAGE', {}); } }
+  function write() { persistTimer = null; if (!storage) return false; const ok = storage.set(JSON.stringify({ v: 1, seed: FD.state.seed, log: FD.state.log })); if (!ok && !warned) { warned = true; toast('S_STORAGE', {}); } return ok; }
   // browser: debounce so a burst of taps writes once; node tests: write immediately
   function persist() { if (typeof window === 'undefined') return write(); clearTimeout(persistTimer); persistTimer = setTimeout(write, 250); }
+  FD.flushPersistence = () => { clearTimeout(persistTimer); return write(); };
+  // Check the durable log before admitting image bytes to canonical state.
+  // A rejected batch must not make every later ordinary event exceed quota.
+  const tryDurable = (type, payload) => {
+    const st=FD.state;
+    if(payload.key&&st.keys[payload.key])return true;
+    const ev={type,key:payload.key,payload,at:st.clock.date+' '+st.clock.time};
+    let ok=false;
+    try { ok=!!storage&&storage.set(JSON.stringify({v:1,seed:st.seed,log:st.log.concat(ev)})); } catch(e) { ok=false; }
+    if(!ok)return false;
+    FD.dispatch(type,payload);
+    return true;
+  };
+  FD.tryPhotoBatch = (payload = {}) => !!FD.pgAssessment(FD.state,payload.id) && tryDurable('PG_PHOTOS_ADD',payload);
+  FD.tryCompPhoto = (payload = {}) => tryDurable('COMP_PHOTO_ADD',payload);
   FD.init = function (seed = 7, opts = {}) {
     storage = FD.storageAdapter(opts.storage !== undefined ? opts.storage : (typeof localStorage !== 'undefined' ? localStorage : null));
     let saved = null; try { saved = JSON.parse(storage.get()); } catch (e) { saved = null; }
@@ -601,5 +791,10 @@
       try { chan = new BroadcastChannel('fielddrive'); chan.onmessage = e => { try { if (e.data.type === '__RESET') FD.reset(true); else FD.dispatch(e.data.type, e.data.payload); } catch (err) { } }; } catch (e) { chan = null; }
     }
   };
+  // demo: drop the dismiss / resolve events and replay, so tested-away items come back; everything else stays
+  FD.undismiss = function () { const seed = FD.state.seed, gone = ['ALERT_RESOLVE', 'FOLLOWUP_DISMISS', 'TIP_DISMISS', 'SUP_REC_REMOVE', 'SC_DISMISS', 'REASON_HIDE'];
+    const log = FD.state.log.filter(ev => !gone.includes(ev.type)), n = FD.state.log.length - log.length;
+    try { storage.set(JSON.stringify({ v: 1, seed, log })); } catch (e) { return 0; }
+    FD.init(seed); changed(); return n; };
   FD.reset = function (fromRemote) { const seed = FD.state.seed; if (storage) storage.clear(); FD.state = fresh(seed); if (chan && !fromRemote) { try { chan.postMessage({ type: '__RESET' }); } catch (e) { } } changed(); };
 })();

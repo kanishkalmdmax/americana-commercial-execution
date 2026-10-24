@@ -13,31 +13,36 @@
   const sum = (xs, f) => xs.reduce((a, x) => a + f(x), 0);
 
   // ---------- filters (UI-local) ----------
-  S.f = L['sup:f'] = L['sup:f'] || { route: '', period: 'PILOT', from: null, to: null };
+  S.f = L['sup:f'] = L['sup:f'] || { route: '', sup: '', period: 'PILOT', from: null, to: null };
+  // periods end on the latest day SalesBuzz has sent (yesterday unless live data is on)
   S.range = () => {
-    const d = today(); const f = S.f;
+    const d = FD.dataDay(st()); const f = S.f;
     if (f.period === 'TODAY') return { from: d, to: d };
     if (f.period === 'WEEK') return { from: FD.addDays(d, -6), to: d };
     if (f.period === 'CUSTOM' && f.from && f.to) return { from: f.from < f.to ? f.from : f.to, to: f.from < f.to ? f.to : f.from };
     return { from: FD.PILOT_START, to: d };
   };
-  S.vsrs = () => st().world.vsrs.filter(v => !S.f.route || v.route === S.f.route);
-  S.stores = () => st().world.stores.filter(s => !S.f.route || s.route === S.f.route);
+  S.vsrs = () => st().world.vsrs.filter(v => v.kind === 'sales' && (!S.f.route || v.route === S.f.route) && (!S.f.sup || v.sup === S.f.sup));
+  S.stores = () => st().world.stores.filter(s => (!S.f.route || s.route === S.f.route) && (!S.f.sup || (st().world.vsrs.find(v => v.id === s.vsr) || {}).sup === S.f.sup));
   S.recs = extra => { const { from, to } = S.range(); return FD.recsIn(st(), Object.assign({ from, to, route: S.f.route || null }, extra || {})); };
 
   // ---------- layout ----------
-  const NAV = [['home', 'home', 'L_NAV_HOME'], ['team', 'users', 'L_NAV_TEAM'], ['stores', 'store', 'L_NAV_STORES'], ['msgs', 'message', 'L_MESSAGES'], ['skus', 'package', 'L_NAV_SKUS'], ['opps', 'target', 'L_NAV_OPPS'], ['rules', 'sliders', 'L_NAV_RULES']];
+  const NAV = [['today', 'truck', 'L_NAV_TODAY'], ['team', 'users', 'L_NAV_TEAM'], ['stores', 'store', 'L_NAV_STORES'], ['msgs', 'message', 'L_MESSAGES'], ['weekly', 'chart', 'L_NAV_WEEKLY'], ['skus', 'package', 'L_NAV_SKUS'], ['opps', 'target', 'L_NAV_OPPS'], ['rules', 'sliders', 'L_NAV_RULES']];
+  const FILTERS = { today: ['sup', 'route'], home: ['sup', 'route'], weekly: ['sup', 'route', 'period'], team: ['sup', 'period'], learn: ['route', 'period'], stores: ['sup', 'route'], opps: ['sup', 'route'] };
   const pinned = () => { try { return localStorage.getItem('fd.navPinned') === '1'; } catch (e) { return !!L['nav:pinned']; } };
   const setPinned = v => { L['nav:pinned'] = v; try { localStorage.setItem('fd.navPinned', v ? '1' : '0'); } catch (e) { } FD.render(); };
   S.layout = function (r, viewFn) {
     const s = st();
-    const view = viewFn(r);
-    const fuCount = FD.followUps(s).length; const msgCount = s.threads.filter(x => x.unreadSup).length;
-    const nav = NAV.map(([id, icon, label]) => { const n = id === 'home' ? fuCount : id === 'msgs' ? msgCount : 0; return h('a', { class: 'nav-item' + (r.page === id ? ' on' : ''), href: '#/sup/' + id, 'aria-current': r.page === id ? 'page' : null, title: t(label) },
+    const uses = r.page === 'stores' && r.id ? [] : FILTERS[r.page] || []; // only the filters a page shows
+    // a filter set on another page must not narrow a page that does not show it
+    const kept = S.f; S.f = Object.assign({}, kept, uses.includes('route') ? null : { route: '' }, uses.includes('sup') ? null : { sup: '' });
+    let view; try { view = viewFn(r); } finally { S.f = kept; }
+    const counts=FD.supervisorBadgeCounts(s,S.vans().map(v=>v.id)); const badge=id=>counts[id]||0;
+    const nav = NAV.map(([id, icon, label]) => { const n = badge(id); return h('a', { class: 'nav-item' + (r.page === id || (id === 'today' && r.page === 'home') ? ' on' : ''), href: '#/sup/' + id, 'aria-current': r.page === id ? 'page' : null, title: t(label), 'data-tour': id === 'weekly' ? 'sup3' : null },
       I(icon), h('span', null, t(label)), n ? h('span', { class: 'badge' }, FD.fmt.num(n)) : null); });
-    const pilotDay = FD.daysBetween(FD.PILOT_START, today()) + 1;
-    const periodSeg = FD.seg([{ id: 'TODAY', label: t('L_P_TODAY') }, { id: 'WEEK', label: t('L_P_WEEK') }, { id: 'PILOT', label: t('L_P_PILOT') }, { id: 'CUSTOM', label: t('L_P_CUSTOM') }], S.f.period, v => { S.f.period = v; if (v === 'CUSTOM' && !S.f.from) { S.f.from = FD.addDays(today(), -13); S.f.to = today(); } FD.render(); });
-    const routeSel = FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.route, v => { S.f.route = v; FD.render(); }, { 'aria-label': t('L_ROUTE') });
+    const periodSeg = FD.seg([{ id: 'TODAY', label: t(FD.liveData(st()) ? 'L_P_TODAY' : 'L_METRICS_DAY') }, { id: 'WEEK', label: t('L_P_WEEK') }, { id: 'PILOT', label: t('L_P_PILOT') }, { id: 'CUSTOM', label: t('L_P_CUSTOM') }], S.f.period, v => { S.f.period = v; if (v === 'CUSTOM' && !S.f.from) { S.f.from = FD.addDays(today(), -13); S.f.to = today(); } FD.render(); });
+    const supSel = FD.select([{ id: '', label: t('L_ALL_SUPS') }].concat(s.world.sups.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.sup, v => { S.f.sup = v; FD.render(); }, { 'aria-label': t('L_SUPERVISOR') });
+    const routeSel = FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.routeArea(x) }))), S.f.route, v => { S.f.route = v; FD.render(); }, { 'aria-label': t('L_ROUTE') });
     const custom = S.f.period === 'CUSTOM' ? h('div', { class: 'row' },
       h('input', { class: 'input', type: 'date', style: { height: '34px', width: '150px' }, 'aria-label': t('L_FROM'), min: FD.BASE_START, max: today(), value: S.f.from, on: { change: e => { S.f.from = e.target.value; FD.render(); } } }),
       h('span', { class: 'muted' }, '–'),
@@ -50,32 +55,35 @@
         h('button', { type: 'button', class: 'me', 'aria-haspopup': 'menu', on: { click: e => FD.menu(e.currentTarget, [
           { icon: 'globe', label: t('L_LANGUAGE') + ' · ' + (FD.state.lang === 'ar' ? 'English' : 'العربية'), onClick: () => FD.dx('SET_LANG', { lang: FD.state.lang === 'ar' ? 'en' : 'ar' }) },
           { icon: 'moon', label: t('L_THEME') + ' · ' + t(FD.state.theme === 'dark' ? 'L_LIGHT' : 'L_DARK'), onClick: () => FD.dx('SET_THEME', { theme: FD.state.theme === 'dark' ? 'light' : 'dark' }) },
-          { icon: 'play', label: t('L_REPLAY_TOUR'), onClick: () => { FD.dx('TOUR_RESET'); FD.go('#/sup/home'); setTimeout(() => FD.tour('sup'), 300); } }, '-',
+          { icon: 'play', label: t('L_REPLAY_TOUR'), onClick: () => { FD.dx('TOUR_RESET'); FD.go('#/sup/today'); setTimeout(() => FD.tour('sup'), 300); } }, '-',
           { icon: 'arrow-left', label: t('L_LOG_OUT'), danger: true, onClick: () => FD.signOut() }]) } },
           h('span', { class: 'avatar' }, FD.initials(s.world.supervisor.name)), h('div', null, FD.nameOf(s.world.supervisor), h('small', null, t('L_SUPERVISOR'))))),
       h('div', { class: 'main' },
         h('header', { class: 'topbar' },
-          h('div', { class: 'tb-title' }, view.back ? FD.iconBtn('arrow-left', t('L_BACK'), view.back) : null, h('div', null, h('h1', null, view.title), h('div', { class: 'date' }, FD.fmt.dateLong(today()) + ' · ' + FD.fmt.time(s.clock.time) + ' · ' + t('L_PILOT_DAY', { n: FD.fmt.num(pilotDay) })))),
+          h('div', { class: 'tb-title' }, view.back ? FD.iconBtn('arrow-left', t('L_BACK'), view.back) : null, h('div', null, h('h1', r.page==='stores'?{'aria-live':'polite'}:null, view.title), h('div', { class: 'date' }, FD.fmt.dateLong(today()) + (FD.liveData(s) ? ' · ' + t('L_UPDATED', { time: FD.fmt.time(s.clock.time.slice(0, 3) + '00') }) : '')))),
           h('div', { class: 'spacer' }), S.search(),
-          h('div', { class: 'filters', style: { flexBasis: '100%' } }, routeSel, periodSeg, custom, view.bar ? h('button', { type: 'button', class: 'btn secondary sm filters-btn', on: { click: () => S.filtersSheet(view) } }, I('filter', 's16'), t('L_FILTERS')) : null),
+          (b => (b.classList.add('mob-only'), b))(FD.iconBtn('search', t('L_SEARCH_PH'), () => { const tb = document.querySelector('.topbar'); tb.classList.toggle('m-search'); const i = tb.querySelector('.search input'); if (i && tb.classList.contains('m-search')) i.focus(); })),
+          !uses.length && !view.bar ? null : h('div', { class: 'filters', style: { flexBasis: '100%' } }, uses.length ? FD.btn(t('L_FILTER') + (S.f.sup || S.f.route ? ' · ' + FD.fmt.num(!!S.f.sup + !!S.f.route) : ''), () => S.filtersSheet(uses), 'secondary sm mob-only', 'filter') : null, uses.includes('sup') ? supSel : null, uses.includes('route') ? routeSel : null, uses.includes('period') ? periodSeg : null, uses.includes('period') ? custom : null, view.bar ? h('button', { type: 'button', class: 'btn secondary sm filters-btn', on: { click: () => S.filtersSheet(view) } }, I('filter', 's16'), t('L_FILTERS')) : null),
           view.bar ? h('div', { class: 'page-bar' }, view.bar()) : null),
         h('main', { class: 'page' + (view.full ? ' page-full' : ''), id: 'sup-page' }, view.body)),
-      h('nav', { class: 'mobile-nav', 'aria-label': 'Main' }, NAV.slice(0, 4).map(([id, icon, label]) => h('a', { href: '#/sup/' + id, class: r.page === id ? 'on' : '', 'aria-current': r.page === id ? 'page' : null }, I(icon), t(label), (id === 'home' ? fuCount : id === 'msgs' ? msgCount : 0) ? h('span', { class: 'mn-dot' }, FD.fmt.num(id === 'home' ? fuCount : msgCount)) : null)),
+      h('nav', { class: 'mobile-nav', 'aria-label': 'Main' }, NAV.slice(0, 4).map(([id, icon, label]) => h('a', { href: '#/sup/' + id, class: r.page === id ? 'on' : '', 'aria-current': r.page === id ? 'page' : null }, I(icon), t(label), badge(id) ? h('span', { class: 'mn-dot' }, FD.fmt.num(badge(id))) : null)),
         h('button', { type: 'button', class: NAV.slice(4).some(n => n[0] === r.page) ? 'on' : '', on: { click: () => S.moreSheet(r) } }, I('menu'), t('L_MORE'))));
   };
   // phone width: page filters move into a sheet so the sticky bar stays one line
-  S.filtersSheet = function (view) { const s = st();
-    FD.sheet.open({ title: t('L_FILTERS'), render: () => h('div', { class: 'stack s16 filters-stack' },
-      h('div', { class: 'field' }, h('label', null, t('L_ROUTE')), FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.route, v => { S.f.route = v; FD.render(); FD.sheet.redraw(); })),
-      view.bar()), footer: () => [h('span', { class: 'grow' }), FD.btn(t('DONE'), () => FD.sheet.close(), 'primary')] }); };
+  S.filtersSheet = function (uses) { const s = st();
+    const set = (k, v) => { S.f[k] = v; FD.render(); FD.sheet.redraw(); };
+    FD.sheet.open({ title: t('L_FILTER'), render: () => h('div', { class: 'stack s16 filters-stack' },
+      uses.includes('sup') ? h('div', { class: 'field' }, h('label', null, t('L_SUPERVISOR')), FD.select([{ id: '', label: t('L_ALL_SUPS') }].concat(s.world.sups.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.sup, v => set('sup', v))) : null,
+      uses.includes('route') ? h('div', { class: 'field' }, h('label', null, t('L_ROUTE')), FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.routeArea(x) }))), S.f.route, v => set('route', v))) : null),
+      footer: () => [h('span', { class: 'grow' }), FD.btn(t('L_DONE'), () => FD.sheet.close(), 'primary')] }); };
   // Phone-width "More": remaining pages, filters and settings in one sheet
   S.moreSheet = function (r) {
     const s = st();
     FD.sheet.open({ title: t('L_MORE'), render: () => h('div', { class: 'stack s16' },
-      h('div', { class: 'stack s8' }, NAV.slice(4).map(([id, icon, label]) => h('a', { class: 'list-row click', href: '#/sup/' + id, style: { border: '1px solid var(--line)', borderRadius: '12px' }, on: { click: () => FD.sheet.close() } }, I(icon), h('span', { class: 'grow' }, t(label)), I('chevron-right', 's16')))),
-      h('div', { class: 'field' }, h('label', null, t('L_ROUTE')), FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.nameOf(x) }))), S.f.route, v => { S.f.route = v; FD.render(); })),
+      h('div', { class: 'stack s8' }, NAV.slice(4).map(([id, icon, label]) => h('a', { class: 'list-row click', href: '#/sup/' + id, style: { border: '1px solid var(--line)', borderRadius: '12px' }, on: { click: e => { e.preventDefault(); FD.sheet.close(); FD.go('#/sup/' + id); } } }, I(icon), h('span', { class: 'grow' }, t(label)), I('chevron-right', 's16')))),
+      h('div', { class: 'field' }, h('label', null, t('L_ROUTE')), FD.select([{ id: '', label: t('L_ALL_ROUTES') }].concat(s.world.routes.map(x => ({ id: x.id, label: FD.routeArea(x) }))), S.f.route, v => { S.f.route = v; FD.render(); })),
       h('div', { class: 'field' }, h('label', null, t('L_THEME')), FD.seg([{ id: 'auto', label: t('L_AUTO') }, { id: 'light', label: t('L_LIGHT') }, { id: 'dark', label: t('L_DARK') }], s.theme, v => { FD.dx('SET_THEME', { theme: v }); FD.sheet.redraw(); })),
-      FD.btn(t('L_REPLAY_TOUR'), () => { FD.sheet.close(); FD.dx('TOUR_RESET'); FD.go('#/sup/home'); setTimeout(() => FD.tour('sup'), 300); }, 'secondary block', 'play'),
+      FD.btn(t('L_REPLAY_TOUR'), () => { FD.sheet.close(); FD.dx('TOUR_RESET'); FD.go('#/sup/today'); setTimeout(() => FD.tour('sup'), 300); }, 'secondary block', 'play'),
       FD.btn(t('L_LOG_OUT'), () => { FD.sheet.close(); FD.signOut(); }, 'ghost block', 'arrow-left'),
       ) });
   };
@@ -104,14 +112,27 @@
   // ---------- small helpers ----------
   // "?" next to a card title opens a short explanation (hover shows it too)
   S.info = text => { const b = h('button', { type: 'button', class: 'info-btn', 'aria-label': t('L_WHAT_IS_THIS'), title: text, on: { click: e => { e.stopPropagation(); FD.popover(b, text); } } }, I('help', 's14')); return b; };
-  const card = (title, sub, body, opts = {}) => h('section', { class: 'card', 'data-tour': opts.tour || null },
+  const card = (title, sub, body, opts = {}) => h('section', { class: 'card' + (opts.cls ? ' ' + opts.cls : ''), 'data-tour': opts.tour || null },
     h('div', { class: 'card-h' }, opts.icon ? h('span', { class: 'fu-ic', style: { width: '32px', height: '32px' } }, I(opts.icon, 's16')) : null,
       h('div', { class: 'grow' }, h('h2', null, opts.link ? h('a', { href: opts.link[1] }, title) : title, opts.info ? S.info(opts.info) : null), sub ? h('div', { class: 'sub' }, sub) : null), opts.right || null),
     h('div', { class: opts.flush ? '' : 'card-b' }, body),
     opts.link ? h('div', { class: 'card-f' }, h('a', { class: 'btn ghost sm', href: opts.link[1] }, t(opts.link[0]), I('chevron-right', 's16'))) : null);
   S.card = card;
-  const who = v => h('div', { class: 'who' }, FD.avatar(v), h('div', { style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500 } }, FD.nameOf(v)), h('div', { class: 'small muted ellipsis' }, FD.nameOf(st().world.routes.find(r => r.id === v.route)))));
-  const storeCell = s => h('div', { style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500, maxWidth: '260px' } }, FD.nameOf(s)), h('div', { class: 'small muted' }, t('LBL_' + s.label) + ' · ' + s.tags.map(x => t('TAGN_' + x.slice(4))).join(FD.lang === 'ar' ? '، ' : ', ')));
+  const who = v => h('div', { class: 'who' }, FD.avatar(v), h('div', { style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500 } }, FD.nameOf(v)), h('div', { class: 'small muted ellipsis' }, FD.routeArea(st().world.routes.find(r => r.id === v.route)))));
+  // store row: type icon + name; route and ID underneath (salesman is implied by the route)
+  const storeCell = s => h('div', { class: 'store-cell' }, FD.sizeIcon(s.size), h('div', { style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500, maxWidth: '260px' } }, FD.nameOf(s)),
+    h('div', { class: 'small muted nowrap' }, t('LBL_' + s.label) + ' · ' + t('SIZE_' + s.size)))); // no store IDs or route codes on screen
+  S.ago = d => d == null ? '—' : d === 0 ? t('L_TODAY_W') : d === 1 ? t('L_YESTERDAY') : tx('L_DAYS_AGO', { days: d });
+  S.attnChips = x => h('div', { class: 'row wrap', style: { gap: '4px' } }, x.reasons.map(r => FD.chip(r === 'SA_WASTED' ? tx('SA_WASTED', { n: x.g.wasted28 }) : r === 'SA_RETURNS' ? tx('SA_RETURNS', { pct: x.g.returnsPct }) : x.g.daysSinceOrder == null ? t('SA_NO_ORDER_EVER') : tx('SA_NO_ORDER', { days: x.g.daysSinceOrder }), r === 'SA_RETURNS' ? 'bad' : 'warn')));
+  S.demandChip = g => FD.chip(t('DEM_' + g.demand), { STEADY: 'good', IRREGULAR: 'warn', NONE: '' }[g.demand]);
+  // the store at a glance: plain numbers a supervisor reads in one second
+  S.glance = (storeId, compact) => { const g = FD.storeGlance(st(), storeId, today());
+    const cell = (label, val, tone) => h('div', { class: 'card glance-cell' + (tone ? ' ' + tone : '') }, h('div', { class: 'small muted' }, label), h('b', null, val));
+    return h('div', { class: 'glance' + (compact ? ' compact' : '') },
+      cell(t('L_G_LAST_VISIT'), S.ago(g.daysSinceVisit)), cell(t('L_G_LAST_ORDER'), S.ago(g.daysSinceOrder), g.daysSinceOrder == null || g.daysSinceOrder >= 21 ? 'warn' : ''),
+      cell(t('L_G_ORDER_DAYS'), FD.fmt.num(g.orderDays28)), cell(t('L_G_AVG'), g.avgOrder ? FD.fmt.money0(g.avgOrder) : '—'),
+      cell(t('L_G_WASTED'), FD.fmt.num(g.wasted28), g.wasted28 >= 2 ? 'warn' : ''), cell(t('L_G_RETURNS'), g.sales28 ? FD.fmt.pct(g.returnsPct) : '—', g.sales28 >= 200 && g.returnsPct >= 20 ? 'bad' : ''),
+      cell(t('L_G_DEMAND'), t('DEM_' + g.demand)), cell(t('L_G_PRODUCTS'), FD.fmt.num(g.products28))); };
   const band = b => FD.chip(t({ GOOD: 'L_BAND_GOOD', WATCH: 'L_BAND_WATCH', LOW: 'L_BAND_LOW' }[b]), { GOOD: 'good', WATCH: 'warn', LOW: 'bad' }[b]);
   const outcomeChip = r => {
     const m = { FULL: ['E_FULL', 'good'], PARTIAL: ['E_FULL', 'good'], ALT: ['E_ALT', 'good'], NOT_SOLD: ['E_NOT_SOLD', 'bad'], NOT_OFFERED: ['E_NOT_OFFERED', 'warn'], WAITING: ['E_WAITING', ''], CARRIED: ['SK_CLOSED', ''] }[r.outcome] || ['ST_SENT', 'info'];
@@ -123,18 +144,6 @@
   S.outcomeChip = outcomeChip; S.matChip = matChip; S.reasonCell = reasonCell; S.who = who; S.storeCell = storeCell; S.band = band;
 
   // ---------- aggregate KPIs for current filters ----------
-  S.kpis = function () {
-    const s = st(); const { from, to } = S.range();
-    const ms = S.vsrs().map(v => FD.vsrMetrics(s, v.id, from, to));
-    const bases = S.vsrs().map(v => FD.baseline(s, v.id));
-    const perDay = sum(ms, m => m.perDay), basePer = sum(bases, b => b.perDay);
-    const sent = sum(ms, m => m.sent + 0), sold = sum(ms, m => m.sold), decided = sum(ms, m => m.offeredCount + m.notOffered);
-    const missing = S.vsrs().map(v => ({ v, n: s.recs.filter(r => FD.recVsr(r) === v.id && ['NOT_SOLD', 'NOT_OFFERED'].includes(r.outcome) && !r.reason && !r.exempted && r.date >= from && r.date <= to).length }));
-    const stores = S.stores(); const low = stores.filter(x => FD.storeHealth(s, x.id, today()).band === 'LOW' || x.credit !== 'OK');
-    return { upVal: sum(ms, m => m.upsellValue), sold, conv: pct(sold, sum(ms, m => m.offeredCount)), offered: sum(ms, m => m.offeredCount), decided, net: sum(ms, m => m.net), vsBase: basePer ? pct(perDay - basePer, basePer) : 0,
-      missing: sum(missing, x => x.n), sustained: sum(ms, m => m.sustained), pending: sum(ms, m => m.pending), missingTop: missing.sort((a, b) => b.n - a.n)[0], attention: low.length, storesN: stores.length, sent };
-  };
-
   // ---------- follow-up actions ----------
   S.act = function (f, el) {
     const a = f.action; const s = st();
@@ -153,14 +162,15 @@
       case 'store': S.storeDrawer(a.store); break;
       case 'sku': S.skuDrawer(a.sku); break;
       case 'unwatch': FD.dx('WATCH_REMOVE', { sku: a.sku }); animateOut(() => { done(); FD.toast('S_SAVED'); }); break;
+      case 'planogram': S.pgOpen(a.store,a.assessmentId); break;
       case 'vsr': S.vsrDrawer(a.vsr); break;
       case 'rec': S.recDrawer(a.rec); break;
       case 'reasons': S.reasonDrawer(Object.assign({ kind: null }, a.filter)); break;
       case 'learn': FD.go('#/sup/learn'); break;
     }
   };
-  const FU_ICON = { F_WATCH_OK: 'trending-down', F_WATCH_BAD: 'alert', F_RETURN_UPSELL: 'undo', F_MISSING_REASONS: 'alert', F_REPEAT_DECLINE: 'x-circle', F_COMPETITOR: 'flag', F_GAP_CLUSTER: 'target', F_VSR_BELOW: 'trending-down', F_NOT_OFFERED: 'eye-off',
-    F_CREDIT: 'wallet', F_CORRECTION: 'edit', F_VSR_COMMENT: 'message', F_VSR_STORE_MSG: 'message', F_PHOTO: 'camera', F_ENGINE_MISS: 'cpu', F_WATCHLIST: 'alert', F_SKIPPED: 'x', F_PROMO_LOW: 'tag', F_COVER: 'users' };
+  const FU_ICON = S.FU_ICON = { F_WATCH_OK: 'check-circle', F_WATCH_BAD: 'alert', F_RETURN_UPSELL: 'undo', F_MISSING_REASONS: 'list', F_REPEAT_DECLINE: 'x-circle', F_COMPETITOR: 'flag', F_GAP_CLUSTER: 'target', F_VSR_BELOW: 'trending-down', F_NOT_OFFERED: 'eye-off',
+    F_CREDIT: 'wallet', F_CORRECTION: 'edit', F_VSR_COMMENT: 'message', F_VSR_STORE_MSG: 'message', F_PLANOGRAM:'camera', F_PHOTO: 'camera', F_ENGINE_MISS: 'trending-up', F_WATCHLIST: 'eye', F_SKIPPED: 'x', F_PROMO_LOW: 'tag', F_COVER: 'user-switch' };
   S.fuRow = f => {
     const row = h('div', { class: 'fu-row' },
       h('span', { class: 'fu-ic p' + f.pri }, I(FU_ICON[f.tpl] || 'info', 's16')),
@@ -177,25 +187,23 @@
     if (sl.vsrId) return vsrOf(sl.vsrId).route === S.f.route; if (sl.storeId) return storeOf(sl.storeId).route === S.f.route; return true; };
   S.homeFollowUps = () => { const seen = new Set(); return FD.followUps(st()).filter(inRoute).filter(f => { if (seen.has(f.tpl)) return false; seen.add(f.tpl); return true; }).slice(0, 5); };
 
+  S.analyticsTrend=({ids,from,to})=>{
+    const step=Math.max(1,Math.ceil((FD.daysBetween(from,to)+1)/28)),labels=[],values=[];
+    for(let date=from;date<=to;date=FD.addDays(date,step)){
+      const end=FD.addDays(date,step-1),last=end<to?end:to;
+      labels.push(FD.fmt.date(date));values.push(FD.teamLevers(st(),ids,date,last).primary);
+    }
+    return card(t('L_ANALYTICS_TREND'),FD.fmt.date(from)+' - '+FD.fmt.date(to),
+      FD.line([{name:t('M_PRIMARY'),values}],labels,{h:220,fit:true,fmt:FD.fmt.money0,label:t('M_PRIMARY')}));
+  };
+
   // ================= HOME =================
-  FD.registerView('sup', 'home', () => {
-    const s = st(); const k = S.kpis(); const { from, to } = S.range();
-    const KI = { upval: 'K_I_UPVAL', net: 'K_I_NET', conv: 'K_I_CONV', upsells: 'K_I_UPS', reasons: 'K_I_REASONS', attention: 'K_I_ATTN' };
-    const kpi = (cls, icon, label, val, foot, kind) => h('button', { type: 'button', class: 'card kpi ' + cls, title: KI[kind] ? t(KI[kind]) : null, on: { click: () => S.kpiDrawer(kind) }, 'aria-label': label },
-      h('span', { class: 'lbl' }, I(icon, 's16'), label), h('span', { class: 'val' }, val), h('span', { class: 'foot' }, foot));
-    const kpis = h('div', { class: 'kpis' },
-      kpi('hero', 'coins', t('L_KPI_UPVAL'), FD.fmt.money0(k.upVal), t('L_KPI_FOOT_UPS', { n: FD.fmt.num(k.sold), pct: FD.fmt.num(Math.round(k.conv)) }), 'upval'),
-      kpi('', 'wallet', t('L_KPI_NET'), FD.fmt.money0(k.net), [FD.delta(k.vsBase), ' ', t('L_KPI_VS_BASE')], 'net'),
-      kpi('', 'percent', t('L_KPI_CONV'), FD.fmt.pct(k.conv), t('L_KPI_OF_OFFERED', { n: FD.fmt.num(k.sold), qty: FD.fmt.num(k.offered) }), 'conv'),
-      kpi('', 'check-circle', t('L_KPI_UPSELLS'), FD.fmt.num(k.sold), t('L_KPI_UPS_FOOT', { n: FD.fmt.num(k.sustained), qty: FD.fmt.num(k.pending) }), 'upsells'),
-      kpi('', 'alert', t('L_KPI_REASONS'), FD.fmt.num(k.missing), k.missingTop && k.missingTop.n ? tx('L_KPI_MISSING_BY', { vsrId: k.missingTop.v.id }) : '', 'reasons'),
-      kpi('', 'store', t('L_KPI_ATTN'), FD.fmt.num(k.attention), t('L_KPI_STORES_OF', { n: FD.fmt.num(k.storesN) }), 'attention'));
-    const fus = S.homeFollowUps(); const allFu = FD.followUps(s).filter(inRoute);
-    const followups = card(t('L_FOLLOWUPS'), null, fus.length ? h('div', null, fus.map(S.fuRow)) : FD.empty('X_FU_DONE', { time: String(Math.min(23, +s.clock.time.slice(0, 2) + 1)).padStart(2, '0') + ':00' }, 'check-circle'),
-      { flush: true, tour: 'sup1', icon: 'bell', info: t('I_FOLLOWUPS'), right: h('div', { class: 'row' }, FD.btn(t('L_VIEW_ALL', { n: FD.fmt.num(allFu.length) }), () => S.followupsDrawer(), 'ghost sm')) });
+  FD.registerView('sup', 'weekly', () => {
+    const s = st(); const { from, to } = S.range();
+    const kpis = S.leverStrip({ ids: S.vsrs().map(v => v.id), from, to, prev: from === to ? { from: FD.prevSellingDay(from), to: FD.prevSellingDay(from) } : FD.prevRange(from, to) });
     const rank = FD.teamCompare(s, from, to).filter(x => !S.f.route || vsrOf(x.vsr).route === S.f.route);
-    const team = card(t('L_P_TEAM'), null, FD.table({ id: 'homeRank', rows: rank, onRow: x => S.vsrDrawer(x.vsr), columns: S.teamColumns(false, rank[0] && rank[0].partial) }),
-      { flush: true, tour: 'sup2', icon: 'users', info: t('I_TEAM'), link: ['L_OPEN_TEAM', '#/sup/team'] });
+    const team = card(t('L_P_TEAM'), null, S.teamTable('homeRank', rank, false),
+      { flush: true, icon: 'users', info: t('I_TEAM'), link: ['L_OPEN_TEAM', '#/sup/team'] });
     const whyKind = L['sup:whyKind'] || 'NOT_SOLD';
     const rb = FD.reasonBreakdown(s, { kind: whyKind, from, to, route: S.f.route || null }).filter(g => g.count > 0 || g.group !== 'R_OTHER');
     const why = card(t('L_P_WHY'), null, rb.every(g => !g.count) ? FD.empty('X_FILTER') : FD.bars(rb.map(g => ({ label: h('span', { class: 'row', style: { gap: '6px' } }, I(FD.vsr.GROUP_ICON[g.group] || (g.group === 'R_NONE' ? 'alert' : g.group.startsWith('NF_') ? 'eye-off' : 'more'), 's16'), t(g.group === 'R_OTHER' ? 'SK_OTHER' : g.group)),
@@ -205,12 +213,12 @@
     const opps = FD.opportunities(s, { route: S.f.route || null }).slice(0, 5);
     const oppCard = card(t('L_P_OPPS'), null, FD.table({ id: 'homeOpps', rows: opps, onRow: o => S.storeDrawer(o.store, o.sku), empty: 'X_FILTER', columns: [
       { key: 's', label: t('L_COL_STORE'), render: o => storeCell(storeOf(o.store)) },
-      { key: 'p', label: t('L_COL_PRODUCT'), render: o => h('div', { class: 'stack s8' }, FD.skuLabel(o.sku), FD.chip(t('TYPE_' + o.type), o.type === 'PROMO' ? 'warn' : 'info')) },
+      { key: 'p', label: t('L_COL_PRODUCT'), render: o => h('div', { class: 'opp-prod' }, FD.skuLabel(o.sku), FD.chip(t('TYPE_' + o.type), o.type === 'PROMO' ? 'warn' : 'info')) },
       { key: 'ev', label: t('L_EST_MARGIN'), num: true, sort: (a, b) => a.ev - b.ev, render: o => FD.fmt.money0(o.ev) },
       { key: 'a', label: '', render: o => h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: 0 } },
         FD.iconBtn('pin', t('L_PIN'), () => { const n0 = st().pins.length; FD.dx('PIN_ADD', { sku: o.sku, scope: 'store', id: o.store, until: FD.addDays(today(), 7) }); FD.toast('S_PINNED', { date: FD.addDays(today(), 7) }, { undo: () => { const p = st().pins[n0]; if (p) FD.dx('PIN_REMOVE', { pinId: p.pinId }); } }); }),
         FD.iconBtn('ban', t('L_BLOCK'), () => { const n0 = st().blocks.length; FD.dx('BLOCK_ADD', { store: o.store, sku: o.sku }); FD.toast('S_BLOCKED', { vsrId: storeOf(o.store).vsr }, { undo: () => { const b = st().blocks[n0]; if (b) FD.dx('BLOCK_REMOVE', { blockId: b.id }); } }); })) }] }),
-      { flush: true, icon: 'target', info: t('I_OPPS'), link: ['L_OPEN_OPPS', '#/sup/opps'] });
+      { flush: true, cls: 'home-opps', icon: 'target', info: t('I_OPPS'), link: ['L_OPEN_OPPS', '#/sup/opps'] });
     const sp = FD.skuPerf(s, from, to).slice().sort((a, b) => b.sales - a.sales).slice(0, 6);
     const skuCard = card(t('L_P_SKU'), null, FD.table({ id: 'homeSku', rows: sp, onRow: x => S.skuDrawer(x.code), columns: [
       { key: 'p', label: t('L_COL_PRODUCT'), render: x => h('div', { class: 'row' }, FD.skuLabel(x.code), x.watch ? FD.chip(t('L_WATCHLIST_FLAG'), 'warn') : null) },
@@ -218,11 +226,10 @@
       { key: 'v', label: t('L_COL_CONV'), num: true, sort: (a, b) => a.conv - b.conv, render: x => x.attempts ? FD.fmt.pct(x.conv) : '—' },
       { key: 'r', label: t('L_COL_RETURNS'), num: true, sort: (a, b) => a.returnRate - b.returnRate, render: x => h('span', { style: x.returnRate >= 8 ? { color: 'var(--bad)', fontWeight: 600 } : null }, FD.fmt.pct(x.returnRate)) }] }),
       { flush: true, icon: 'package', info: t('I_SKUS'), link: ['L_OPEN_SKUS', '#/sup/skus'] });
-    const attn = S.stores().map(x => ({ s: x, hl: FD.storeHealth(s, x.id, today()) })).sort((a, b) => (a.s.credit !== 'OK' ? -1 : 0) - (b.s.credit !== 'OK' ? -1 : 0) || a.hl.score - b.hl.score).slice(0, 5);
+    const attn = FD.storesNeedingAttention(s, S.stores().map(x => x.id), today()).slice(0, 5).map(x => Object.assign({ s: storeOf(x.id) }, x));
     const storeCard = card(t('L_P_STORES'), null, FD.table({ id: 'homeStores', rows: attn, onRow: x => S.storeDrawer(x.s.id), columns: [
-      { key: 's', label: t('L_COL_STORE'), render: x => storeCell(x.s) },
-      { key: 'h', label: t('L_COL_HEALTH'), sort: (a, b) => a.hl.score - b.hl.score, render: x => h('span', { class: 'health-cell' }, h('b', null, FD.fmt.num(x.hl.score)), band(x.hl.band)) },
-      { key: 'c', label: t('L_COL_CREDIT'), render: x => FD.creditChip(x.s.credit) }] }),
+      // reasons under the store name so the card never scrolls sideways
+      { key: 's', label: t('L_COL_STORE'), render: x => h('div', { class: 'attn-cell' }, storeCell(x.s), S.attnChips(x)) }] }),
       { flush: true, icon: 'store', info: t('I_ATTN'), link: ['L_OPEN_STORES', '#/sup/stores'] });
     const ins = (FD.insights(s)).slice(0, 3);
     const insCard = card(t('L_P_INSIGHTS'), null, h('div', { class: 'stack s8' }, ins.map(i => h('button', { type: 'button', class: 'insight', on: { click: () => S.insightDrawer(i) } },
@@ -230,21 +237,37 @@
       h('div', { class: 'mini-bars' }, i.chart.values.map((v, j) => h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'small muted', style: { width: '120px', flex: 'none' } }, t(i.chart.labels[j])),
         h('span', { class: 'grow' }, h('span', { class: 'b' + (j ? ' o' : ''), style: { display: 'block', width: (100 * v / Math.max(...i.chart.values)) + '%' } })), h('span', { class: 'small tabular' }, FD.fmt.num(v, 1)))))))), { icon: 'bulb', info: t('I_INSIGHTS') });
     // read top-down the way a supervisor asks: how are we doing, what needs me, how is the team, where to act, what sells
-    const sec = id => h('h3', { class: 'sec-h rules-sec' }, t(id));
-    return { title: t('L_NAV_HOME'), body: [kpis, followups,
-      sec('L_SEC_TEAM'), h('div', { class: 'grid-eq wide-first' }, team, why),
+    const sec = id => h('h3', { class: 'sec-h rules-sec', id: 'sec-' + id }, t(id));
+    return { title: t('L_NAV_WEEKLY'), body: [S.jumpBar(['L_PILOT_KPIS', 'L_SEC_TEAM', 'L_SEC_ACT', 'L_SEC_SELLS', 'L_JOURNEY_REVIEW']), h('h2', { class: 'sec-h', id: 'sec-L_PILOT_KPIS' }, t('L_PILOT_KPIS')), kpis, S.analyticsTrend({ids:S.vsrs().map(v=>v.id),from,to}),
+      sec('L_SEC_TEAM'), h('div', { class: 'grid-eq wide-first' }, team, h('div', { class: 'stack s16' }, why, S.scTeamCard(S.vsrs().map(v => v.id), from, to, true))),
       sec('L_SEC_ACT'), h('div', { class: 'grid-eq wide-first' }, oppCard, storeCard),
-      sec('L_SEC_SELLS'), h('div', { class: 'grid-eq' }, skuCard, insCard)] };
+      sec('L_SEC_SELLS'), h('div', { class: 'grid-eq' }, skuCard, insCard), sec('L_JOURNEY_REVIEW'), S.journeyReview()] };
   });
 
+  // long pages: a sticky row of section chips; each heading carries an id to scroll to
+  S.jumpBar = ids => { requestAnimationFrame(() => { const tb = document.querySelector('.topbar'); if (tb && getComputedStyle(tb).position === 'sticky') document.documentElement.style.setProperty('--tb-h', tb.offsetHeight + 'px'); else document.documentElement.style.removeProperty('--tb-h'); });
+    const mark = id => document.querySelectorAll('.jump-bar .al-type').forEach(b => { const on = b.dataset.sec === id; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'true' : 'false'); if (on) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+    if (typeof addEventListener === 'function') { if (S._spy) removeEventListener('scroll', S._spy);
+      S._spy = () => { if (S._spyHold > Date.now()) return; const top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tb-h')) || 0) + 90; let cur = ids[0];
+      for (const id of ids) { const el = document.getElementById('sec-' + id); if (el && el.getBoundingClientRect().top <= top) cur = id; } mark(cur); };
+    addEventListener('scroll', S._spy, { passive: true }); requestAnimationFrame(S._spy); }
+    return h('nav', { class: 'jump-bar', 'aria-label': t('L_JUMP_TO') }, ids.map(id => h('button', { type: 'button', class: 'al-type', 'data-sec': id, on: { click: () => { const el = document.getElementById('sec-' + id); mark(id); S._spyHold = Date.now() + 900; if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } } }, t(id)))); };
+  S.fuVsr = f => (f.slots && f.slots.vsrId) || null;
   // ================= DRAWERS =================
+  S.fuCat = f => ({ F_WATCH_OK: 'WATCH', F_WATCH_BAD: 'WATCH', F_WATCHLIST: 'WATCH', F_COMPETITOR: 'COMP', F_GAP_CLUSTER: 'COMP', F_ENGINE_MISS: 'PROD', F_PROMO_LOW: 'PROD' })[f.tpl] || 'OTHER';
   S.followupsDrawer = () => FD.drawer.open({ title: t('L_FOLLOWUPS_ALL'), render: () => {
-    const all = FD.followUps(st()).filter(inRoute); const drafts = FD.coachDrafts(st()).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route);
+    // shared items only: anything for one salesman lives in that salesman's block on Today
+    const shared = FD.followUps(st()).filter(inRoute).filter(f => !S.fuVsr(f)).sort((a, b) => a.pri - b.pri);
+    const CAT = S.fuCat;
+    const fType = L['fu:type'] || 'ALL', all = shared.filter(f => fType === 'ALL' || CAT(f) === fType);
+    const typeBar = h('div', { class: 'al-types', style: { padding: '0 0 4px', border: 0 } }, ['ALL', 'WATCH', 'COMP', 'PROD', 'OTHER'].map(k => [k, k === 'ALL' ? shared.length : shared.filter(f => CAT(f) === k).length]).filter(([k, n]) => k === 'ALL' || n)
+      .map(([k, n]) => h('button', { type: 'button', class: 'al-type' + (fType === k ? ' on' : ''), 'aria-pressed': String(fType === k), on: { click: () => { L['fu:type'] = k; FD.drawer.refresh(); } } }, t('L_FUT_' + k), h('span', { class: 'tabular' }, FD.fmt.num(n)))));
+    const drafts = FD.coachDrafts(st()).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route);
     const tab = L['fu:tab'] || 'open';
     const tabs = h('div', { class: 'tabs', style: { padding: 0 } }, [['open', 'L_FU_OPEN', all.length], ['done', 'L_FU_DONE', st().fuHistory.length]].map(([id, lb, n]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['fu:tab'] = id; FD.drawer.refresh(); } } }, t(lb), ' ', h('span', { class: 'pill-count' }, FD.fmt.num(n)))));
     if (tab === 'done') return h('div', { class: 'stack s16' }, tabs, S.fuHistoryList(null));
-    return h('div', { class: 'stack s16' }, tabs, h('div', { class: 'card' }, all.length ? all.map(S.fuRow) : FD.empty('X_FU_DONE', { time: '' })),
-      drafts.length ? h('div', null, h('h3', { style: { fontSize: '14px', margin: '0 0 8px' } }, t('L_TIP_DRAFTS')), h('div', { class: 'card' }, drafts.map(S.draftRow))) : null);
+    return h('div', { class: 'stack s16' }, tabs, shared.length ? typeBar : null, h('div', { class: 'card' }, all.length ? all.map(S.fuRow) : FD.empty('X_FU_DONE', { time: '' })),
+      drafts.length ? h('div', null, h('h3', { style: { fontSize: '14px', margin: '0 0 8px' } }, t('L_TIP_DRAFTS')), h('div', { class: 'card' }, S.draftGroups(drafts))) : null);
   } });
   // ---- follow-up detail: what happened, what is pending, what was done ----
   const HOW_TEXT = h2 => FD.has(h2) ? t(h2) : h2;
@@ -264,6 +287,7 @@
     const last7 = r => r.date <= today() && FD.daysBetween(r.date, today()) < 7;
     let items = [], pending = 0;
     switch (f.tpl) {
+      case 'F_PLANOGRAM': items=[S.pgContent(sl.storeId,{assessmentId:f.action.assessmentId})];pending=sl.n;break;
       case 'F_MISSING_REASONS': items = s.recs.filter(r => FD.recVsr(r) === sl.vsrId && ['NOT_SOLD', 'NOT_OFFERED'].includes(r.outcome) && !r.reason && !r.exempted && r.date < today()).sort((a, b) => b.date.localeCompare(a.date)); pending = items.length; items = items.slice(0, 25).map(recRow); break;
       case 'F_REPEAT_DECLINE': items = s.recs.filter(r => r.sku === sl.skuCode && r.reason === sl.reasonCode && r.outcome === 'NOT_SOLD' && last7(r)).map(recRow); break;
       case 'F_COMPETITOR': items = s.recs.filter(r => r.reason === 'R_COMPETITOR' && r.brand === sl.brandId && last7(r)).map(recRow); break;
@@ -294,12 +318,24 @@
   };
   S.draftRow = (d, inVsr) => h('div', { class: 'fu-row' }, inVsr ? h('span', { class: 'fu-ic' }, I('bulb', 's16')) : FD.avatar(vsrOf(d.vsr)),
     h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'fu-t' }, tx(d.tpl + '_T', d.slots)), h('div', { class: 'fu-c', style: { whiteSpace: 'normal' } }, (inVsr ? '' : FD.nameOf(vsrOf(d.vsr)) + ' · ') + tx(d.tpl, d.slots))),
-    FD.btn(t('L_SEND'), () => S.tipComposer(d.vsr, d.tpl, d.slots, d.key), 'secondary sm'), FD.iconBtn('edit', t('L_TIP_MODE_OWN'), () => S.tipComposer(d.vsr, 'K_CUSTOM', {}, d.key)),
-    FD.iconBtn('x', t('L_DISMISS'), () => { FD.dx('TIP_DISMISS', { draftKey: d.key }); FD.toast(null, null, { text: t('L_DISMISS') }); }));
+    FD.btn(t('L_SEND'), () => S.tipComposer(d.vsr, d.tpl, d.slots, d.key, () => FD.sheet.redraw()), 'secondary sm'), FD.iconBtn('edit', t('L_TIP_MODE_OWN'), () => S.tipComposer(d.vsr, 'K_CUSTOM', {}, d.key)),
+    FD.iconBtn('x', t('L_DISMISS'), () => { FD.dx('TIP_DISMISS', { draftKey: d.key }); FD.toast(null, null, { text: t('L_DISMISS') }); FD.sheet.redraw(); }));
 
-  S.tipComposer = function (vsrId, tpl, slots, draftKey, onSent) {
+  // Suggested tips go to one salesman at a time, so they are listed that way: salesman · n tips → open → review → send
+  S.draftGroups = drafts => { const by = []; for (const d of drafts) { let g = by.find(x => x.vsr === d.vsr); if (!g) by.push(g = { vsr: d.vsr, ds: [] }); g.ds.push(d); }
+    return h('div', null, by.map(g => h('button', { type: 'button', class: 'list-row click draft-group', on: { click: () => S.draftSheet(g.vsr) } },
+      FD.avatar(vsrOf(g.vsr)), h('span', { class: 'grow' }, h('span', { class: 'fu-t', style: { display: 'block' } }, FD.nameOf(vsrOf(g.vsr))), h('span', { class: 'fu-c', style: { display: 'block' } }, t(g.ds.length === 1 ? 'L_TIPS_1' : 'L_TIPS_N', { n: FD.fmt.num(g.ds.length) }))),
+      h('button', { type: 'button', class: 'btn secondary sm', on: { click: e => { e.stopPropagation(); S.sendDrafts(g.vsr); } } }, I('send', 's14'), t('L_SEND_ALL', { n: FD.fmt.num(g.ds.length) }))))); };
+  S.tipsDrawer = () => FD.drawer.open({ title: t('L_TIP_DRAFTS'), render: () => { const ds = FD.coachDrafts(st()).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route);
+    return ds.length ? h('div', { class: 'card' }, S.draftGroups(ds)) : h('div', { class: 'card' }, FD.empty('L_TIPS_DONE', null, 'check-circle')); } });
+  S.sendDrafts = vsrId => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId); ds.forEach(d => FD.dx('TIP_SEND', { vsr: d.vsr, tpl: d.tpl, slots: d.slots, draftKey: d.key })); FD.toast('S_SENT', { vsrId }); FD.render(); FD.drawer.refresh(false); };
+  S.draftSheet = vsrId => FD.sheet.open({ center: true, title: () => t('L_TIP_DRAFTS') + ' · ' + FD.nameOf(vsrOf(vsrId)), render: () => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId);
+      return ds.length ? h('div', { class: 'card' }, ds.map(d => S.draftRow(d, true))) : FD.empty('L_NONE_YET', null, 'check'); },
+    footer: () => { const ds = FD.coachDrafts(st()).filter(d => d.vsr === vsrId); return [FD.btn(t('L_CANCEL'), () => FD.sheet.close(), 'secondary'), h('span', { class: 'grow' }),
+      ds.length ? FD.btn(t('L_SEND_ALL', { n: FD.fmt.num(ds.length) }), () => { FD.sheet.close(); S.sendDrafts(vsrId); }, 'primary', 'send') : null]; } });
+  S.tipComposer = function (vsrId, tpl, slots, draftKey, onSent, preset={}) {
     const templates = ['K_PRICE', 'K_ENOUGH', 'K_NO_SHELF', 'K_BUYER_NO', 'K_COMPETITOR', 'K_BUYER_ABSENT', 'K_NOT_OFFERED', 'K_REASONS', 'K_RETURN', 'K_PROMO', 'K_GOOD'];
-    const X = { vsr: vsrId, tpl, text: null, title: '', slots: Object.assign({}, slots) };
+    const X = { vsr: vsrId, tpl, text: preset.text||null, title: preset.title||'', slots: Object.assign({}, slots) };
     const fill = () => { const sl = X.slots; if (!sl.skuCode && ['K_PRICE', 'K_COMPETITOR'].includes(X.tpl)) Object.assign(sl, FD.tipSlots('3040421754')); if (X.tpl === 'K_COMPETITOR' && !sl.brandId) sl.brandId = 'BR_LUSINE';
       if (X.tpl === 'K_BUYER_ABSENT' && !sl.storeId) { sl.storeId = st().world.stores.find(s => s.vsr === X.vsr).id; sl.n = sl.n || 3; } if (X.tpl === 'K_RETURN' && !sl.unitOf) sl.unitOf = '3040421754';
       if (X.tpl === 'K_PROMO' && !sl.promoId) { const p = st().world.promos.find(q => q.end >= today()); sl.promoId = p.promoId; sl.date = p.end; } if (X.tpl === 'K_GOOD' && sl.pct == null) sl.pct = 10; };
@@ -330,34 +366,7 @@
         FD.btn(t('L_ACCEPT'), () => { FD.dx('CORRECTION_DECIDE', { id, accept: true }); FD.sheet.close(); FD.toast('S_SAVED'); }, 'primary', 'check')] });
   };
 
-  // KPI breakdown drawer
-  S.kpiDrawer = function (kind) {
-    const titles = { upval: 'L_KPI_UPVAL', net: 'L_KPI_NET', conv: 'L_KPI_CONV', upsells: 'L_KPI_UPSELLS', reasons: 'L_KPI_REASONS', attention: 'L_KPI_ATTN' };
-    if (kind === 'attention') { FD.go('#/sup/stores'); L['stores:band'] = 'LOW'; return; }
-    if (kind === 'reasons') return S.reasonDrawer({ group: 'R_NONE', kind: null });
-    FD.drawer.open({ title: t(titles[kind]), render: () => {
-      const s = st(); const { from, to } = S.range(); const by = L['kpi:by'] || 'vsr';
-      const recs = S.recs(); const sold = recs.filter(r => SOLD.includes(r.outcome));
-      const val = r => (r.got || 0) * FD.sku(r.alt || r.sku).cost;
-      let rows;
-      if (by === 'vsr') rows = S.vsrs().map(v => { const m = FD.vsrMetrics(s, v.id, from, to); return { id: v.id, label: FD.nameOf(v), open: () => S.vsrDrawer(v.id, true), v: kind === 'net' ? m.net : kind === 'conv' ? m.upsellConv : kind === 'upsells' ? m.sold : m.upsellValue }; });
-      else if (by === 'store') { const g = {}; (kind === 'net' ? [] : recs).forEach(r => { g[r.store] = g[r.store] || []; g[r.store].push(r); });
-        if (kind === 'net') S.stores().forEach(x => { let n = 0; for (const k of FD.SKUS) for (const o of FD.storeOrders(s, x.id, k.code)) if (o.date >= from && o.date <= to) n += o.value; g[x.id] = n; });
-        rows = Object.entries(g).map(([id, rs]) => ({ id, label: FD.nameOf(storeOf(id)), open: () => S.storeDrawer(id, null, true), v: kind === 'net' ? rs : kind === 'conv' ? pct(rs.filter(r => SOLD.includes(r.outcome)).length, rs.length) : kind === 'upsells' ? rs.filter(r => SOLD.includes(r.outcome)).length : sum(rs.filter(r => SOLD.includes(r.outcome)), val) })); }
-      else { rows = FD.SKUS.map(k => { const rs = recs.filter(r => r.sku === k.code); const ss = rs.filter(r => SOLD.includes(r.outcome));
-        return { id: k.code, label: FD.nameOf(k), open: () => S.skuDrawer(k.code, true), v: kind === 'net' ? FD.skuPerf(s, from, to).find(x => x.code === k.code).sales : kind === 'conv' ? pct(ss.length, rs.length) : kind === 'upsells' ? ss.length : sum(ss, val) }; }); }
-      rows = rows.filter(r => r.v > 0).sort((a, b) => b.v - a.v).slice(0, 15);
-      const fmt = kind === 'conv' ? v => FD.fmt.pct(v) : kind === 'upsells' ? v => FD.fmt.num(v) : v => FD.fmt.money0(v);
-      // daily trend for the metric
-      const days = []; for (let d = FD.addDays(to, -Math.max(13, FD.daysBetween(from, to))); d <= to; d = FD.addDays(d, 1)) if (FD.isSellingDay(d)) days.push(d);
-      const series = days.map(d => { const rs = FD.recsIn(s, { from: d, to: d, route: S.f.route || null }); const ss = rs.filter(r => SOLD.includes(r.outcome));
-        return kind === 'conv' ? pct(ss.length, rs.length) : kind === 'upsells' ? ss.length : kind === 'net' ? sum(S.stores(), x => sum(FD.SKUS, k => sum(FD.storeOrders(s, x.id, k.code).filter(o => o.date === d), o => o.value))) : sum(ss, val); });
-      return h('div', { class: 'stack s16' },
-        h('div', { class: 'card', style: { padding: '14px' } }, FD.line([{ name: t(titles[kind]), values: series.map(v => v || null) }], days.map(d => FD.fmt.date(d)), { h: 180, fmt, label: t(titles[kind]) })),
-        FD.seg([{ id: 'vsr', label: t('L_BY_VSR') }, { id: 'store', label: t('L_BY_STORE') }, { id: 'sku', label: t('L_BY_SKU') }], by, v => { L['kpi:by'] = v; FD.drawer.refresh(); }),
-        rows.length ? FD.bars(rows.map(r => ({ label: r.label, value: r.v, display: fmt(r.v), onClick: r.open }))) : FD.empty('X_FILTER'));
-    } });
-  };
+
 
   // Why-not-sold drawer with inline actions (Exempt, Reply, Tip)
   S.reasonDrawer = function (filter) {
@@ -443,16 +452,27 @@
       footer: () => [FD.btn(t('L_CANCEL'), () => FD.sheet.close(), 'secondary'), h('span', { class: 'grow' }), FD.btn(t('L_SAVE'), () => {
         if (r) FD.dx('SUP_REC_EDIT', { recId: r.id, sku: X.sku !== r.sku ? X.sku : null, qty: X.qty }); else FD.dx('SUP_REC_ADD', { store, sku: X.sku, qty: X.qty });
         FD.sheet.close(); FD.toast('S_SAVED'); }, 'primary')] }); };
-  S.addVisitSheet = function (vsrId) { const s = st(); const inPlan = new Set(FD.planFor(s, vsrId, today()).stops.map(x => x.store));
-    const opts = s.world.stores.filter(x => (x.vsr === vsrId || FD.routeOwner(s, x.route, today()) === vsrId) && !inPlan.has(x.id)).sort((a, b) => FD.nameOf(a).localeCompare(FD.nameOf(b)));
+  S.addVisitSheet = function (vsrId, day) { const s = st(); const d = day || today(); const inPlan = new Set(FD.planFor(s, vsrId, d).stops.filter(x => x.status !== 'SKIPPED').map(x => x.store));
+    const opts = s.world.stores.filter(x => (x.vsr === vsrId || FD.routeOwner(s, x.route, d) === vsrId) && !inPlan.has(x.id)).sort((a, b) => FD.nameOf(a).localeCompare(FD.nameOf(b)));
     if (!opts.length) return FD.toast(null, null, { text: t('X_FILTER') });
     let pick = opts[0].id;
     FD.sheet.open({ center: true, title: t('L_ADD_STORE_VISIT'), render: () => h('div', { class: 'stack s16' }, h('div', { class: 'field' }, h('label', null, t('L_STORE')), FD.select(opts.map(x => ({ id: x.id, label: FD.nameOf(x) })), pick, v => { pick = v; })), h('div', { class: 'small muted' }, t('L_PLAN_NOTE'))),
-      footer: () => [FD.btn(t('L_CANCEL'), () => FD.sheet.close(), 'secondary'), h('span', { class: 'grow' }), FD.btn(t('L_ADD'), () => { FD.dx('OFFPLAN_ADD', { vsr: vsrId, store: pick, bySup: true }); FD.sheet.close(); FD.toast('S_SAVED'); }, 'primary', 'plus')] }); };
-  S.planEditor = function (vsrId) {
-    const s = st(); const d = today();
+      footer: () => [FD.btn(t('L_CANCEL'), () => FD.sheet.close(), 'secondary'), h('span', { class: 'grow' }), FD.btn(t('L_ADD'), () => { FD.dx('OFFPLAN_ADD', { vsr: vsrId, store: pick, bySup: true, date: d }); FD.sheet.close(); FD.drawer.refresh(); FD.toast('S_SAVED'); }, 'primary', 'plus')] }); };
+  S.planEditor = function (vsrId, o = {}) {
+    const s = st(); const d = o.date || today(); const others = s.world.vsrs.filter(x => x.id !== vsrId && x.kind === 'sales');
+    const sales = sid => s.orders.filter(q => q.date === d && q.store === sid && q.vsr === vsrId).reduce((a, q) => a + q.value, 0);
     if (!FD.isSellingDay(d)) return FD.empty('L_NO_PLAN_TODAY', null, 'calendar');
     const plan = FD.planFor(s, vsrId, d); const confirmed = s.dayConfirmed[vsrId + '|' + d];
+    // arrows move a stop past the next still-planned stop (visited stops keep their place)
+    const near = (j, dir) => { for (let k = j + dir; k >= 0 && k < plan.stops.length; k += dir) if (plan.stops[k].status === 'PLANNED') return k; return -1; };
+    const move = (j, dir) => { const k = near(j, dir); if (k >= 0) FD.dx('STOP_SWAP', { a: plan.stops[j].id, b: plan.stops[k].id }); };
+    // drag a planned stop by its handle; cards move as you drag, the new order is saved on release
+    const drag = e => { const card = e.currentTarget.closest('.plan-stop'), list = card.parentNode; e.preventDefault(); card.classList.add('dragging');
+      const over = ev => { const tgt = [...list.querySelectorAll('.plan-stop[data-planned]')].find(c => c !== card && (r => ev.clientY > r.top && ev.clientY < r.bottom)(c.getBoundingClientRect())); if (!tgt) return;
+        const r = tgt.getBoundingClientRect(); list.insertBefore(card, ev.clientY < r.top + r.height / 2 ? tgt : tgt.nextSibling); };
+      const up = () => { removeEventListener('pointermove', over); removeEventListener('pointerup', up); card.classList.remove('dragging');
+        FD.dx('STOP_ORDER', { ids: [...list.querySelectorAll('.plan-stop[data-planned]')].map(c => c.dataset.stop) }); };
+      addEventListener('pointermove', over); addEventListener('pointerup', up); };
     const recRow = r => { const removed = r.supRemoved; const open = r.outcome === null && !r.blockedAt;
       return h('div', { class: 'list-row plan-rec' + (removed ? ' removed' : '') }, h('div', { class: 'grow', style: { minWidth: 0 } }, FD.skuLabel(r.sku, FD.fmt.num(r.qtyModified ?? r.qty) + ' ' + FD.unitWord(r.sku, r.qtyModified ?? r.qty) + ' · ' + t('TYPE_' + r.type))),
         removed ? FD.chip(t('L_REMOVED'), 'bad') : r.supEdited ? FD.chip(t(r.supEdited.prev ? 'L_CHANGED_BY_YOU' : 'L_ADDED_BY_YOU'), 'info') : null,
@@ -461,28 +481,32 @@
           FD.iconBtn('edit', t('L_CHANGE_REC'), () => S.recEditSheet({ recId: r.id })), FD.iconBtn('trash', t('L_REMOVE'), () => { FD.dx('SUP_REC_REMOVE', { recId: r.id }); FD.toast('S_SAVED', null, { undo: () => FD.dx('SUP_REC_RESTORE', { recId: r.id }) }); })) : null); };
     const stopCard = (x, i) => { const recs = s.recs.filter(r => r.store === x.store && r.date === d && FD.recVsr(r) === vsrId && (!r.blockedAt || r.supRemoved));
       const editable = x.status === 'PLANNED' || x.status === 'ARRIVED';
-      return h('div', { class: 'card plan-stop' + (x.status === 'SKIPPED' ? ' skipped' : '') },
-        h('div', { class: 'plan-stop-h' }, h('span', { class: 'plan-seq' }, FD.fmt.num(i + 1)),
-          h('button', { type: 'button', class: 'grow link-btn', style: { minWidth: 0, textAlign: 'start' }, on: { click: () => S.storeDrawer(x.store, null, true) } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, FD.nameOf(storeOf(x.store))),
-            h('span', { class: 'small muted' }, t('LBL_' + storeOf(x.store).label) + (x.skipReason ? ' · ' + t(x.skipReason) : ''))),
-          FD.vsr.statusChip(x),
-          x.status === 'PLANNED' ? FD.iconBtn('trash', t('L_REMOVE_STOP'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store }); FD.toast('S_SAVED', null, { undo: () => FD.dx('SUP_STOP_RESTORE', { store: x.store }) }); })
-            : x.status === 'SKIPPED' && x.bySup ? FD.btn(t('L_RESTORE'), () => FD.dx('SUP_STOP_RESTORE', { store: x.store }), 'ghost sm', 'undo') : null),
+      return h('div', { class: 'card plan-stop' + (x.status === 'SKIPPED' ? ' skipped' : ''), dataset: Object.assign({ stop: x.id }, x.status === 'PLANNED' ? { planned: '' } : {}) },
+        h('div', { class: 'plan-stop-h' }, x.status === 'PLANNED' ? h('button', { type: 'button', class: 'icon-btn plan-grip', 'aria-label': t('L_DRAG_STOP'), title: t('L_DRAG_STOP'), on: { pointerdown: drag, keydown: e => { const dir = { ArrowUp: -1, ArrowDown: 1 }[e.key]; if (dir) { e.preventDefault(); move(i, dir); } } } }, I('grip')) : null,
+          h('span', { class: 'plan-seq' }, FD.fmt.num(i + 1)), FD.sizeIcon(storeOf(x.store).size),
+          h('div', { class: 'grow', style: { minWidth: 0 } }, // name on top, details and chips below so the name never gets squeezed
+            h('button', { type: 'button', class: 'link-btn', style: { maxWidth: '100%', textAlign: 'start' }, on: { click: () => S.storeDrawer(x.store, null, true) } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, FD.nameOf(storeOf(x.store)))),
+            h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '4px' } }, h('span', { class: 'small muted' }, [t('LBL_' + storeOf(x.store).label), x.skipReason ? t(x.skipReason) : null, x.arrivedAt ? FD.fmt.time(x.arrivedAt) : null, sales(x.store) ? FD.fmt.money0(sales(x.store)) : null].filter(Boolean).join(' · ')),
+              o.missed && o.missed.has(x.id) ? FD.chip(t('L_MISSED'), 'bad') : x.offPlan ? FD.chip(t('L_OFF_PLAN'), 'warn') : x.supAdded && x.status === 'PLANNED' ? FD.chip(t('L_ADDED_BY_YOU'), 'info') : FD.vsr.statusChip(x),
+              s.preorders.some(p => p.store === x.store && p.forDate === d && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null)),
+          x.status === 'PLANNED' && others.length ? FD.iconBtn('user-switch', t('ACT_MOVE_VAN'), e => FD.menu(e.currentTarget, others.map(q => ({ icon: 'truck', label: FD.nameOf(q), onClick: () => FD.dx('STOP_REASSIGN', { visitId: x.id, toVan: q.id }) })))) : null,
+          x.status === 'PLANNED' ? FD.iconBtn('trash', t('L_REMOVE_STOP'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: d }); FD.toast('S_SAVED', null, { undo: () => FD.dx('SUP_STOP_RESTORE', { store: x.store, date: d }) }); })
+            : x.status === 'SKIPPED' && x.bySup ? FD.btn(t('L_RESTORE'), () => FD.dx('SUP_STOP_RESTORE', { store: x.store, date: d }), 'ghost sm', 'undo') : null),
         recs.length ? h('div', null, recs.map(recRow)) : null,
         editable ? h('div', { class: 'plan-add' }, FD.btn(t('L_ADD_PRODUCT'), () => S.recEditSheet({ store: x.store }), 'ghost sm', 'plus')) : null); };
     return h('div', { class: 'stack s12' },
       h('div', { class: 'row between wrap' }, h('div', null, h('b', null, t('L_PLAN_STOPS', { n: FD.fmt.num(plan.stops.filter(x => x.status !== 'SKIPPED').length) })),
           h('div', { class: 'small', style: { color: confirmed ? 'var(--good)' : 'var(--ink-3)' } }, t(confirmed ? 'L_PLAN_CONFIRMED' : 'L_PLAN_NOT_CONFIRMED'))),
-        FD.btn(t('L_ADD_STORE_VISIT'), () => S.addVisitSheet(vsrId), 'secondary sm', 'plus')),
+        FD.btn(t('L_ADD_STORE_VISIT'), () => S.addVisitSheet(vsrId, d), 'secondary sm', 'plus')),
       h('div', { class: 'small muted' }, t('L_PLAN_NOTE')),
       plan.stops.length ? plan.stops.map(stopCard) : FD.empty('X_TODAY_NONE', null, 'calendar'));
   };
 
-  S.vsrContent = function (vsrId, full) {
+  S.vsrContent = function (vsrId, full, {date}={}) {
     const s = st(); const { from, to } = S.range(); const m = FD.vsrMetrics(s, vsrId, from, to); const b = FD.baseline(s, vsrId); const v = vsrOf(vsrId);
     const rank = FD.ranking(s, 'ABS', from, to).find(x => x.vsr === vsrId);
-    const tab = L['vsr:tab'] || 'plan';
-    const metric = (label, val, sc, dl) => h('div', { class: 'card', style: { padding: '12px 14px' } }, h('div', { class: 'small muted' }, label), h('div', { class: 'row between', style: { flexWrap: 'wrap', gap: '4px' } }, h('b', { style: { fontSize: '18px', whiteSpace: 'nowrap' } }, val), dl != null ? h('span', { class: 'row', style: { gap: '4px' } }, FD.delta(dl), h('span', { class: 'sub' }, t('L_COL_CHANGE'))) : null));
+    const tab = L['vsr:tab'] || 'day';
+    const metric = (label,val,sc,dl) => h('div',{class:'card metric-cell'},h('div',{class:'metric-label small muted'},label),h('b',{class:'metric-value'},val),dl!=null?h('div',{class:'metric-reference small muted'},FD.delta(dl),h('span',null,t('L_COL_CHANGE'))):null);
     // daily net: pilot days vs before-pilot average
     const days = []; for (let d = FD.PILOT_START; d <= today(); d = FD.addDays(d, 1)) if (FD.isSellingDay(d)) days.push(d);
     const myStores = s.world.stores.filter(x => x.vsr === vsrId);
@@ -490,25 +514,30 @@
     const recs = s.recs.filter(r => r.vsr === vsrId && r.outcome && r.outcome !== 'CARRIED' && r.date >= from && r.date <= to);
     const typeF = L['vsr:type'] || '', outF = L['vsr:out'] || '';
     const hist = recs.filter(r => (!typeF || r.type === typeF) && (!outF || (outF === 'SOLD' ? SOLD.includes(r.outcome) : r.outcome === outF)));
-    const tabs = h('div', { class: 'tabs', style: { padding: 0 } }, [['plan', 'L_TODAY_PLAN'], ['overview', 'L_OVERVIEW'], ['history', 'L_HISTORY'], ['coach', 'L_TIPS_SENT']].map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['vsr:tab'] = id; full ? FD.render() : FD.drawer.refresh(); } } }, t(lb))));
+    const tabs = h('div', { class: 'tabs', style: { padding: 0 } }, [['day', date && date !== today() ? null : 'L_NAV_TODAY'], ['overview', 'L_OVERVIEW'], ['history', 'L_HISTORY'], ['coach', 'L_TIPS_SENT']].filter(x => v.kind === 'sales' || x[0] === 'day' || x[0] === 'history').map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['vsr:tab'] = id; full ? FD.render() : FD.drawer.refresh(); } } }, lb ? t(lb) : FD.fmt.date(date))));
     let body;
-    if (tab === 'plan') {
-      body = S.planEditor(vsrId);
+    if (tab === 'day' || tab === 'plan' || v.kind !== 'sales' && tab !== 'history') {
+      body = S.vanDay(vsrId,date);
     } else if (tab === 'overview') {
       const rb = FD.reasonBreakdown(s, { vsr: vsrId, from, to });
       const skips = s.visits.filter(x => x.vsr === vsrId && (x.status === 'SKIPPED' || x.moved) && x.date >= from && x.date <= to);
+      // stores where nothing was offered stay folded, so the charts below are not pushed off screen
+      const respRows = s.world.stores.filter(x => x.vsr === vsrId).map(x => Object.assign({ s: x }, FD.storeResponse(s, x.id, vsrId))); const quiet = respRows.filter(x => !x.offered).length;
       body = h('div', { class: 'stack s16' },
         h('div', { class: 'grid-3 metric-grid' },
-          metric(t('L_KPI_UPVAL'), FD.fmt.money0(m.upsellValue), null, null), metric(t('L_COL_CONV'), FD.fmt.pct(m.upsellConv), null, null), metric(t('L_COL_NET'), FD.fmt.money0(m.net), null, m.vsBaseline),
-          metric(t('Q_PVR'), FD.fmt.pct(m.pvr), null, m.pvr - b.pvr), metric(t('Q_XSELL'), FD.fmt.pct(m.xsell), m.score.xsell, null), metric(t('L_NOT_FOLLOWED_PCT'), FD.fmt.pct(m.notFollowedPct), null, null)),
-        h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, t('L_REC_RESPONSE_STORES'))), FD.table({ id: 'vsrResp' + (full ? 'P' : 'D'), rows: s.world.stores.filter(x => x.vsr === vsrId).map(x => Object.assign({ s: x }, FD.storeResponse(s, x.id, vsrId))), onRow: x => S.storeDrawer(x.s.id), defaultSort: ['conv', 'desc'], columns: [
+          // Primary pilot KPI and four supporting KPIs, matching the approved deck.
+          FD.PILOT_METRICS.map(mt => h('button', { type: 'button', class: 'card lever-card', title: t(mt.info), on: { click: () => S.metricDrawer(mt.k, { ids: [vsrId], from, to, prev: { from: FD.BASE_START, to: FD.addDays(FD.PILOT_START, -1) } }) } },
+            h('div', { class: 'metric-label small muted' }, t(mt.label)), h('b', {class:'metric-value'}, FD.metricText(mt.k, m.lev[mt.k])),
+              mt.k === 'upsell' ? h('div', { class: 'metric-reference small muted' }, t('L_TARGET_V', { money: FD.fmt.money0(m.target.upsell) })) : h('div', { class: 'metric-reference small muted' }, S.leverDelta(mt.k, m.lev[mt.k], m.base[mt.k]), h('span', null, t('L_KPI_VS_BASE')))))),
+        h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, t('L_REC_RESPONSE_STORES'))), FD.table({ id: 'vsrResp' + (full ? 'P' : 'D'), rows: respRows.filter(x => x.offered || L['vsrResp:all']), onRow: x => S.storeDrawer(x.s.id), defaultSort: ['conv', 'desc'], columns: [
           { key: 'st', label: t('L_COL_STORE'), render: x => h('span', { class: 'ellipsis', style: { display: 'block', maxWidth: '190px' } }, FD.nameOf(x.s)) },
           { key: 'off', label: t('L_COL_ATTEMPTS'), num: true, sort: (a, c) => a.offered - c.offered, render: x => FD.fmt.num(x.offered) },
           { key: 'conv', label: t('L_COL_CONV'), num: true, sort: (a, c) => a.conv - c.conv, render: x => x.offered ? FD.fmt.pct(x.conv) : '—' },
           { key: 'nf', label: t('L_NOT_FOLLOWED_PCT'), num: true, sort: (a, c) => a.notFollowed - c.notFollowed, render: x => FD.fmt.pct(x.notFollowed) },
-          { key: 'seg', label: t('L_RESPONSE'), render: x => S.segChip(x.segment) }] })),
-        h('div', { class: 'card', style: { padding: '14px' } }, h('div', { class: 'row between', style: { marginBottom: '6px' } }, h('b', { class: 'row', style: { gap: '4px' } }, t('L_COL_FOL_CHG'), S.info(t('L_FOL_EXPL')))), m.followed.pending ? h('div', { class: 'small muted', style: { marginBottom: '6px' } }, t('L_EARLY_CHECK')) : null,
-          FD.bars([{ label: t('L_COL_FOL_CHG'), value: Math.max(0, m.followed.withRecs), display: FD.fmt.signedPct(m.followed.withRecs) }, { label: t('INS_OTHERS'), value: Math.max(0, m.followed.without), display: FD.fmt.signedPct(m.followed.without), muted: true }])),
+          { key: 'seg', label: t('L_RESPONSE'), render: x => S.segChip(x.segment) }] }),
+          quiet ? h('div', { class: 'card-f' }, FD.btn(L['vsrResp:all'] ? t('L_SHOW_LESS') : tx('L_SHOW_NOT_OFFERED', { n: quiet }), () => { L['vsrResp:all'] = !L['vsrResp:all']; full ? FD.render() : FD.drawer.refresh(); }, 'ghost sm')) : null),
+        h('div', { class: 'card', style: { padding: '14px' } }, h('div', { class: 'row between', style: { marginBottom: '6px' } }, h('b', { class: 'row', style: { gap: '4px' } }, t('L_FOL_TITLE'), S.info(t('L_FOL_EXPL')))), m.followed.pending ? h('div', { class: 'small muted', style: { marginBottom: '6px' } }, t('L_EARLY_CHECK')) : null,
+          [[t('L_COL_FOL_CHG'), m.followed.withRecs], [t('INS_OTHERS'), m.followed.without]].map(([lb, v]) => h('div', { class: 'row between', style: { padding: '6px 0' } }, h('span', null, lb), h('b', { class: 'tabular' }, FD.fmt.signedPct(v))))),
         h('div', { class: 'card', style: { padding: '14px' } }, h('b', null, t('L_DAILY_NET')), FD.line([{ name: t('L_PILOT'), values: daily }, { name: t('L_BASE_AVG'), values: days.map(() => b.perDay) }], days.map(d => FD.fmt.date(d)), { h: 180, fmt: v => FD.fmt.money0(v), label: t('L_DAILY_NET') })),
         h('div', { class: 'card', style: { padding: '14px' } }, h('b', null, t('L_REASON_MIX')), h('div', { style: { marginTop: '10px' } }, FD.bars(rb.filter(g => g.count).map(g => ({ label: t(g.group === 'R_OTHER' ? 'SK_OTHER' : g.group), value: g.count, muted: g.group === 'R_NONE', onClick: () => { L['rd:f'] = { vsr: vsrId }; S.reasonDrawer({ group: g.group }); } }))))),
         skips.length ? h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, t('L_SKIPS'))), skips.slice(-10).reverse().map(x => h('div', { class: 'list-row' }, h('span', { class: 'grow' }, FD.nameOf(storeOf(x.store))), h('span', { class: 'small muted' }, FD.fmt.date(x.date)), FD.chip(t(x.skipReason || x.moveReason || 'SK_OTHER'))))) : null);
@@ -534,15 +563,19 @@
           h('div', { class: 'grow' }, h('div', { style: { fontWeight: 500 } }, tx(x.tpl + '_T', x.slots)), h('div', { class: 'small muted' }, x.text || tx(x.tpl, x.slots))), h('div', { class: 'small muted' }, FD.fmt.date(x.sentAt.date)), x.read ? FD.chip(t('ST_VIEWED'), 'good') : FD.chip(t('L_UNREAD'))))) : h('div', { class: 'card' }, FD.empty('X_TIPS', null, 'bulb'))));
     }
     return h('div', { class: 'stack s16' },
-      h('div', { class: 'row', style: { gap: '14px' } }, FD.avatar(v, 'lg'), h('div', { class: 'grow' }, full ? null : h('div', { style: { fontWeight: 600, fontSize: '17px' } }, FD.nameOf(v)), h('div', { class: full ? '' : 'small muted' }, FD.nameOf(s.world.routes.find(x => x.id === v.route)))),
-        h('div', { class: 'score-ring', style: { width: '64px', height: '64px' } }, FD.ring(rank.composite, 64, 7), h('b', { style: { fontSize: '16px' } }, FD.fmt.num(Math.round(rank.composite)))),
-        h('div', { style: { textAlign: 'center' } }, h('span', { class: 'rank r' + rank.rank, style: { width: '36px', height: '36px', fontSize: '15px' } }, '#' + FD.fmt.num(rank.rank)))),
-      rank.context.length ? h('div', { class: 'row wrap' }, rank.context.map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null,
-      h('div', { class: 'row wrap' }, FD.btn(t('L_SEND_TIP'), () => S.tipComposer(vsrId, 'K_CUSTOM', {}), 'secondary sm', 'bulb'), FD.btn(t('L_VIEW_ROUTE'), () => S.routeMap(vsrId), 'secondary sm', 'map'),
-        FD.btn(t('L_MESSAGE'), () => FD.threadSheet({ type: 'vsr', id: vsrId }, 'SUP'), 'secondary sm', 'message'), FD.btn(t('L_CHANGE_ROUTE'), () => S.routeAssignSheet(vsrId), 'secondary sm', 'user-switch')),
+      // the drawer title carries avatar and name; here: area, and the ranking figure with its meaning one tap away
+      h('div', { class: 'row', style: { gap: '14px' } }, h('div', { class: 'grow' }, h('div', { class: 'small muted' }, FD.routeArea(s.world.routes.find(x => x.id === v.route)))),
+        rank ? h('div', { class: 'stack', style: { gap: '2px', alignItems: 'flex-end' } }, h('span', { class: 'small muted row', style: { gap: '4px' } }, t('L_COL_VS_BASE'), S.info(t('L_VS_MY_BASE'))), S.baseDelta(rank.m, true)) : FD.chip(t('ST_NO_ACTIVITY'), 'outline'),
+        rank && rank.m.hasBaseline ? h('div', { style: { textAlign: 'center' } }, h('span', { class: 'rank r' + rank.rank, style: { width: '36px', height: '36px', fontSize: '15px' } }, '#' + FD.fmt.num(rank.rank))) : null),
+      rank && rank.context.length ? h('div', { class: 'row wrap' }, rank.context.map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null,
+      h('div', { class: 'row wrap' }, FD.btn(t('L_MESSAGE'), () => FD.threadSheet({ type: 'vsr', id: vsrId }, 'SUP'), 'secondary sm', 'message'),
+        h('button', { type: 'button', class: 'btn ghost sm', 'aria-haspopup': 'menu', on: { click: e => FD.menu(e.currentTarget, [
+          v.kind === 'sales' ? { icon: 'bulb', label: t('L_SEND_TIP'), onClick: () => S.tipComposer(vsrId, 'K_CUSTOM', {}) } : null,
+          { icon: 'map', label: t('L_VIEW_ROUTE'), onClick: () => S.routeMap(vsrId) }, '-',
+          { icon: 'user-switch', label: t('L_CHANGE_ROUTE'), onClick: () => S.routeAssignSheet(vsrId) }].filter(Boolean)) } }, I('more', 's16'), t('L_MORE'))),
       tabs, body);
   };
-  S.vsrDrawer = (vsrId, push) => FD.drawer.open({ title: () => FD.nameOf(vsrOf(vsrId)), expand: '#/sup/team/' + vsrId, render: () => S.vsrContent(vsrId, false) }, { push });
+  S.vsrDrawer = (vsrId, push, tab, {date}={}) => { if (tab) L['vsr:tab'] = tab; return FD.drawer.open({ title: () => h('span', { class: 'row', style: { gap: '10px' } }, FD.avatar(vsrOf(vsrId)), FD.nameOf(vsrOf(vsrId))), expand: '#/sup/team/' + vsrId, render: () => S.vsrContent(vsrId, false,{date}) }, { push }); };
   S.segChip = seg => FD.chip(t(seg), { SEG_RECEPTIVE: 'good', SEG_SELECTIVE: 'warn', SEG_RESISTANT: 'bad', SEG_NEW: '' }[seg]);
   S.routeAssignSheet = function (vsrId) {
     const from = FD.addDays(today(), 1); let route = st().world.routes.find(r => FD.routeOwner(st(), r.id, from) === vsrId).id;
@@ -560,12 +593,12 @@
   };
   S.routeMap = function (vsrId) {
     const route = st().world.routes.find(r => FD.routeOwner(st(), r.id, today()) === vsrId) || st().world.routes.find(r => r.id === vsrOf(vsrId).route);
-    const stores = st().world.stores.filter(s => s.route === route.id);
+    const stores = st().world.stores.filter(s => s.route === route.id); const attnIds = new Set(FD.storesNeedingAttention(st(), stores.map(s => s.id), today()).map(x => x.id));
     const box = h('div', { class: 'snap map-box', style: { height: '460px' } });
     FD.sheet.open({ center: true, title: FD.nameOf(route), render: () => { setTimeout(() => FD.snapMap(box, stores.map((s, i) => {
-      const hl = FD.storeHealth(st(), s.id, today());
-      return { lat: s.lat, lng: s.lng, label: FD.fmt.num(i + 1), color: hl.band === 'GOOD' ? '#2E7D4F' : hl.band === 'WATCH' ? '#C9821A' : '#B3372F', name: FD.nameOf(s), sub: t('L_HEALTH') + ' · ' + FD.fmt.num(hl.score), open: () => { FD.sheet.close(); S.storeDrawer(s.id); } };
-    })), 60); return h('div', null, box, h('div', { class: 'legend', style: { marginTop: '8px' } }, [['#2E7D4F', 'L_BAND_GOOD'], ['#C9821A', 'L_BAND_WATCH'], ['#B3372F', 'L_BAND_LOW']].map(([c, k]) => h('span', null, h('span', { class: 'sw', style: { background: c } }), t(k))))); } });
+      const need = attnIds.has(s.id); const g = FD.storeGlance(st(), s.id, today());
+      return { lat: s.lat, lng: s.lng, label: FD.fmt.num(i + 1), color: need ? FD.tok('bad') : FD.tok('brand'), name: FD.nameOf(s), sub: t('L_G_LAST_ORDER') + ' · ' + S.ago(g.daysSinceOrder), open: () => { FD.sheet.close(); S.storeDrawer(s.id); } };
+    })), 60); return h('div', null, box, h('div', { class: 'legend', style: { marginTop: '8px' } }, [['var(--brand)', 'L_ALL_STORES'], ['var(--bad)', 'L_ATTN_ONLY']].map(([c, k]) => h('span', null, h('span', { class: 'sw', style: { background: c } }), t(k))))); } });
   };
 
   // Returns watchlist: status, before vs since, what it holds back, and the review decision
@@ -611,8 +644,8 @@
 
   // Store drawer / page content
   S.storeContent = function (storeId, focusSku, full) {
-    const s = st(); const store = storeOf(storeId); const hl = FD.storeHealth(s, storeId, today()); const shelf = FD.shelf(s, storeId, today());
-    const tab = L['store:tab'] || 'overview';
+    const s = st(); const store = storeOf(storeId); const shelf = FD.shelf(s, storeId, today());
+    const tab = ['overview', 'products', 'timeline', 'whatsapp'].includes(L['store:tab']) ? L['store:tab'] : 'overview';
     const ba = FD.blocksAt(s, storeId); const blocked = ba.store;
     const refresh = () => full ? FD.render() : FD.drawer.refresh();
     const blockedCard = () => { const skuBs = Object.entries(ba.skus); if (!skuBs.length) return null;
@@ -625,33 +658,32 @@
       { icon: 'ban', label: t('L_BLOCK_SKU_HERE'), onClick: () => { const n0 = st().blocks.length; FD.dx('BLOCK_ADD', { store: storeId, sku: code }); FD.toast('S_BLOCKED', { vsrId: store.vsr }, { undo: () => { const b = st().blocks[n0]; if (b) FD.dx('BLOCK_REMOVE', { blockId: b.id }); } }); } },
       state === 'DECLINED' ? { icon: 'refresh', label: t('L_OVERRIDE_CD'), onClick: () => { FD.dx('COOLDOWN_OVERRIDE', { store: storeId, sku: code }); FD.toast('S_SAVED'); } } : null,
       { icon: 'package', label: t('L_OPEN') + ' · ' + FD.nameOf(FD.sku(code)), onClick: () => S.skuDrawer(code, !full) }].filter(Boolean));
-    const recs = s.recs.filter(r => r.store === storeId && r.outcome && r.date <= today()).sort((a, b) => b.date.localeCompare(a.date));
-    const photos = recs.filter(r => r.photo);
     const storeMsgs = s.threads.flatMap(x => x.messages.filter(m => m.store === storeId).map(m => ({ m, th: x })));
-    const tabs = h('div', { class: 'tabs', style: { padding: 0 } }, [['overview', 'L_OVERVIEW'], ['products', 'L_NAV_SKUS'], ['timeline', 'L_TIMELINE'], ['recs', 'L_RECS'], ['photos', 'L_PHOTOS']].map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['store:tab'] = id; refresh(); } } }, t(lb))));
+    const tabs = h('div', { class: 'tabs store-sections', style: { padding: 0 } }, [['overview', 'L_OVERVIEW'], ['products', 'L_NAV_SKUS'], ['timeline', 'L_TIMELINE'], ['whatsapp', 'L_WHATSAPP']].map(([id, lb]) => h('button', { type: 'button', class: tab === id ? 'on' : '', on: { click: () => { L['store:tab'] = id; L['store:sc:' + storeId] = null; refresh(); } } }, t(lb))));
     let body;
-    if (tab === 'overview') {
-      const parts = [['coverage', 'L_H_COVERAGE'], ['fresh', 'L_H_FRESH'], ['consistency', 'L_H_CONSIST'], ['uptake', 'L_H_UPTAKE']];
+    if (tab === 'overview' && L['store:sc:' + storeId]) {
+      body = S.scFull(storeId);
+    } else if (tab === 'overview') {
       const pending = s.corrections.filter(c => c.store === storeId && c.status === 'PENDING');
       body = h('div', { class: 'stack s16' },
         pending.map(c => h('div', { class: 'banner info' }, I('edit'), h('span', { class: 'grow' }, tx('F_CORRECTION', { vsrId: c.vsr, storeId }) + ' · ' + t(c.kind)), FD.btn(t('ACT_DECIDE'), () => S.correctionSheet(c.id), 'secondary sm'))),
         blocked ? h('div', { class: 'banner bad' }, I('ban'), h('span', { class: 'grow' }, t('L_BLOCKED_STORE')), FD.btn(t('L_UNBLOCK'), () => FD.dx('BLOCK_REMOVE', { blockId: blocked.id }), 'secondary sm')) : null,
-        h('div', { class: 'card', style: { padding: '16px' } }, h('div', { class: 'row', style: { gap: '18px', alignItems: 'center' } },
-          h('div', { class: 'score-ring' }, FD.ring(hl.score), h('b', null, FD.fmt.num(hl.score))),
-          h('div', { class: 'grow stack s8' }, h('div', { class: 'row between' }, h('b', null, t('L_HEALTH')), band(hl.band)),
-            parts.map(([k, lb]) => h('div', null, h('div', { class: 'row between small' }, h('span', { class: 'muted' }, t(lb)), h('span', null, FD.fmt.pct(hl.parts[k]))), h('div', { class: 'progress', style: { height: '4px' } }, h('i', { style: { width: hl.parts[k] + '%' } }))))))),
+        S.glance(storeId),
+        S.scCard(storeId) || S.latestPhotos(storeId, () => { L['store:tab'] = 'timeline'; refresh(); }),
+        FD.compIntel(s, storeId).brands.length ? h('section', { class: 'card', style: { padding: '14px' } }, h('h3', { style: { fontSize: '14px', margin: '0 0 8px' } }, t('CI_TITLE')), FD.compSection(storeId, { flat: true })) : null,
         blockedCard(),
-        S.responseCard(storeId),
-        h('div', null, h('h3', { style: { fontSize: '14px', margin: '0 0 8px' } }, t('L_SHELF')), FD.shelfView(shelf, { onTile, blocked: ba.skus })));
+        S.responseCard(storeId));
+    } else if (tab === 'whatsapp') {
+      body = S.ownerChat(storeId, refresh);
     } else if (tab === 'products') {
       const rows = FD.storeSkuStats(s, storeId, today());
-      body = h('div', { class: 'stack s16' }, blockedCard(), h('div', { class: 'card' }, FD.table({ id: 'storeSkus' + (full ? 'P' : 'D'), rows, defaultSort: ['u4', 'desc'], empty: 'X_FILTER', columns: [
+      body = h('div', { class: 'stack s16' }, blockedCard(), h('div', null, h('h3', { style: { fontSize: '14px', margin: '0 0 8px' } }, t('L_SHELF')), FD.shelfView(shelf, { onTile, blocked: ba.skus, filterKey: 'sup:' + storeId })), h('div', { class: 'card' }, FD.table({ id: 'storeSkus' + (full ? 'P' : 'D'), rows, defaultSort: ['u4', 'desc'], empty: 'L_NO_STORE_ORDERS', columns: [
         { key: 'p', label: t('L_COL_PRODUCT'), render: x => h('div', { class: 'row' }, FD.skuLabel(x.code), ba.skus[x.code] ? FD.chip([I('ban', 's14'), t('L_BLOCKED')], 'bad') : null) },
-        { key: 'last', label: t('L_COL_LAST'), sort: (a, c) => a.lastDate.localeCompare(c.lastDate), render: x => h('span', { class: 'nowrap' }, FD.fmt.date(x.lastDate) + ' · ' + FD.fmt.num(x.lastQty)) },
+        { key: 'last', label: t('L_COL_LAST'), sort: (a, c) => a.lastDate.localeCompare(c.lastDate), render: x => h('span', { class: 'nowrap' }, FD.fmt.date(x.lastDate)) },
+        { key: 'lq', label: t('L_COL_LAST_QTY'), num: true, sort: (a, c) => a.lastQty - c.lastQty, render: x => FD.fmt.num(x.lastQty) },
         { key: 'u4', label: t('L_COL_UNITS_4W'), num: true, sort: (a, c) => a.units4w - c.units4w, render: x => FD.fmt.num(x.units4w) },
         { key: 'avg', label: t('L_COL_AVG_VISIT'), num: true, sort: (a, c) => a.avgVisit - c.avgVisit, render: x => FD.fmt.num(x.avgVisit, 1) },
-        { key: 'cov', label: t('L_COL_COVER'), num: true, sort: (a, c) => (a.cover ?? -1) - (c.cover ?? -1), render: x => x.cover == null ? '—' : x.cover <= 2 ? FD.chip(t('L_REORDER_DUE'), 'warn') : FD.chip(t('L_COVER_DAYS', { days: FD.fmt.num(x.cover) })) }] }),
-        h('div', { class: 'small muted', style: { padding: '8px 12px' } }, t('L_FROM_SB') + ' ' + t('L_COVER_HELP'))));
+        { key: 'cov', label: h('span', { class: 'row', style: { gap: '4px' } }, t('L_COL_COVER'), S.info(t('L_COVER_HELP'))), num: true, sort: (a, c) => (a.cover ?? -1) - (c.cover ?? -1), render: x => x.cover == null ? '—' : x.cover <= 2 ? FD.chip(t('L_REORDER_DUE'), 'warn') : FD.chip(t('L_COVER_DAYS', { days: FD.fmt.num(x.cover) })) }] })));
     } else if (tab === 'timeline') {
       body = S.timeline(storeId);
     } else if (tab === 'orders') {
@@ -660,26 +692,28 @@
         return h('div', { class: 'list-row', style: { alignItems: 'flex-start' } }, h('div', { style: { width: '90px', flex: 'none' } }, h('b', null, FD.fmt.date(v.date)), h('div', { class: 'small muted' }, FD.fmt.money0(sum(lines, l => l.value)))),
           h('div', { class: 'row wrap grow', style: { gap: '4px' } }, lines.map(l => FD.chip([FD.skuIcon(l.sku, 16), FD.nameOf(FD.sku(l.sku)) + ' ×' + FD.fmt.num(l.units)], l.edited ? 'warn' : ''))));
       }));
-    } else if (tab === 'recs') {
-      body = h('div', { class: 'card' }, FD.table({ id: 'storeRecs' + (full ? 'P' : 'D'), rows: recs, onRow: r => S.recDrawer(r.id, !full), limit: 80, columns: [
-        { key: 'd', label: t('L_COL_DATE'), render: r => FD.fmt.date(r.date) }, { key: 'p', label: t('L_COL_PRODUCT'), render: r => FD.skuLabel(r.sku) },
-        { key: 'o', label: t('L_COL_OUTCOME'), render: outcomeChip }, { key: 'r', label: t('L_COL_REASON'), render: reasonCell }, { key: 'm', label: t('L_COL_CHECK2'), render: matChip }] }));
-    } else if (tab === 'photos') {
-      body = FD.photoTimeline(storeId);
     } else {
       body = h('div', { class: 'stack s8' }, FD.btn(tx('L_MSG_VSR', { vsrId: store.vsr }), () => FD.threadSheet({ type: 'store', id: storeId }, 'SUP'), 'primary', 'message'),
         storeMsgs.length ? h('div', { class: 'card' }, storeMsgs.slice(-6).reverse().map(({ m, th }) => h('button', { type: 'button', class: 'list-row click', style: { width: '100%', textAlign: 'start' }, on: { click: () => FD.chatOpen(th.anchor, 'SUP', { store: storeId }) } },
           h('span', { class: 'fu-ic' }, I('message', 's16')), h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'small muted' }, (m.by === 'SUP' ? t('L_YOU') : FD.nameOf(vsrOf(m.by))) + ' · ' + FD.fmt.date(m.at.date) + (m.sku ? ' · ' + FD.nameOf(FD.sku(m.sku)) : '')),
             h('div', { class: 'ellipsis', dir: 'auto' }, m.text || t('L_ATTACHMENT')))))) : h('div', { class: 'card' }, FD.empty('X_THREAD', null, 'message')));
     }
-    return h('div', { class: 'stack s16' },
-      h('div', { class: 'row wrap', style: { gap: '6px' } }, FD.chip(t('LBL_' + store.label), 'info'), FD.chip(t('SIZE_' + store.size)), store.tags.map(x => FD.chip(t('TAGN_' + x.slice(4)), 'outline')),
-        store.credit !== 'OK' ? FD.creditChip(store.credit, true) : null, store.onboarding !== 'APPROVED' ? FD.chip(t('GATE_ONBOARD'), 'warn') : null),
-      h('dl', { class: 'kv' }, h('dt', null, t('L_COL_VSR')), h('dd', null, FD.nameOf(vsrOf(store.vsr)), s.sbPending.some(p => p.store === storeId) ? ' ' : null, s.sbPending.some(p => p.store === storeId) ? FD.chip(t('L_PENDING_SB'), 'warn') : null), h('dt', null, t('L_ROUTE')), h('dd', null, FD.nameOf(s.world.routes.find(r => r.id === store.route))), h('dt', null, t('L_COL_ID')), h('dd', { class: 'mono' }, store.id)),
-      h('div', { class: 'row wrap' }, FD.btn(t('L_EDIT'), () => S.storeEditSheet(storeId), 'secondary sm', 'edit'), FD.btn(t('L_MESSAGE'), () => FD.threadSheet({ type: 'store', id: storeId }, 'SUP'), 'secondary sm', 'message'),
-        FD.btn(t('L_REASSIGN'), () => S.storeAssignSheet(storeId), 'secondary sm', 'user-switch'),
-        !blocked ? FD.btn(t('L_BLOCK_STORE'), () => S.confirm(tx('L_BLOCK_STORE_Q', { storeId }), () => { FD.dx('BLOCK_ADD', { store: storeId }); FD.toast('S_BLOCKED', { vsrId: store.vsr }); }), 'danger sm', 'ban') : null,
-        null),
+    return h('div', { class: 'stack s12' },
+      h('div', { class: 'store-summary' },
+        h('div', { class: 'store-owner' }, h('b', null, FD.nameOf(vsrOf(store.vsr))), h('span', { class: 'small muted' }, FD.routeArea(s.world.routes.find(r => r.id === store.route)))),
+        h('div', { class: 'store-actions' }, FD.btn(t('L_MESSAGE'), () => FD.threadSheet({ type: 'store', id: storeId }, 'SUP'), 'secondary sm', 'message'),
+          h('button', { type: 'button', class: 'btn ghost sm store-more', 'aria-haspopup': 'menu', on: { click: e => FD.menu(e.currentTarget, [
+            { icon: 'edit', label: t('L_EDIT'), onClick: () => S.storeEditSheet(storeId) },
+            { icon: 'user-switch', label: t('L_REASSIGN'), onClick: () => S.storeAssignSheet(storeId) },
+            blocked ? { icon: 'check', label: t('L_UNBLOCK'), onClick: () => FD.dx('BLOCK_REMOVE', { blockId: blocked.id }) } :
+              { icon: 'ban', label: t('L_BLOCK_STORE'), danger: true, onClick: () => S.confirm(tx('L_BLOCK_STORE_Q', { storeId }), () => { FD.dx('BLOCK_ADD', { store: storeId }); FD.toast('S_BLOCKED', { vsrId: store.vsr }); }) }
+          ]) } }, I('more', 's16'), t('L_MORE')))),
+      store.credit !== 'OK' || store.onboarding !== 'APPROVED' || s.sbPending.some(p => p.store === storeId) ? h('div', { class: 'row wrap', style: { gap: '6px' } },
+        store.credit !== 'OK' ? FD.creditChip(store.credit, true) : null,
+        store.onboarding !== 'APPROVED' ? FD.chip(t('GATE_ONBOARD'), 'warn') : null,
+        s.sbPending.some(p => p.store === storeId) ? FD.chip(t('L_PENDING_SB'), 'warn') : null) : null,
+      // what kind of store this is, always visible: folding it saved no space
+      h('div', { class: 'row wrap store-tags', style: { gap: '6px' } }, FD.chip(t('LBL_' + store.label), 'info'), FD.chip([FD.sizeIcon(store.size), t('SIZE_' + store.size)]), store.tags.map(x => FD.chip(t('TAGN_' + x.slice(4)), 'outline'))),
       tabs, body);
   };
   S.storeDrawer = (storeId, focusSku, push) => FD.drawer.open({ title: () => FD.nameOf(storeOf(storeId)), expand: '#/sup/stores/' + storeId, render: () => S.storeContent(storeId, focusSku, false) }, { push });
@@ -689,36 +723,56 @@
     return h('span', { class: 'vo' }, visit ? FD.chip(t('L_VISIT_ON', { date: FD.fmt.date(visit) }), 'info') : null, order ? FD.chip(t('L_ORDER_ON', { date: FD.fmt.date(order) }), order < (visit || '') ? 'warn' : '') : null);
   };
   S.responseCard = function (storeId) {
-    const s = st(); const r = FD.storeResponse(s, storeId);
+    const s = st(); const r = FD.storeResponse(s, storeId); if (!r.offered) return null; // nothing offered yet: no card of zeros
     const cell = (label, val) => h('div', { class: 'card', style: { padding: '10px 12px', boxShadow: 'none' } }, h('div', { class: 'small muted' }, label), h('b', null, val));
     return h('div', { class: 'card', style: { padding: '14px' } }, h('div', { class: 'row between', style: { marginBottom: '10px' } }, h('b', null, t('L_REC_RESPONSE')), S.segChip(r.segment)),
       h('div', { class: 'metric-grid grid-3' }, cell(t('L_COL_ATTEMPTS'), FD.fmt.num(r.offered)), cell(t('L_COL_CONV'), r.offered ? FD.fmt.pct(r.conv) : '—'), cell(t('L_NOT_FOLLOWED_PCT'), FD.fmt.pct(r.notFollowed)),
         cell(t('L_COL_CHECK2'), r.sold ? FD.fmt.pct(r.confirmed) : '—'), cell(t('E_REVISIT'), FD.fmt.num(r.revisits)), cell(t('L_COL_UPS'), FD.fmt.num(r.sold))),
       h('div', { class: 'small muted', style: { marginTop: '8px' } }, t('L_RESPONSE_NOTE')));
   };
+  // last 4 shelf photos of a store, newest first; tap opens full size
+  S.latestPhotos = function (storeId, all) {
+    const s = st(); const ph = s.photos.filter(p => p.store === storeId).concat(s.recs.filter(r => r.store === storeId && r.photo).map(r => ({ date: (r.reasonAt || {}).date || r.date, src: r.photo })));
+    if (!ph.length) return null; ph.sort((a, b) => b.date.localeCompare(a.date));
+    return h('div', null, h('div', { class: 'row between', style: { marginBottom: '8px' } }, h('h3', { style: { fontSize: '14px', margin: 0 } }, t('L_PHOTOS') + ' · ' + FD.fmt.date(ph[0].date)),
+      ph.length > 4 ? FD.btn(t('L_VIEW_ALL') + ' · ' + FD.fmt.num(ph.length), all, 'secondary sm') : null),
+      h('div', { class: 'photo-day' }, ph.slice(0, 4).map(p => h('button', { type: 'button', 'aria-label': t('L_PHOTO'), on: { click: () => FD.lightbox(p.src) } }, h('img', { src: p.src, alt: '', loading: 'lazy' })))));
+  };
   // everything that happened at a store, newest first (visits, orders, recommendations, returns, photos, messages)
   S.timeline = function (storeId) {
     const s = st(); const from = FD.addDays(today(), -35); const ev = [];
-    s.visits.filter(v => v.store === storeId && v.date >= from && v.date <= today()).forEach(v => ev.push({ d: v.date, tm: v.arrivedAt || '07:00', ic: v.status === 'SKIPPED' ? 'x' : v.revisit ? 'repeat' : 'map-pin', tone: v.status === 'SKIPPED' ? 'warn' : '',
-      text: (v.revisit ? t('L_REVISIT') : t('L_VISIT')) + ' · ' + t('L_STATUS_' + (v.status === 'ARRIVED' ? 'ARRIVED' : v.status)) + (v.skipReason ? ' · ' + t(v.skipReason) : ''), sub: FD.nameOf(vsrOf(v.vsr)) }));
+    s.visits.filter(v => v.store === storeId && v.date >= from && v.date <= today()).forEach(v => ev.push({ d: v.date, tm: v.arrivedAt || '07:00', ic: v.status === 'SKIPPED' ? 'x' : v.status === 'MISSED' ? 'x-circle' : v.revisit ? 'repeat' : 'map-pin', tone: v.status === 'SKIPPED' ? 'warn' : v.status === 'MISSED' ? 'bad' : '',
+      text: (v.revisit ? t('L_REVISIT') : t('L_VISIT')) + ' · ' + t('L_STATUS_' + (v.status === 'ARRIVED' ? 'ARRIVED' : v.status)) + (v.skipReason ? ' · ' + t(v.skipReason) : ''), sub: FD.nameOf(vsrOf(v.vsr)), visit: v.status === 'DONE' || v.status === 'ARRIVED' }));
     const days = {}; for (const k of FD.SKUS) for (const o of FD.storeOrders(s, storeId, k.code)) if (o.date >= from && o.date <= today() && o.units > 0) (days[o.date] = days[o.date] || []).push(o);
-    Object.entries(days).forEach(([d, os]) => ev.push({ d, tm: '12:00', ic: 'package', tone: 'good', text: t('L_ORDER_LINE', { n: FD.fmt.num(os.length), money: FD.fmt.money0(sum(os, o => o.value)) }), chips: os.slice(0, 6).map(o => FD.skuLabel(o.sku)) }));
-    FD.storeRecs(s, storeId).filter(r => r.date >= from && r.outcome && r.outcome !== 'CARRIED').forEach(r => ev.push({ d: r.soldOn || r.date, tm: r.gradedAt || '12:30', ic: FD.SOLD.includes(r.outcome) ? 'check-circle' : r.outcome === 'NOT_OFFERED' ? 'eye-off' : 'x-circle', tone: FD.SOLD.includes(r.outcome) ? 'good' : 'bad',
+    Object.entries(days).forEach(([d, os]) => ev.push({ d, tm: '12:00', ic: 'package', tone: 'good', kind: 'order', text: t('L_ORDER_LINE', { n: FD.fmt.num(os.length), money: FD.fmt.money0(sum(os, o => o.value)) }), chips: os.slice(0, 6).map(o => FD.skuLabel(o.sku)) }));
+    FD.storeRecs(s, storeId).filter(r => r.date >= from && r.outcome && r.outcome !== 'CARRIED').forEach(r => ev.push({ d: r.soldOn || r.date, tm: r.gradedAt || '12:30', ic: FD.SOLD.includes(r.outcome) ? 'check-circle' : r.outcome === 'NOT_OFFERED' ? 'eye-off' : 'x-circle', tone: FD.SOLD.includes(r.outcome) ? 'good' : r.outcome === 'NOT_OFFERED' ? 'warn' : 'bad', kind: FD.SOLD.includes(r.outcome) ? 'sold' : r.outcome === 'NOT_OFFERED' ? 'notoffered' : 'notsold',
       sku: r.sku, text: FD.nameOf(FD.sku(r.sku)) + ' · ' + (r.revisit ? t('E_REVISIT') : r.outcome === 'NOT_OFFERED' ? t('E_NOT_FOLLOWED') : S.outcomeChip(r).textContent), sub: r.reason ? t(r.reason) : null, rec: r.id }));
-    s.returns.filter(x => x.store === storeId && x.date >= from && x.date <= today()).forEach(x => ev.push({ d: x.date, tm: '13:00', ic: 'undo', tone: 'bad', sku: x.sku, text: t('E_RETURNED') + ' · ' + FD.nameOf(FD.sku(x.sku)), sub: FD.fmt.money0(x.value) }));
-    const ph = s.photos.filter(p => p.store === storeId && p.date >= from); [...new Set(ph.map(p => p.date))].forEach(d => ev.push({ d, tm: '12:10', ic: 'camera', text: t('L_PHOTOS') + ' · ' + FD.fmt.num(ph.filter(p => p.date === d).length), photos: ph.filter(p => p.date === d) }));
+    s.returns.filter(x => x.store === storeId && x.date >= from && x.date <= today()).forEach(x => ev.push({ d: x.date, tm: '13:00', ic: 'undo', tone: 'bad', kind: 'return', sku: x.sku, text: t('E_RETURNED') + ' · ' + FD.nameOf(FD.sku(x.sku)), sub: FD.fmt.money0(x.value) }));
+    // a Shelf Check shows as its result; other photos stay a photo strip
+    FD.pgAssessments(s, storeId).filter(a => a.date >= from).forEach(a => { const x = FD.scSummary(s, a.id); if (!x || !x.analysed || !x.current) return;
+      ev.push({ d: a.date, tm: a.time, ic: 'camera', text: t('SC_TITLE') + ' · ' + (x.current.none ? t('SC_NO_OURS') : t('SC_OPEN') + ' ' + FD.fmt.num(x.open)), chips: x.current.none ? null : x.before && x.after ? [FD.scChip(x.before), I('arrow-right', 's14'), FD.scChip(x.after)] : [FD.scChip(x.current)], open: () => { L['store:tab'] = 'overview'; L['store:sc:' + storeId] = a.id; FD.drawer.refresh(false); FD.render(); } }); });
+    const ph = s.photos.filter(p => p.store === storeId && p.date >= from && !(p.assessmentId && FD.scSummary(s, p.assessmentId)?.current)); [...new Set(ph.map(p => p.date))].forEach(d => ev.push({ d, tm: '12:10', ic: 'camera', text: t('L_PHOTOS') + ' · ' + FD.fmt.num(ph.filter(p => p.date === d).length), photos: ph.filter(p => p.date === d) }));
     s.threads.forEach(th => th.messages.filter(m => m.store === storeId && m.at.date >= from).forEach(m => ev.push({ d: m.at.date, tm: m.at.time, ic: 'message', text: (m.by === 'SUP' ? FD.nameOf(s.world.supervisor) : FD.nameOf(vsrOf(m.by))) + ': ' + (m.text || t('L_PHOTO')) })));
     ev.sort((a, b) => (b.d + b.tm).localeCompare(a.d + a.tm));
     if (!ev.length) return h('div', { class: 'card' }, FD.empty('X_FILTER'));
-    const out = []; let day = null;
-    for (const e of ev.slice(0, 120)) {
-      if (e.d !== day) { day = e.d; out.push(h('div', { class: 'tl-day' }, FD.fmt.dateLong(e.d))); }
-      out.push(h('div', { class: 'tl-item' + (e.rec ? ' click' : ''), style: e.rec ? { cursor: 'pointer' } : null, on: e.rec ? { click: () => S.recDrawer(e.rec, true) } : null },
-        e.sku ? h('span', { class: 'tl-ic sku' }, FD.skuIcon(e.sku, 22)) : h('span', { class: 'tl-ic ' + (e.tone || '') }, I(e.ic, 's16')),
+    // everything from a visited day hangs under that visit, so one visit reads as one story
+    const grouped = new Set();
+    for (const v of ev.filter(e => e.visit)) { v.kids = ev.filter(e => !e.visit && !grouped.has(e) && e.d === v.d && e.ic !== 'message'); v.kids.forEach(k => grouped.add(k)); }
+    // a visit's outcome at a glance: green for orders and sales, red for no sale and returns, amber for not offered
+    const SUM = [['order', 'package', 'good', 'L_TL_ORDER'], ['sold', 'check-circle', 'good', 'L_TL_SOLD'], ['notsold', 'x-circle', 'bad', 'L_TL_NOTSOLD'], ['notoffered', 'eye-off', 'warn', 'L_TL_NOTOFFERED'], ['return', 'undo', 'bad', 'L_TL_RETURN']];
+    const summary = kids => { const xs = SUM.map(([k, ic, tone, lb]) => [kids.filter(x => x.kind === k).length, ic, tone, lb]).filter(x => x[0]);
+      return xs.length ? h('div', { class: 'row wrap tl-sum' }, xs.map(([n, ic, tone, lb]) => h('span', { class: 'tl-pill ' + tone }, I(ic, 's14'), t(lb, { n: FD.fmt.num(n) })))) : null; };
+    const item = (e, nested) => h('div', { class: 'tl-item' + (nested ? ' nested' : '') + (e.tone ? ' tone-' + e.tone : '') + (e.rec || e.open ? ' click' : ''), style: e.rec || e.open ? { cursor: 'pointer' } : null, on: e.rec || e.open ? { click: ev2 => { ev2.stopPropagation(); e.open ? e.open() : S.recDrawer(e.rec, true); } } : null },
+        e.sku ? h('span', { class: 'tl-ic sku' }, FD.skuIcon(e.sku, nested ? 18 : 22)) : h('span', { class: 'tl-ic ' + (e.tone || '') }, I(e.ic, nested ? 's14' : 's16')),
         h('div', { style: { minWidth: 0 } }, h('div', { dir: 'auto' }, e.text), e.sub ? h('div', { class: 'small muted' }, e.sub) : null,
           e.chips ? h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '6px' } }, e.chips) : null,
-          e.photos ? h('div', { class: 'photo-day', style: { marginTop: '6px' } }, e.photos.map(p => h('button', { type: 'button', on: { click: () => FD.lightbox(p.src) } }, h('img', { src: p.src, alt: '', loading: 'lazy' })))) : null),
-        h('span', { class: 'small muted' }, FD.fmt.time(e.tm))));
+          e.photos ? h('div', { class: 'photo-day', style: { marginTop: '6px' } }, e.photos.map(p => h('button', { type: 'button', 'aria-label':t('PG_PHOTO_LABEL'), on: { click: () => FD.lightbox(p.src) } }, h('img', { src: p.src, alt: '', loading: 'lazy' })))) : null,
+          e.kids && e.kids.length ? [summary(e.kids), h('div', { class: 'tl-kids' }, e.kids.map(k => item(k, true)))] : null),
+        nested ? null : h('span', { class: 'small muted' }, FD.fmt.time(e.tm)));
+    const out = []; let day = null;
+    for (const e of ev.filter(e => !grouped.has(e)).slice(0, 120)) {
+      if (e.d !== day) { day = e.d; out.push(h('div', { class: 'tl-day' }, FD.fmt.dateLong(e.d))); }
+      out.push(item(e));
     }
     return h('div', { class: 'card', style: { padding: '4px 14px 10px' } }, h('div', { class: 'tline' }, out));
   };
@@ -745,11 +799,12 @@
     const kbs = FD.skuBlocks(s, code); const kAll = kbs.find(b => !b.store);
     const f1 = v => FD.fmt.num(v, 1);
     return h('div', { class: 'stack s16' },
-      h('div', { class: 'row wrap', style: { gap: '10px' } }, FD.skuTile(code, 40), h('span', { class: 'mono muted' }, code), FD.chip(t(k.group)), watched ? FD.chip(t('L_WATCHLIST_FLAG'), 'warn') : null, promo ? FD.chip([I('tag', 's14'), t(promo.promoId)], 'warn') : null,
+      h('div', { class: 'row wrap', style: { gap: '10px' } }, FD.skuTile(code, 40), FD.chip(t(k.group)), watched ? FD.chip(t('L_WATCHLIST_FLAG'), 'warn') : null, promo ? FD.chip([I('tag', 's14'), t(promo.promoId)], 'warn') : null,
         kAll ? FD.chip([I('ban', 's14'), t('L_BLOCKED_ALL_T')], 'bad') : kbs.length ? FD.chip([I('ban', 's14'), t('L_BLOCKED_IN_N', { n: FD.fmt.num(kbs.length) })], 'bad') : null),
       kbs.length ? h('div', { class: 'card blk-card' }, h('div', { class: 'blk-h' }, I('ban', 's16'), h('b', null, t('L_R_BLOCKS')), h('span', { class: 'pill-count' }, FD.fmt.num(kbs.length))),
         kbs.map(b => h('div', { class: 'list-row' }, h('span', { class: 'grow' }, b.store ? FD.nameOf(storeOf(b.store)) : t('L_EVERYWHERE'), h('span', { class: 'small muted' }, ' · ' + t('L_COL_SINCE') + ' ' + FD.fmt.date(b.at.date))),
           FD.btn(t('L_UNBLOCK'), () => FD.dx('BLOCK_REMOVE', { blockId: b.id }), 'secondary sm')))) : null,
+      S.productPriceDetails(code),
       watched || s.watchHistory.some(x => x.sku === code) ? S.watchCard(code) : null,
       h('div', { class: 'grid-3 metric-grid' },
         [[t('L_COL_CARRYING'), FD.fmt.num(p.carrying) + ' · ' + FD.fmt.pct(p.carryingPct)], [t('L_COL_CONV'), p.attempts ? FD.fmt.pct(p.conv) : '—'], [t('L_COL_RETURNS'), FD.fmt.pct(p.returnRate)],
@@ -794,7 +849,7 @@
     const s = st(); const F = L['msgs:f'] = L['msgs:f'] || { kind: 'ALL', q: '' };
     const anchor = r.id && FD.chatAnchor(r.id);
     const q = (F.q || '').trim().toLowerCase();
-    const rows = [{ type: 'team', id: 'ALL' }].concat(s.world.vsrs.filter(v => !S.f.route || v.route === S.f.route).map(v => ({ type: 'vsr', id: v.id })))
+    const rows = [{ type: 'team', id: 'ALL' }].concat(s.world.vsrs.map(v => ({ type: 'vsr', id: v.id })))
       .map(a => ({ a, th: FD.chatFind(a) }))
       .filter(x => F.kind === 'ALL' || (x.th && x.th.unreadSup))
       .filter(x => !q || (FD.chatTitle(x.a, 'SUP') + ' ' + (x.th ? x.th.messages.map(m => (m.text || '') + ' ' + (m.store ? FD.nameOf(storeOf(m.store)) : '')).join(' ') : '')).toLowerCase().includes(q));
@@ -807,7 +862,7 @@
             last ? h('span', { class: 'small muted nowrap' }, last.at.date === today() ? FD.fmt.time(last.at.time) : FD.fmt.date(last.at.date)) : null),
           h('div', { class: 'row between', style: { gap: '8px' } }, h('span', { class: 'small ellipsis', dir: 'auto', style: { color: un ? 'var(--ink)' : 'var(--ink-3)' } }, last ? (last.store ? FD.nameOf(storeOf(last.store)) + ': ' : '') + FD.chatSnippet(last, 'SUP') : FD.chatSub(a, 'SUP')), un ? h('span', { class: 'unread-dot', 'aria-label': t('L_UNREAD') }) : null))); };
     const listPane = h('div', { class: 'chat-list' },
-      h('div', { class: 'chat-list-h' }, h('b', null, t('L_MESSAGES')),
+      h('div', { class: 'chat-list-h' }, // the page title already says Messages
         FD.searchBox('supChats', t('L_SEARCH_CHATS'), F.q, x => { F.q = x; FD.render(); }),
         FD.seg([{ id: 'ALL', label: t('L_F_ALL') }, { id: 'UNREAD', label: t('L_F_UNREAD') }], F.kind, x => { F.kind = x; FD.render(); })),
       h('div', { class: 'chat-list-b' }, rows.length ? rows.map(item) : FD.empty('X_FILTER')));
@@ -816,101 +871,109 @@
   });
 
   // value with its change against the previous period of the same length underneath
-  const chg = (v, unit) => v == null ? h('span', { class: 'delta flat' }, '—') : h('span', { class: 'delta ' + (Math.abs(v) < 0.5 ? 'flat' : v > 0 ? 'up' : 'down') }, Math.abs(v) < 0.5 ? null : I(v > 0 ? 'arrow-up' : 'arrow-down', 's14'),
-    unit === 'pts' ? FD.fmt.num(Math.abs(Math.round(v))) + ' ' + t('L_PTS') : FD.fmt.pct(Math.abs(v)));
-  const rel = (a, b) => b ? (a - b) / b * 100 : null;
-  const cmp = (val, d) => h('div', { class: 'cmp' }, h('div', null, val), h('div', { class: 'cmp-d' }, d));
-  S.teamColumns = (full, rowsPartial) => { const up = x => !x.prePilot; const num = (key, label, get, render) => ({ key, label, num: true, sort: (a, b) => get(a) - get(b), render });
+  const cmp = (val, d) => h('div', { class: 'cmp' }, h('div', null, val), d ? h('div', { class: 'cmp-d' }, d) : null);
+  const SHORT = { primary: 'MT_PRIMARY', visits: 'MT_VISITS', withSale: 'MT_WITHSALE', avgSale: 'MT_AVGSALE', returns: 'MT_RETURNS' };
+  S.teamColumns = (full, rowsPartial, prePilot = false) => { const up = x => !x.prePilot; const num = (key, label, get, render) => ({ key, label, num: true, sort: (a, b) => get(a) - get(b), render });
     return [
-      { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => h('div', { class: 'row', style: { gap: '4px' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null) },
+      { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => !x.m.hasBaseline ? null : h('div', { class: 'row', style: { gap: '4px' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null) },
       { key: 'vsr', label: t('L_COL_VSR'), sort: (a, b) => FD.nameOf(vsrOf(a.vsr)).localeCompare(FD.nameOf(vsrOf(b.vsr))), render: x => h('div', null, who(vsrOf(x.vsr)), full && x.context.length ? h('div', { class: 'row wrap', style: { marginTop: '4px', gap: '4px' } }, x.context.slice(0, 2).map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null) },
-      full ? num('score', t('L_COL_SCORE'), x => x.composite, x => cmp(h('b', null, FD.fmt.num(Math.round(x.composite))), up(x) ? chg(x.composite - x.prev.composite, 'pts') : chg(null))) : null,
-      num('up', t('L_COL_UPVAL'), x => x.m.upsellValue, x => cmp(h('b', null, FD.fmt.money0(x.m.upsellValue)), up(x) ? chg(rel(x.m.upsellValue, x.prev.upsellValue)) : h('span', { class: 'small muted' }, t('L_NEW_SINCE_PILOT')))),
-      num('conv', t('L_COL_CONV'), x => x.m.upsellConv, x => cmp(FD.fmt.pct(x.m.upsellConv), up(x) ? chg(x.m.upsellConv - x.prev.upsellConv, 'pts') : chg(null))),
-      num('net', x0 => 0, x => x.netChg ?? 0, x => { const d = x.partial ? chg(x.netChg) : FD.delta(x.change); return full ? cmp(FD.fmt.money0(x.m.net), d) : d; }),
-      full ? num('pvr', t('L_COL_PVR'), x => x.m.pvr, x => cmp(FD.fmt.pct(x.m.pvr), chg(x.m.pvr - x.prev.pvr, 'pts'))) : null,
-      full ? num('reasons', t('L_COL_REASONS'), x => x.m.reasonsPct, x => cmp(FD.fmt.pct(x.m.reasonsPct), up(x) ? chg(x.m.reasonsPct - x.prev.reasonsPct, 'pts') : chg(null))) : null,
-      { key: 'trend', label: t('L_COL_TREND'), render: x => h('span', { title: t(x.trendStep === 1 ? 'L_TREND_DAYS' : 'L_TREND_WEEKS') }, FD.spark(x.spark)) }].filter(Boolean).map(c => c.key === 'net' ? Object.assign(c, { label: rowsPartial ? t('L_COL_NET') : full ? t('L_COL_NET_VS') : t('L_COL_CHANGE') }) : c)
+      full ? num('score', t('L_COL_VS_BASE'), x => x.m.hasBaseline ? x.m.vsBaseline : -Infinity, x => S.baseDelta(x.m)) : null,
+      // the five sales metrics, each with its change against the comparison period
+      ...FD.PILOT_METRICS.map(mt => Object.assign(num(mt.k, t(SHORT[mt.k] || mt.label), x => x.m.lev[mt.k], x => cmp(h('b', null, FD.metricText(mt.k, x.m.lev[mt.k])), up(x) || mt.k !== 'upsell' ? S.leverDelta(mt.k, x.m.lev[mt.k], x.prev.lev[mt.k]) : null)), { hint: mt.k === 'upsell' && prePilot ? t('L_NO_PRIOR_UPSELL') : null })),
+      full && { key: 'trend', label: t('L_COL_TREND'), render: x => (x.spark || []).filter(v => v != null).length < 3 ? null : h('span', { title: t(x.trendStep === 1 ? 'L_TREND_DAYS' : 'L_TREND_WEEKS') }, FD.spark(x.spark)) }].filter(Boolean)
       // nothing synced from SalesBuzz yet today for this salesman: show a dash, not a fake drop
       .map(c => ['rank', 'vsr', 'trend'].includes(c.key) ? c : Object.assign({}, c, { render: x => x.partial && !x.m.genuine ? h('span', { class: 'small muted', title: t('L_NO_VISITS_YET') }, '—') : c.render(x) })); };
+
+  S.teamTable = (id, rows, full) => {
+    const metric = FD.PILOT_METRICS.some(m => m.k === L['team:metric']) ? L['team:metric'] : 'primary';
+    const labels = Object.fromEntries(FD.PILOT_METRICS.map(m => [m.k, m.label]));
+    const columns = S.teamColumns(full, rows[0]?.partial, rows[0]?.prePilot);
+    const metricColumn = S.teamColumns(true, rows[0]?.partial, rows[0]?.prePilot).find(c => c.key === metric);
+    const compact = [
+      { key: 'rank', label: t('L_COL_RANK'), width: '34px', nosort: true, render: x => x.m.hasBaseline ? h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)) : null }, // no baseline: unranked
+      { key: 'vsr', label: t('L_COL_VSR'), nosort: true, render: x => h('div', { class: 'team-person' }, h('b', null, FD.nameOf(vsrOf(x.vsr))), h('span', { class: 'small muted' }, FD.routeArea(st().world.routes.find(r => r.id === vsrOf(x.vsr).route)))) },
+      { key: 'score', label: t('L_COL_VS_BASE'), width: '64px', num: true, nosort: true, render: x => S.baseDelta(x.m) },
+      Object.assign({}, metricColumn, { label: t('L_PILOT_VALUE'), hint: null, width: '96px' })
+    ];
+    const onRow = x => S.vsrDrawer(x.vsr);
+    return h('div', { class: 'team-comparison' },
+      h('div', { class: 'team-wide' }, FD.table({ id, rows, onRow, defaultSort: null, columns })),
+      h('div', { class: 'team-compact' },
+        h('label', { class: 'team-metric-control' }, h('span', { class: 'small muted' }, t('L_COMPARE_METRIC')),
+          FD.select(FD.PILOT_METRICS.map(m => ({ id: m.k, label: t(labels[m.k]) })), metric, value => { L['team:metric'] = value; FD.render(); }, { 'aria-label': t('L_CHOOSE_METRIC'), 'data-focus': 'team-metric:' + id })),
+        FD.table({ id: id + 'Compact', rows, onRow, defaultSort: null, columns: compact })));
+  };
 
   // ================= TEAM =================
   FD.registerView('sup', 'team', r => {
     if (r.id) { const v = vsrOf(r.id); if (v) return { title: FD.nameOf(v), back: () => FD.go('#/sup/team'), body: [h('div', { class: 'card', style: { padding: '20px' } }, S.vsrContent(v.id, true))] }; }
     const s = st(); const { from, to } = S.range();
     const rows = FD.teamCompare(s, from, to).filter(x => !S.f.route || vsrOf(x.vsr).route === S.f.route);
-    const table = FD.table({ id: 'teamFull', rows, onRow: x => S.vsrDrawer(x.vsr), defaultSort: null, columns: S.teamColumns(true, rows[0] && rows[0].partial) });
+    const table = S.teamTable('teamFull', rows, true);
     const p = rows[0] && rows[0].prevRange;
-    return { title: t('L_NAV_TEAM'), body: [card(t('L_P_TEAM'), null, h('div', null, table, p ? h('div', { class: 'small muted', style: { padding: '10px 16px' } }, (rows[0].partial ? t('L_CMP_TODAY', { date: FD.fmt.date(p.to), time: FD.fmt.time(s.clock.time) }) : t(rows[0].prePilot ? 'L_CMP_NOTE_PRE' : 'L_CMP_NOTE', { date: FD.fmt.date(p.from), label: FD.fmt.date(p.to) }))) : null), { flush: true, icon: 'users', info: t('I_TEAM') }),
-      FD.coachDrafts(s).length ? card(t('L_TIP_DRAFTS'), null, h('div', null, FD.coachDrafts(s).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route).slice(0, 12).map(S.draftRow)), { flush: true, icon: 'bulb' }) : null] };
+    // suggested tips: one collapsed bar on top (like Today's bars); it opens the per-salesman list and is gone once all are sent
+    const drafts = FD.coachDrafts(s).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route), nV = new Set(drafts.map(d => d.vsr)).size;
+    const tipBar = drafts.length ? h('button', { type: 'button', class: 'card fu-bar', on: { click: () => S.tipsDrawer() } },
+      h('span', { class: 'fu-ic', style: { width: '32px', height: '32px' } }, I('bulb', 's16')),
+      h('span', { class: 'grow', style: { minWidth: 0 } }, h('b', null, t('L_TIPS_BAR', { n: FD.fmt.num(drafts.length), m: FD.fmt.num(nV) })), h('span', { class: 'small muted ellipsis', style: { display: 'block' } }, t('L_TIPS_BAR_SUB'))),
+      h('span', { class: 'btn secondary sm' }, t('L_REVIEW'))) : null;
+    return { title: t('L_NAV_TEAM'), body: [tipBar, card(t('L_P_TEAM'), null, h('div', null, table, p ? h('div', { class: 'small muted', style: { padding: '10px 16px' } }, (rows[0].partial ? t('L_CMP_TODAY', { date: FD.fmt.date(p.to), time: FD.fmt.time(s.clock.time) }) : t(rows[0].prePilot ? 'L_CMP_NOTE_PRE' : 'L_CMP_NOTE', { date: FD.fmt.date(p.from), label: FD.fmt.date(p.to) }))) : null), { flush: true, icon: 'users', info: t('I_TEAM') })] };
   });
 
   // ================= STORES =================
   FD.registerView('sup', 'stores', r => {
     if (r.id && storeOf(r.id)) return { title: FD.nameOf(storeOf(r.id)), back: () => FD.go('#/sup/stores'), body: [h('div', { class: 'card', style: { padding: '20px' } }, S.storeContent(r.id, null, true))] };
-    const s = st(); const F = L['stores:f'] = L['stores:f'] || {}; if (L['stores:band']) { F.band = L['stores:band']; L['stores:band'] = null; }
-    const q = (F.q || '').toLowerCase();
-    const rows = S.stores().map(x => { const hl = FD.storeHealth(s, x.id, today()); const last = FD.SKUS.map(k => FD.lastOrder(s, x.id, k.code, FD.addDays(today(), 1))).filter(Boolean).sort().pop();
-      const lastVisit = s.visits.filter(v => v.store === x.id && v.status === 'DONE' && v.date <= today()).reduce((m, v) => (v.date > m ? v.date : m), '');
-      return { s: x, hl, last, lastVisit: lastVisit || null, resp: FD.storeResponse(s, x.id), carried: FD.SKUS.filter(k => FD.carries(s, x.id, k.code, today())).length }; })
-      .filter(x => (!F.label || x.s.label === F.label) && (!F.size || x.s.size === F.size) && (!F.tag || x.s.tags.includes(F.tag)) && (!F.band || x.hl.band === F.band || (F.band === 'LOW' && x.s.credit !== 'OK')) && (!q || (x.s.name + x.s.name_ar + x.s.id).toLowerCase().includes(q)));
+    const s = st(); const F = L['stores:f'] = L['stores:f'] || {}; if (L['stores:band']) { F.attn = true; L['stores:band'] = null; }
+    const rows=FD.visibleStoreRows(s,F,S.vans().map(v=>v.id));
     const filters = () => h('div', { class: 'filters' },
-      FD.searchBox('supStores', t('L_COL_STORE'), F.q, v => { F.q = v; FD.render(); }, { width: '240px' }),
-      FD.select([{ id: '', label: t('L_ALL_LABELS') }].concat(FD.LABELS.map(x => ({ id: x, label: t('LBL_' + x) }))), F.label || '', v => { F.label = v; FD.render(); }),
-      FD.select([{ id: '', label: t('L_ALL_TAGS') }].concat(FD.TAGS.map(x => ({ id: x, label: t('TAGN_' + x.slice(4)) }))), F.tag || '', v => { F.tag = v; FD.render(); }),
-      FD.select([{ id: '', label: t('L_ALL_SIZES') }].concat(FD.SIZES.map(x => ({ id: x, label: t('SIZE_' + x) }))), F.size || '', v => { F.size = v; FD.render(); }),
-      FD.select([{ id: '', label: t('L_ALL_BANDS') }, { id: 'GOOD', label: t('L_BAND_GOOD') }, { id: 'WATCH', label: t('L_BAND_WATCH') }, { id: 'LOW', label: t('L_BAND_LOW') }], F.band || '', v => { F.band = v; FD.render(); }),
-      FD.chip(FD.fmt.num(rows.length), 'info'));
-    const table = FD.table({ id: 'storesFull', rows, onRow: x => S.storeDrawer(x.s.id), defaultSort: ['health', 'asc'], columns: [
-      { key: 'id', label: t('L_COL_ID'), sort: (a, b) => a.s.id.localeCompare(b.s.id), render: x => h('span', { class: 'mono muted nowrap' }, x.s.id) },
+      FD.searchBox('supStores', t('L_COL_STORE'), F.q, v => { F.q = v; L['stores:n'] = 50; FD.render(); }, { width: '240px' }),
+      FD.seg([{ id: '', label: t('L_ALL_STORES') }, { id: 'A', label: t('L_ATTN_ONLY') }], F.attn ? 'A' : '', v => { F.attn = !!v; L['stores:n'] = 50; FD.render(); }),
+      FD.select([{ id: '', label: t('L_ALL_LABELS') }].concat(FD.LABELS.map(x => ({ id: x, label: t('LBL_' + x) }))), F.label || '', v => { F.label = v; L['stores:n']=50; FD.render(); }),
+      FD.select([{ id: '', label: t('L_ALL_TAGS') }].concat(FD.TAGS.map(x => ({ id: x, label: t('TAGN_' + x.slice(4)) }))), F.tag || '', v => { F.tag = v; L['stores:n']=50; FD.render(); }),
+      FD.select([{ id: '', label: t('L_ALL_SIZES') }].concat(FD.SIZES.map(x => ({ id: x, label: t('SIZE_' + x) }))), F.size || '', v => { F.size = v; L['stores:n']=50; FD.render(); }));
+    const shown = L['stores:n'] || 50; // page of 50, stores needing attention first
+    const num = (v, f) => v == null ? '—' : f(v);
+    const table = FD.table({ id: 'storesFull', rows, limit: shown, onRow: x => S.storeDrawer(x.s.id), defaultSort: ['attn', 'desc'], columns: [
       { key: 'name', label: t('L_COL_STORE'), sort: (a, b) => FD.nameOf(a.s).localeCompare(FD.nameOf(b.s)), render: x => storeCell(x.s) },
-      { key: 'vsr', label: t('L_COL_VSR'), render: x => h('span', null, FD.nameOf(vsrOf(x.s.vsr)), s.sbPending.some(p => p.store === x.s.id) ? h('span', { style: { display: 'block' } }, FD.chip(t('L_PENDING_SB'), 'warn')) : null) },
-      { key: 'size', label: t('L_COL_SIZE'), render: x => t('SIZE_' + x.s.size) },
-      { key: 'health', label: t('L_COL_HEALTH'), sort: (a, b) => a.hl.score - b.hl.score, firstDir: 'asc', render: x => h('span', { class: 'health-cell' }, h('b', null, FD.fmt.num(x.hl.score)), band(x.hl.band)) },
-      { key: 'resp', label: t('L_RESPONSE'), sort: (a, b) => a.resp.conv - b.resp.conv, render: x => S.segChip(x.resp.segment) },
-      { key: 'carried', label: t('L_COL_CARRIED'), num: true, sort: (a, b) => a.carried - b.carried, render: x => FD.fmt.num(x.carried) + '/' + FD.fmt.num(24) },
-      { key: 'gaps', label: t('L_COL_GAPS'), num: true, sort: (a, b) => a.hl.missing.length - b.hl.missing.length, render: x => x.hl.missing.length ? FD.chip(FD.fmt.num(x.hl.missing.length), 'warn') : h('span', { class: 'muted' }, '0') },
-      { key: 'last', label: t('L_COL_VISIT_ORDER'), sort: (a, b) => String(a.lastVisit).localeCompare(String(b.lastVisit)), render: x => S.visitOrder(x.lastVisit, x.last) },
-      { key: 'ret', label: t('L_H_FRESH'), num: true, sort: (a, b) => a.hl.parts.fresh - b.hl.parts.fresh, render: x => FD.fmt.pct(x.hl.parts.fresh) },
-      { key: 'credit', label: t('L_COL_CREDIT'), sort: (a, b) => a.s.credit.localeCompare(b.s.credit), render: x => FD.creditChip(x.s.credit) }] });
-    return { title: t('L_NAV_STORES'), bar: filters, body: [h('div', { class: 'card' }, table)] };
+      { key: 'attn', label: t('L_COL_WHY'), sort: (a, b) => a.score - b.score, firstDir: 'desc', render: x => x.a ? S.attnChips(x.a) : h('span', { class: 'muted' }, '—') },
+      { key: 'last', label: t('L_COL_VISIT_ORDER'), sort: (a, b) => String(a.g.lastVisit).localeCompare(String(b.g.lastVisit)), render: x => S.visitOrder(x.g.lastVisit, x.g.lastOrder) },
+      { key: 'od', label: t('L_ORDER_DAYS'), hint:t('L_PERIOD_4W'), num: true, sort: (a, b) => a.g.orderDays28 - b.g.orderDays28, render: x => FD.fmt.num(x.g.orderDays28) },
+      { key: 'avg', label: t('L_G_AVG'), num: true, sort: (a, b) => a.g.avgOrder - b.g.avgOrder, render: x => x.g.avgOrder ? FD.fmt.money0(x.g.avgOrder) : '—' },
+      // ponytail: visits without an order is already the first Why chip, so no column of its own
+      { key: 'ret', label: t('L_COL_RETURNS'), hint:t('L_PERIOD_4W'), num: true, sort: (a, b) => a.g.returnsPct - b.g.returnsPct, render: x => num(x.g.sales28 ? x.g.returnsPct : null, FD.fmt.pct) },
+      { key: 'dem', label: t('L_G_DEMAND'), sort: (a, b) => a.g.orderDays28 - b.g.orderDays28, render: x => S.demandChip(x.g) },
+      { key: 'resp', label: t('L_RESPONSE'), sort: (a, b) => a.resp.conv - b.resp.conv, render: x => S.segChip(x.resp.segment) }] });
+    const more=h('div',{class:'card-f pager'},h('span',{class:'small muted'},t('PG_SHOWING',{n:FD.fmt.num(Math.min(shown,rows.length)),m:FD.fmt.num(rows.length)})),rows.length>shown?FD.btn(t('L_SHOW_MORE'),()=>{L['stores:n']=shown+50;FD.render();},'ghost sm','chevron-down'):null);
+    return { title: t('PG_STORE_COUNT',{n:FD.fmt.num(rows.length)}), bar: filters, body: [h('div', { class: 'card' }, table, more)] };
   });
 
   // ================= PRODUCTS =================
-  FD.registerView('sup', 'skus', () => {
-    const s = st(); const { from, to } = S.range(); const cat = L['skus:cat'] || '';
-    const rows = FD.skuPerf(s, from, to).filter(x => !cat || FD.sku(x.code).category === cat);
-    const table = FD.table({ id: 'skusFull', rows, onRow: x => S.skuDrawer(x.code), defaultSort: ['sales', 'desc'], columns: [
-      { key: 'code', label: t('L_COL_CODE'), sort: (a, b) => a.code.localeCompare(b.code), render: x => h('span', { class: 'mono muted' }, x.code) },
-      { key: 'name', label: t('L_COL_PRODUCT'), sort: (a, b) => FD.nameOf(FD.sku(a.code)).localeCompare(FD.nameOf(FD.sku(b.code))), render: x => h('div', { class: 'row' }, FD.skuLabel(x.code), (bs => bs.some(b => !b.store) ? FD.chip([I('ban', 's14'), t('L_BLOCKED_ALL_T')], 'bad') : bs.length ? FD.chip([I('ban', 's14'), t('L_BLOCKED_IN_N', { n: FD.fmt.num(bs.length) })], 'bad') : null)(FD.skuBlocks(st(), x.code)), x.watch ? FD.chip(t('L_WATCHLIST_FLAG'), 'warn') : null, x.promo ? FD.chip([I('tag', 's14'), t('TYPE_PROMO')], 'warn') : null) },
-      { key: 'carrying', label: t('L_COL_CARRYING'), num: true, sort: (a, b) => a.carrying - b.carrying, render: x => FD.fmt.num(x.carrying) + ' · ' + FD.fmt.pct(x.carryingPct) },
-      { key: 'sales', label: t('L_COL_SALES'), num: true, sort: (a, b) => a.sales - b.sales, render: x => FD.fmt.money0(x.sales) },
-      { key: 'att', label: t('L_COL_ATTEMPTS'), num: true, sort: (a, b) => a.attempts - b.attempts, render: x => FD.fmt.num(x.attempts) },
-      { key: 'conv', label: t('L_COL_CONV'), num: true, sort: (a, b) => a.conv - b.conv, render: x => x.attempts ? FD.fmt.pct(x.conv) : '—' },
-      { key: 'sus', label: t('L_COL_SUSTAINED'), num: true, sort: (a, b) => a.sustainedPct - b.sustainedPct, render: x => x.sold ? FD.fmt.pct(x.sustainedPct) : '—' },
-      { key: 'ret', label: t('L_COL_RETURNS'), num: true, sort: (a, b) => a.returnRate - b.returnRate, render: x => h('span', { style: x.returnRate >= 8 ? { color: 'var(--bad)', fontWeight: 600 } : null }, FD.fmt.pct(x.returnRate)) },
-      { key: 'promo', label: t('L_PROMO_UPTAKE'), num: true, sort: (a, b) => (a.promoUptake || -1) - (b.promoUptake || -1), render: x => x.promoUptake != null ? FD.fmt.pct(x.promoUptake) : '—' }] });
-    return { title: t('L_NAV_SKUS'), bar: () => h('div', { class: 'filters' }, FD.seg([{ id: '', label: t('L_ALL_CATS') }, { id: 'cake', label: t('CAT_CAKE') }, { id: 'biscuit', label: t('CAT_BISCUIT') }, { id: 'rusk', label: t('CAT_RUSK') }], cat, v => { L['skus:cat'] = v; FD.render(); })), body: [h('div', { class: 'card' }, table)] };
-  });
-
+  FD.registerView('sup', 'skus', () => S.productPage());
   // ================= OPPORTUNITIES (list + outlet × product grid) =================
   FD.registerView('sup', 'opps', () => {
     const s = st(); const mode = L['opps:mode'] || 'list'; const F = L['opps:f'] = L['opps:f'] || {};
+    const reset = () => { L['opps:n'] = 50; FD.render(); };
     const filters = () => h('div', { class: 'filters' }, FD.seg([{ id: 'list', label: t('L_LIST'), icon: 'list' }, { id: 'grid', label: t('L_GRID'), icon: 'grid' }], mode, v => { L['opps:mode'] = v; FD.render(); }),
-      FD.select([{ id: '', label: t('L_ALL_LABELS') }].concat(FD.LABELS.map(x => ({ id: x, label: t('LBL_' + x) }))), F.label || '', v => { F.label = v; FD.render(); }),
-      FD.select([{ id: '', label: t('L_ALL_TAGS') }].concat(FD.TAGS.map(x => ({ id: x, label: t('TAGN_' + x.slice(4)) }))), F.tag || '', v => { F.tag = v; FD.render(); }),
-      FD.select([{ id: '', label: t('L_ALL_CATS') }, { id: 'cake', label: t('CAT_CAKE') }, { id: 'biscuit', label: t('CAT_BISCUIT') }, { id: 'rusk', label: t('CAT_RUSK') }], F.cat || '', v => { F.cat = v; FD.render(); }),
+      mode === 'list' ? FD.searchBox('supOpps', t('L_COL_STORE') + ' / ' + t('L_COL_PRODUCT'), F.q, v => { F.q = v; reset(); }, { width: '240px' }) : null,
+      FD.select([{ id: '', label: t('L_ALL_LABELS') }].concat(FD.LABELS.map(x => ({ id: x, label: t('LBL_' + x) }))), F.label || '', v => { F.label = v; reset(); }),
+      FD.select([{ id: '', label: t('L_ALL_TAGS') }].concat(FD.TAGS.map(x => ({ id: x, label: t('TAGN_' + x.slice(4)) }))), F.tag || '', v => { F.tag = v; reset(); }),
+      FD.select([{ id: '', label: t('L_ALL_CATS') }, { id: 'cake', label: t('CAT_CAKE') }, { id: 'biscuit', label: t('CAT_BISCUIT') }, { id: 'rusk', label: t('CAT_RUSK') }], F.cat || '', v => { F.cat = v; reset(); }),
       mode === 'grid' ? FD.select([{ id: '', label: t('L_ALL_STATES') }].concat(['CARRIED', 'PENDING', 'OPPORTUNITY', 'LAPSED', 'DECLINED', 'GATED', 'RETURNED'].map(x => ({ id: x, label: t('SH_' + x) }))), F.state || '', v => { F.state = v; FD.render(); }) : null);
     if (mode === 'list') {
-      const rows = FD.opportunities(s, { route: S.f.route || null, label: F.label || null, tag: F.tag || null, cat: F.cat || null });
-      return { title: t('L_NAV_OPPS'), bar: filters, body: [h('div', { class: 'card' }, FD.table({ id: 'oppsFull', rows, onRow: o => S.storeDrawer(o.store, o.sku), defaultSort: ['ev', 'desc'], columns: [
+      const q = (F.q || '').trim().toLowerCase();
+      const rows = FD.opportunities(s, { route: S.f.route || null, label: F.label || null, tag: F.tag || null, cat: F.cat || null })
+        .filter(o => !q || (FD.nameOf(storeOf(o.store)) + ' ' + FD.nameOf(FD.sku(o.sku))).toLowerCase().includes(q));
+      const shown = L['opps:n'] || 50; // page of 50, highest store margin first
+      const more = h('div', { class: 'card-f pager' }, h('span', { class: 'small muted' }, t('PG_SHOWING_OPPS', { n: FD.fmt.num(Math.min(shown, rows.length)), m: FD.fmt.num(rows.length) })),
+        rows.length > shown ? FD.btn(t('L_SHOW_MORE'), () => { L['opps:n'] = shown + 50; FD.render(); }, 'ghost sm', 'chevron-down') : null);
+      return { title: t('L_NAV_OPPS') + ' · ' + FD.fmt.num(rows.length), bar: filters, body: [h('div', { class: 'card' }, FD.table({ id: 'oppsFull', rows, limit: shown, onRow: o => S.storeDrawer(o.store, o.sku), defaultSort: ['ev', 'desc'], columns: [
         { key: 's', label: t('L_COL_STORE'), sort: (a, b) => FD.nameOf(storeOf(a.store)).localeCompare(FD.nameOf(storeOf(b.store))), render: o => storeCell(storeOf(o.store)) },
         { key: 'v', label: t('L_COL_VSR'), render: o => FD.nameOf(vsrOf(storeOf(o.store).vsr)) },
         { key: 'p', label: t('L_COL_PRODUCT'), sort: (a, b) => FD.nameOf(FD.sku(a.sku)).localeCompare(FD.nameOf(FD.sku(b.sku))), render: o => FD.skuLabel(o.sku) },
         { key: 't', label: t('L_COL_TYPE'), sort: (a, b) => a.type.localeCompare(b.type), render: o => FD.chip(t('TYPE_' + o.type), o.type === 'PROMO' ? 'warn' : 'info') },
-        { key: 'why', label: t('L_WHY'), render: o => h('span', { class: 'small muted', style: { display: 'block', maxWidth: '320px' } }, tx(o.reasonId, Object.assign({ skuCode: o.sku }, o.slots, { unitOf: o.sku }))) },
+        { key: 'why', label: t('L_WHY'), render: o => h('span', { class: 'small muted', style: { display: 'block', minWidth: '200px', maxWidth: '320px' } }, tx(o.reasonId, Object.assign({ skuCode: o.sku }, o.slots, { unitOf: o.sku }))) },
         { key: 'q', label: t('L_COL_QTY'), num: true, sort: (a, b) => a.qty - b.qty, render: o => FD.fmt.num(o.qty) },
-        { key: 'ev', label: t('L_EST_MARGIN'), num: true, sort: (a, b) => a.ev - b.ev, render: o => h('b', null, FD.fmt.money0(o.ev)) }] }))] };
+        { key: 'ev', label: t('L_EST_MARGIN'), num: true, sort: (a, b) => a.ev - b.ev, render: o => h('b', null, FD.fmt.money0(o.ev)) }] }), more)] };
     }
     const stores = S.stores().filter(x => (!F.label || x.label === F.label) && (!F.tag || x.tags.includes(F.tag)));
     const skus = FD.SKUS.filter(k => !F.cat || k.category === F.cat);
@@ -957,13 +1020,16 @@
       h('div', { class: 'grid-2' },
         card(t('L_ACCURACY'), null, FD.bars(acc.map(a => ({ label: t('TYPE_' + a.type), value: a.conv, display: FD.fmt.pct(a.conv), tip: tx('M_ACC', { typeId: a.type, pct: a.conv, n: a.sent }) }))), { icon: 'chart' }),
         card(t('L_MISSES'), t('L_MISSES_D'), FD.bars(Object.entries(bySku).sort((a, b) => b[1].length - a[1].length).slice(0, 8).map(([code, ms]) => ({ label: FD.nameOf(FD.sku(code)), value: ms.length }))), { icon: 'cpu', right: FD.btn(t('L_EXPORT'), exportCsv, 'secondary sm', 'download') })),
-      h('div', { class: 'card' }, misses.length ? FD.table({ id: 'misses', rows: misses, limit: 150, columns: [
+      h('div', { class: 'card' }, misses.length ? FD.table({ id: 'misses', rows: misses, limit: L['learn:n'] || 25, columns: [
         { key: 'd', label: t('L_COL_DATE'), sort: (a, b) => a.date.localeCompare(b.date), render: m => FD.fmt.date(m.date) },
         { key: 'what', label: t('L_WHY'), render: m => m.type === 'ALT' ? tx('M_ALT', { skuCode: m.recSku, altCode: m.sku, storeId: m.store }) : tx('M_UNREC', { vsrId: m.vsr, skuCode: m.sku, storeId: m.store }) },
         { key: 'ty', label: t('L_COL_TYPE'), render: m => FD.chip(t(m.type === 'ALT' ? 'L_MISS_ALT' : 'L_MISS_UNREC'), m.type === 'ALT' ? 'info' : 'warn') },
         { key: 'tags', label: t('L_COL_TAGS'), render: m => storeOf(m.store).tags.map(x => t('TAGN_' + x.slice(4))).join(', ') },
         { key: 'a', label: '', render: m => m.mark === 'USEFUL' ? FD.chip([I('check', 's14'), t('M_USEFUL')], 'good') : h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
-          FD.btn(t('L_MARK_USEFUL'), () => FD.dx('MISS_MARK', { id: m.id, mark: 'USEFUL' }), 'secondary sm'), FD.btn(t('L_IGNORE'), () => FD.dx('MISS_MARK', { id: m.id, mark: 'IGNORE' }), 'ghost sm')) }] }) : FD.empty('X_LEARN', null, 'cpu'))] };
+          FD.btn(t('L_MARK_USEFUL'), () => FD.dx('MISS_MARK', { id: m.id, mark: 'USEFUL' }), 'secondary sm'), FD.btn(t('L_IGNORE'), () => FD.dx('MISS_MARK', { id: m.id, mark: 'IGNORE' }), 'ghost sm')) }] }) : FD.empty('X_LEARN', null, 'cpu'),
+        // page of 25, same pattern as Stores and Opportunities
+        misses.length > (L['learn:n'] || 25) ? h('div', { class: 'card-f pager' }, h('span', { class: 'small muted' }, t('PG_SHOWING_N', { n: FD.fmt.num(L['learn:n'] || 25), m: FD.fmt.num(misses.length) })),
+          FD.btn(t('L_SHOW_MORE_25'), () => { L['learn:n'] = (L['learn:n'] || 25) + 25; FD.render(); }, 'ghost sm', 'chevron-down')) : null)] };
   });
 
   // ================= RULES =================
@@ -992,45 +1058,35 @@
       { key: 'w', label: t('L_COL_WHERE'), sort: (x, y) => (x.store || '').localeCompare(y.store || ''), render: b => h('div', null, h('div', null, b.store ? FD.nameOf(storeOf(b.store)) : t('L_EVERYWHERE')), b.recId ? h('div', { class: 'small muted' }, t('L_ONE_REC') + ' · ' + FD.fmt.date(b.date)) : null) },
       { key: 'd', label: t('L_COL_SINCE'), sort: (x, y) => (x.at.date + x.at.time).localeCompare(y.at.date + y.at.time), render: b => h('span', { class: 'nowrap' }, FD.fmt.date(b.at.date)) },
       { key: 'x', label: '', render: b => FD.btn(t('L_UNBLOCK'), () => FD.dx('BLOCK_REMOVE', { blockId: b.id }), 'ghost sm') }] }) : FD.empty('L_NONE_YET', null, 'ban');
-    const sec = (id, first) => h('h3', { class: 'sec-h rules-sec' + (first ? ' first' : '') }, t(id));
-    return { title: t('L_NAV_RULES'), body: [
-      h('div', { class: 'banner info' }, I('info'), h('span', null, t('O_S3'))),
-      sec('L_SEC_RECS', true),
-      h('div', { class: 'grid-eq' },
-        card(t('L_R_NUMBERS'), null, h('div', null, num('L_R_LAPSED', 'lapsedDays', 7, 60), num('L_R_COOLDOWN', 'cooldownDays', 0, 60), num('L_R_MATURITY', 'maturityDays', 7, 56), num('L_R_MAX', 'maxPerStore', 1, 3), num('L_R_FIRST', 'firstFillMax', 1, 3),
-          h('div', { class: 'list-row' }, h('div', { class: 'grow' }, h('div', null, t('L_R_VANFEED')), h('div', { class: 'small muted' }, t('L_R_VANFEED_D'))), FD.toggle(R.vanFeed, v => FD.dx('VANFEED_SET', { on: v }), t('L_R_VANFEED')))), { flush: true, icon: 'sliders', info: t('I_RULES') }),
-        card(t('L_R_BLOCKS'), t('L_BLOCKS_NOTE'), h('div', { class: 'rules-scroll' }, blocksTable), { flush: true, icon: 'ban', right: FD.btn(t('L_ADD'), addBlock, 'secondary sm', 'plus') })),
-      h('div', { class: 'grid-eq' },
-        card(t('L_R_PINS'), null, s.pins.length ? h('div', null, s.pins.slice().reverse().map(p => h('div', { class: 'list-row' }, h('div', { class: 'grow', style: { minWidth: 0 } }, FD.skuLabel(p.sku, pinScope(p) + (p.until ? ' · ' + t('L_UNTIL') + ' ' + FD.fmt.date(p.until) : ''))), FD.btn(t('L_REMOVE'), () => FD.dx('PIN_REMOVE', { pinId: p.pinId }), 'ghost sm')))) : FD.empty('L_NONE_YET', null, 'pin'),
-          { flush: true, icon: 'pin', info: t('I_PINS'), right: FD.btn(t('L_ADD'), addPin, 'secondary sm', 'plus') }),
-        card(t('L_R_WATCH'), t('L_WATCH_HOW'), s.watchlist.length ? h('div', null, s.watchlist.map(c => { const w = FD.watchStats(s, c);
+    // settings-style layout: a list of sections, one section shown at a time (phone: list first, then the section)
+    const SECS = [
+      ['recs', 'L_R_NUMBERS', 'sliders', null, () => [card(t('L_R_NUMBERS'), null, h('div', null, num('L_R_LAPSED', 'lapsedDays', 7, 60), num('L_R_COOLDOWN', 'cooldownDays', 0, 60), num('L_R_MATURITY', 'maturityDays', 7, 56), num('L_R_MAX', 'maxPerStore', 1, 3), num('L_R_FIRST', 'firstFillMax', 1, 3),
+          h('div', { class: 'list-row' }, h('div', { class: 'grow' }, h('div', null, t('L_R_VANFEED')), h('div', { class: 'small muted' }, t('L_R_VANFEED_D'))), FD.toggle(R.vanFeed, v => FD.dx('VANFEED_SET', { on: v }), t('L_R_VANFEED'))),
+          h('div', { class: 'list-row' }, h('div', { class: 'grow' }, h('div', null, t('L_R_LIVE')), h('div', { class: 'small muted' }, t('L_R_LIVE_D'))), FD.toggle(R.liveNotifs !== false, v => FD.dx('LIVE_SET', { on: v }), t('L_R_LIVE'))),
+          h('div', { class: 'list-row' }, h('div', { class: 'grow' }, h('div', null, t('L_R_LIVEDATA')), h('div', { class: 'small muted' }, t('L_R_LIVEDATA_D'))), FD.toggle(!!R.liveData, v => FD.dx('LIVEDATA_SET', { on: v }), t('L_R_LIVEDATA')))), { flush: true, icon: 'sliders', info: t('I_RULES') })]],
+      ['blocked', 'L_SEC_BLOCKPIN', 'ban', s.blocks.length + s.pins.length, () => [card(t('L_R_BLOCKS'), t('L_BLOCKS_NOTE'), h('div', { class: 'rules-scroll' }, blocksTable), { flush: true, icon: 'ban', right: FD.btn(t('L_ADD'), addBlock, 'secondary sm', 'plus') }), card(t('L_R_PINS'), null, s.pins.length ? h('div', null, s.pins.slice().reverse().map(p => h('div', { class: 'list-row' }, h('div', { class: 'grow', style: { minWidth: 0 } }, FD.skuLabel(p.sku, pinScope(p) + (p.until ? ' · ' + t('L_UNTIL') + ' ' + FD.fmt.date(p.until) : ''))), FD.btn(t('L_REMOVE'), () => FD.dx('PIN_REMOVE', { pinId: p.pinId }), 'ghost sm')))) : FD.empty('L_NONE_YET', null, 'pin'),
+          { flush: true, icon: 'pin', info: t('I_PINS'), right: FD.btn(t('L_ADD'), addPin, 'secondary sm', 'plus') })]],
+      ['watch', 'L_R_WATCH', 'alert', s.watchlist.length, () => [card(t('L_R_WATCH'), t('L_WATCH_HOW'), s.watchlist.length ? h('div', null, s.watchlist.map(c => { const w = FD.watchStats(s, c);
             return h('div', { class: 'list-row click', on: { click: e => { if (!e.target.closest('button')) S.skuDrawer(c); } } }, h('div', { class: 'grow', style: { minWidth: 0 } }, FD.skuLabel(c, t('L_COL_SINCE') + ' ' + FD.fmt.date(w.since) + ' · ' + FD.fmt.pct(w.before) + ' → ' + (w.after == null ? '—' : FD.fmt.pct(w.after)))), S.watchChip(w), FD.btn(t('L_REMOVE'), () => FD.dx('WATCH_REMOVE', { sku: c }), 'ghost sm')); })) : FD.empty('L_NONE_YET', null, 'alert'),
-          { flush: true, icon: 'alert', right: FD.btn(t('L_ADD'), addWatch, 'secondary sm', 'plus') })),
-      card(t('L_AREA_ASSORT'), t('L_AREA_ASSORT_D'), h('div', { class: 'stack s16' }, h('div', { class: 'row wrap' }, h('select', { class: 'select', style: { maxWidth: '280px' }, 'aria-label': t('L_R_MUST'), on: { change: e => { L['rules:mgroup'] = e.target.value; FD.render(); } } },
+          { cls: 'watch-card', flush: true, icon: 'alert', right: FD.btn(t('L_ADD'), addWatch, 'secondary sm', 'plus') })]],
+      ['sees', 'L_SEC_SEES', 'eye', null, () => [(() => { const shelf = L['rules:score'] === 'shelf'; // one card: the scorecard by default, Shelf Score weights on the switch
+          const sw = FD.seg([{ id: 'card', label: t('L_SCORECARD_SETUP') }, { id: 'shelf', label: t('SC_SCORE') }], shelf ? 'shelf' : 'card', v => { L['rules:score'] = v; FD.render(); });
+          return card(t(shelf ? 'SC_SETTINGS' : 'L_SCORECARD_SETUP'), t(shelf ? 'SC_SETTINGS_D' : 'L_SEES_NOTE'), shelf ? S.scWeightsBody() : (() => { const sees = R.vsrSees || {}; // ranking uses net sales per selling day vs own baseline; only visibility is set here
+            const seeT = (k, lb) => FD.toggle(sees[k] !== false, v => FD.dx('VISIBILITY_SET', { sees: { [k]: v } }), t('L_COL_SEES') + ': ' + t(lb));
+            return h('div', null, FD.PILOT_METRICS.map(mt => [mt.label, mt.k]).concat([['L_SEE_RANK', 'rank']]).map(([lb, k]) => h('div', { class: 'list-row' }, h('span', { class: 'grow' }, t(lb)), h('span', { class: 'small muted' }, t('L_COL_SEES')), seeT(k, lb))));
+          })(), { icon: shelf ? 'camera' : 'chart', right: sw, flush: shelf }); })()]],
+      ['codes', 'L_R_CODES', 'message', null, () => [card(t('L_R_CODES'), t('L_REASONS_NOTE'), S.reasonCodes(), { flush: true, icon: 'message' })]],
+      ['area', 'L_AREA_ASSORT', 'grid', null, () => [card(t('L_AREA_ASSORT'), t('L_AREA_ASSORT_D'), h('div', { class: 'stack s16' }, h('div', { class: 'row wrap' }, h('select', { class: 'select', style: { maxWidth: '280px' }, 'aria-label': t('L_R_MUST'), on: { change: e => { L['rules:mgroup'] = e.target.value; FD.render(); } } },
           h('optgroup', { label: t('L_STORE_TYPE') }, FD.LABELS.map(l => h('option', { value: l, selected: l === mgroup }, t('LBL_' + l)))),
           h('optgroup', { label: t('L_LOCATION_TYPE') }, FD.TAGS.map(x => h('option', { value: x, selected: x === mgroup }, t('TAGN_' + x.slice(4)))))), FD.btn(t('L_RECALC'), () => { FD.dx('MUSTSTOCK_RECALC', {}); FD.toast('S_SAVED'); }, 'secondary sm', 'refresh')),
-        h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))' } }, FD.SKUS.map(k => h('label', { class: 'check card', style: { padding: '8px 10px', boxShadow: 'none' } }, h('input', { type: 'checkbox', checked: mustList.includes(k.code), on: { change: e => FD.dx('MUSTSTOCK_SET', { group: mgroup, sku: k.code, on: e.target.checked }) } }), FD.skuTile(k.code, 26), h('span', { class: 'small' }, FD.nameOf(k)))))), { icon: 'layers', info: t('I_AREA') }),
-      sec('L_SEC_SCORE'),
-      h('div', { class: 'grid-eq' },
-        card(t('L_SCORECARD_SETUP'), t('L_W_NOTE'), (() => { const w = FD.weights(s); const off = R.metricsOff || {}; const sees = R.vsrSees || {};
-            const total = ['net', 'pvr', 'drop', 'xsell', 'action'].reduce((a, k) => a + (off[k] ? 0 : w[k]), 0);
-            const setW = (k, v) => FD.dx('WEIGHTS_SET', { weights: Object.assign({}, w, { [k]: Math.max(0, Math.min(100, v)) }), off });
-            const setOff = (k, isOff) => FD.dx('WEIGHTS_SET', { weights: w, off: Object.assign({}, off, { [k]: isOff }) });
-            const seeT = (k, lb) => FD.toggle(sees[k] !== false, v => FD.dx('VISIBILITY_SET', { sees: { [k]: v } }), t('L_COL_SEES') + ': ' + t(lb));
-            const rows = [['Q_NET', 'net'], ['Q_PVR', 'pvr'], ['Q_DROP', 'drop'], ['Q_XSELL', 'xsell'], ['Q_ACTION', 'action']].map(([lb, k]) => h('tr', { style: { opacity: off[k] ? .55 : 1 } },
-              h('td', null, h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !off[k], 'aria-label': t('L_COL_IN_SCORE') + ': ' + t(lb), on: { change: e => setOff(k, !e.target.checked) } }), h('span', null, t(lb)))),
-              h('td', { class: 'n' }, h('div', { class: 'stepper', role: 'group', 'aria-label': t(lb), style: { display: 'inline-flex' } },
-                h('button', { type: 'button', 'aria-label': '−5', disabled: off[k] || w[k] <= 0, on: { click: () => setW(k, w[k] - 5) } }, I('minus')), h('output', { style: { minWidth: '52px' } }, off[k] ? t('L_METRIC_OFF') : FD.fmt.pct(w[k])),
-                h('button', { type: 'button', 'aria-label': '+5', disabled: off[k] || w[k] >= 100, on: { click: () => setW(k, w[k] + 5) } }, I('plus')))),
-              h('td', { class: 'n' }, seeT(k, lb))));
-            const extra = [['L_SEE_RANK', 'rank'], ['L_KPI_UPVAL', 'upval']].map(([lb, k]) => h('tr', null, h('td', null, t(lb)), h('td', { class: 'n muted' }, '—'), h('td', { class: 'n' }, seeT(k, lb))));
-            return h('div', null, h('div', { class: 'table-wrap' }, h('table', { class: 't' }, h('thead', null, h('tr', null, h('th', null, t('L_COL_IN_SCORE')), h('th', { class: 'n' }, t('L_COL_WEIGHT')), h('th', { class: 'n' }, t('L_COL_SEES')))), h('tbody', null, rows, extra))),
-              h('div', { class: 'row between', style: { marginTop: '10px' } }, FD.chip(t('L_W_TOTAL', { pct: FD.fmt.num(total) }), total === 100 ? 'good' : 'warn'),
-                FD.btn(t('L_RESET'), () => FD.dx('WEIGHTS_SET', { weights: { net: 30, pvr: 20, drop: 15, xsell: 20, action: 15 }, off: {} }), 'ghost sm', 'undo')));
-          })(), { icon: 'chart' }),
-        card(t('L_R_CODES'), t('L_REASONS_NOTE'), S.reasonCodes(), { flush: true, icon: 'message' })),
-      sec('L_SEC_HISTORY'),
-      card(t('L_R_AUDIT'), null, auditList.length ? h('div', { class: 'audit-list' }, auditList.map(a => h('div', { class: 'list-row' }, I('edit', 's16'), h('span', { class: 'grow small' }, t(a.id) + (a.slots && a.slots.skuCode ? ' · ' + FD.nameOf(FD.sku(a.slots.skuCode)) : '') + (a.slots && a.slots.storeId ? ' · ' + FD.nameOf(storeOf(a.slots.storeId)) : '')),
-        h('span', { class: 'small muted' }, t('L_CHANGED_BY', { sup: FD.nameOf(s.world.supervisor), date: FD.fmt.date(a.at.date), time: FD.fmt.time(a.at.time) })))), auditAll.length > 10 ? h('div', { class: 'list-row', style: { justifyContent: 'center' } }, FD.btn(L['rules:auditAll'] ? t('L_SHOW_LESS') : t('L_SHOW_ALL_N', { n: FD.fmt.num(auditAll.length) }), () => { L['rules:auditAll'] = !L['rules:auditAll']; FD.render(); }, 'ghost sm')) : null) : FD.empty('L_NONE_YET', null, 'edit'), { flush: true, icon: 'clock', info: t('I_AUDIT') })] };
+        h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))' } }, FD.SKUS.map(k => h('label', { class: 'check card', style: { padding: '8px 10px', boxShadow: 'none' } }, h('input', { type: 'checkbox', checked: mustList.includes(k.code), on: { change: e => FD.dx('MUSTSTOCK_SET', { group: mgroup, sku: k.code, on: e.target.checked }) } }), FD.skuTile(k.code, 26), h('span', { class: 'small' }, FD.nameOf(k)))))), { icon: 'layers', info: t('I_AREA') })]],
+      ['log', 'L_R_AUDIT', 'refresh', null, () => [card(t('L_R_AUDIT'), null, auditList.length ? h('div', { class: 'audit-list' }, auditList.map(a => h('div', { class: 'list-row' }, I('edit', 's16'), h('span', { class: 'grow small' }, t(a.id) + (a.slots && a.slots.skuCode ? ' · ' + FD.nameOf(FD.sku(a.slots.skuCode)) : '') + (a.slots && a.slots.storeId ? ' · ' + FD.nameOf(storeOf(a.slots.storeId)) : '')),
+        h('span', { class: 'small muted' }, t('L_CHANGED_BY', { sup: FD.nameOf(s.world.supervisor), date: FD.fmt.date(a.at.date), time: FD.fmt.time(a.at.time) })))), auditAll.length > 10 ? h('div', { class: 'list-row', style: { justifyContent: 'center' } }, FD.btn(L['rules:auditAll'] ? t('L_SHOW_LESS') : t('L_SHOW_ALL_N', { n: FD.fmt.num(auditAll.length) }), () => { L['rules:auditAll'] = !L['rules:auditAll']; FD.render(); }, 'ghost sm')) : null) : FD.empty('L_NONE_YET', null, 'edit'), { flush: true, icon: 'clock', info: t('I_AUDIT') })]]];
+    const picked = L['rules:sec'], cur = SECS.find(x => x[0] === picked) || SECS[0];
+    const go = id => { L['rules:sec'] = id; FD.render(); const pg = document.getElementById('sup-page'); if (pg) pg.scrollTop = 0; };
+    return { title: t('L_NAV_RULES'), body: [h('div', { class: 'rules-split' + (picked ? ' picked' : '') },
+      h('nav', { class: 'rules-nav', 'aria-label': t('L_NAV_RULES') }, SECS.map(([id, label, icon, n]) => h('button', { type: 'button', class: id === cur[0] ? 'on' : '', 'aria-current': id === cur[0] ? 'true' : null, on: { click: () => go(id) } },
+        I(icon, 's16'), h('span', { class: 'grow' }, t(label)), n ? h('span', { class: 'pill-count' }, FD.fmt.num(n)) : null, h('span', { class: 'mob-only' }, I('chevron-right', 's16'))))),
+      h('div', { class: 'rules-pane' }, h('button', { type: 'button', class: 'btn ghost sm mob-only rules-back', on: { click: () => { L['rules:sec'] = null; FD.render(); } } }, I('arrow-left', 's16'), t('L_NAV_RULES')), ...cur[4]()))] };
   });
 })();

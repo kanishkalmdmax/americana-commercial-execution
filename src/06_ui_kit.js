@@ -33,8 +33,12 @@
 
   // ---------- icons (Lucide paths, ISC licence) ----------
   const P = {
+    grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
     home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
     users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    'baqala-s': '<path d="M5 10v10h14V10"/><path d="M4 10 6 5h12l2 5z"/><path d="M10 20v-5h4v5"/>',
+    'baqala-l': '<path d="M3 10v10h18V10"/><path d="M2 10l2-6h16l2 6z"/><path d="M8 4v6M12 4v6M16 4v6"/><path d="M9 20v-5h6v5"/>',
+    minimarket: '<circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><path d="M3 4h2l2.4 11h11l2-8H6.2"/>',
     store: '<path d="M3 9 5 3h14l2 6"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v8h14v-8"/><path d="M10 21v-5h4v5"/>',
     package: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
     target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
@@ -139,29 +143,22 @@
       on: { input: e => { const v = e.target.value, pos = e.target.selectionStart; clearTimeout(tm); tm = setTimeout(() => { refocus = { key, pos }; onChange(v); }, 160); } } });
     return h('div', { class: 'search', style }, I('search', 's16'), inp); };
   FD.restoreSearchFocus = () => { if (!refocus) return; const el = document.querySelector('[data-sk="' + refocus.key + '"]'); if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(refocus.pos, refocus.pos); } catch (e) { } } refocus = null; };
-  FD.stepper = (value, min, max, onChange, label) => {
+  FD.stepper = (value, min, max, onChange, label, step = 1) => {
     const out = h('output', { 'aria-live': 'polite' }, FD.fmt.num(value));
     const set = v => { onChange(v); };
     return h('div', { class: 'stepper', role: 'group', 'aria-label': label || '' },
-      h('button', { type: 'button', 'aria-label': '−', disabled: value <= min, on: { click: () => set(value - 1) } }, I('minus')),
+      h('button', { type: 'button', 'aria-label': '−', disabled: value <= min, on: { click: () => set(Math.max(min, value - step)) } }, I('minus')),
       out,
-      h('button', { type: 'button', 'aria-label': '+', disabled: value >= max, on: { click: () => set(value + 1) } }, I('plus')));
+      h('button', { type: 'button', 'aria-label': '+', disabled: value >= max, on: { click: () => set(Math.min(max, value + step)) } }, I('plus')));
   };
   FD.toggle = (on, onChange, label) => h('button', { type: 'button', role: 'switch', 'aria-checked': on ? 'true' : 'false', 'aria-label': label || '', class: 'switch' + (on ? ' on' : ''), on: { click: () => onChange(!on) } });
-  // Segmented control with a sliding lens (the glass variant is the role switcher)
-  FD.seg = (options, value, onChange, cls = '') => {
-    const lens = h('span', { class: 'lens', 'aria-hidden': 'true' });
-    const wrap = h('div', { class: 'seg ' + cls, role: 'tablist' }, lens,
-      options.map(o => h('button', { type: 'button', role: 'tab', 'aria-selected': o.id === value ? 'true' : 'false', class: o.id === value ? 'on' : '', dataset: { id: o.id },
-        on: { click: () => { if (o.id !== value) onChange(o.id); } } }, o.icon ? I(o.icon, 's16') : null, o.label)));
-    const place = () => { const b = wrap.querySelector('button.on'); if (!b) return; lens.style.width = b.offsetWidth + 'px'; lens.style.transform = `translateX(${b.offsetLeft}px)`; };
-    requestAnimationFrame(() => { lens.style.transition = 'none'; place(); requestAnimationFrame(() => { lens.style.transition = ''; }); });
-    // fonts (Arabic) and wrapping change button widths after first paint: follow them
-    if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(() => { if (!wrap.isConnected) return ro.disconnect(); place(); }); wrap.querySelectorAll('button').forEach(b => ro.observe(b)); }
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(place);
-    return wrap;
-  };
-  FD.select = (options, value, onChange, attrs = {}) => h('select', Object.assign({ class: 'select', on: { change: e => onChange(e.target.value) } }, attrs),
+  // The selected button owns its background, including under zoom and RTL.
+  FD.seg = (options, value, onChange, cls = '') => h('div',{class:'seg '+cls,role:'group'},
+    options.map(o=>h('button',{type:'button','aria-pressed':String(o.id===value),class:o.id===value?'on':'',dataset:{id:o.id},
+      on:{click:()=>{if(o.id!==value)onChange(o.id);}}},o.icon?I(o.icon,'s16'):null,o.label)));
+  // store type as a small icon with its name on hover (saves a column)
+  FD.sizeIcon = size => h('span', { class: 'size-ic', title: FD.t('SIZE_' + size), 'aria-label': FD.t('SIZE_' + size), role: 'img' }, FD.icon({ SMALL: 'baqala-s', LARGE: 'baqala-l', MINI: 'minimarket' }[size] || 'store', 's16'));
+  FD.select = (options, value, onChange, attrs = {}) => h('select', Object.assign({ class: 'select', 'data-focus':'select:'+options.map(o=>o.id).join('|'), 'aria-label': options.length ? options[0].label : null, on: { change: e => onChange(e.target.value) } }, attrs),
     options.map(o => h('option', { value: o.id, selected: o.id === value }, o.label)));
 
   // ---------- tooltip ----------
@@ -188,6 +185,26 @@
     toastHost.appendChild(el);
     setTimeout(() => { el.style.transition = 'opacity .25s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 260); }, opts.undo ? 5000 : 2800);
   };
+
+  // Stable identities survive a local redraw; never restore by child index.
+  FD.captureFocus = root => {
+    const el=document.activeElement;if(!root||!el||!root.contains(el))return null;
+    if(el.id)return {selector:'#'+CSS.escape(el.id)};
+    for(const attr of ['data-focus','data-sk','name','aria-label'])if(el.getAttribute(attr))return {selector:el.tagName.toLowerCase()+'['+attr+'="'+CSS.escape(el.getAttribute(attr))+'"]'};
+    if(el.tagName==='BUTTON'&&el.textContent.trim())return {text:el.textContent.trim(),tag:'button'};
+    return null;
+  };
+  FD.restoreFocus = (root,token) => {
+    if(!root||!token)return false;
+    const el=token.selector?root.querySelector(token.selector):[...root.querySelectorAll(token.tag)].find(x=>x.textContent.trim()===token.text);
+    if(!el||el.disabled)return false;el.focus({preventScroll:true});return true;
+  };
+  FD.restoreOverlayFocus = (root,token) => {
+    if(FD.restoreFocus(root,token))return true;
+    const fallback=root.querySelector('.sheet-h .icon-btn:last-child,.drawer-h .icon-btn:last-child')||root.querySelector('button:not(:disabled),[tabindex="0"]');
+    if(!fallback)return false;fallback.focus({preventScroll:true});return true;
+  };
+  FD.photoButton = ({src,label,onOpen,loading='lazy'}) => h('button',{type:'button',class:'photo-open','aria-label':label||FD.t('L_PHOTO'),on:{click:e=>onOpen?onOpen(e):FD.lightbox(src,{label,returnFocus:e.currentTarget})}},h('img',{src,alt:'',loading}));
 
   // ---------- focus trap helper ----------
   function trap(container, e) {
@@ -222,7 +239,7 @@
       if (opts.replace) { FD.ovPop(D.stack.length); D.stack = []; }
       D.stack.push(cfg); FD.ovPush(); // opening from inside a drawer stacks, so back returns to it
       if (!D.el) {
-        D.returnFocus = document.activeElement;
+        D.returnFocus = document.activeElement; D.returnToken=FD.captureFocus(document);
         D.scrim = h('div', { class: 'scrim', on: { click: () => FD.drawer.close() } });
         D.el = h('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true', on: { keydown: e => { if (e.key === 'Escape') FD.drawer.close(); trap(D.el, e); } } });
         document.getElementById('overlays').append(D.scrim, D.el);
@@ -234,11 +251,11 @@
     close(fromPop) {
       if (!D.el) return; if (!fromPop) FD.ovPop(D.stack.length); const el = D.el, sc = D.scrim; D.el = D.scrim = null; D.stack = [];
       el.classList.remove('on'); sc.classList.remove('on'); el.style.pointerEvents = sc.style.pointerEvents = 'none'; setTimeout(() => { el.remove(); sc.remove(); }, 280);
-      if (D.returnFocus && D.returnFocus.focus) D.returnFocus.focus();
+      if (D.returnFocus?.isConnected) D.returnFocus.focus(); else FD.restoreFocus(document,D.returnToken);
     },
     isOpen: () => !!D.el,
     refresh(focus) {
-      if (!D.el) return; const cfg = D.stack[D.stack.length - 1];
+      if (!D.el) return; const cfg = D.stack[D.stack.length - 1]; const savedFocus=FD.captureFocus(D.el);
       let body; try { body = cfg.render(); } catch (err) { console.error(err); body = h('div', { class: 'err-card' }, String(err.message || err)); }
       if (body === null) return FD.drawer.back(); // subject no longer exists
       const bodyEl = h('div', { class: 'drawer-b' }, body);
@@ -249,7 +266,7 @@
           cfg.expand ? FD.iconBtn('maximize', FD.t('L_EXPAND'), () => { const hsh = typeof cfg.expand === 'function' ? cfg.expand() : cfg.expand; FD.drawer.close(); setTimeout(() => FD.go(hsh), 30); }) : null,
           FD.iconBtn('x', FD.t('L_CLOSE'), () => FD.drawer.close())), bodyEl);
       D.el.setAttribute('aria-labelledby', 'drawer-title');
-      bodyEl.scrollTop = scroll;
+      bodyEl.scrollTop = scroll; if(!focus&&savedFocus)FD.restoreOverlayFocus(D.el,savedFocus);
       if (focus) setTimeout(() => { const b = D.el && D.el.querySelector('.drawer-h .icon-btn:last-child'); if (b) b.focus(); }, 50);
     },
     closeAll() { FD.drawer.close(); }
@@ -269,18 +286,19 @@
       const el = h('div', { class: 'sheet' + (cfg.center && !inPhone ? ' center' : ''), role: 'dialog', 'aria-modal': 'true',
         on: { keydown: e => { if (e.key === 'Escape') { e.stopPropagation(); FD.sheet.close(); } trap(el, e); } } });
       wrap.append(scrim, el); host.appendChild(wrap);
-      const entry = { cfg, wrap, el, scrim, returnFocus: document.activeElement };
+      const entry = { cfg, wrap, el, scrim, returnFocus: document.activeElement, returnToken:FD.captureFocus(document) };
       S.stack.push(entry); FD.ovPush();
       FD.sheet.draw(entry, true);
       requestAnimationFrame(() => { scrim.classList.add('on'); el.classList.add('on'); });
       return entry;
     },
     draw(entry, focus) {
-      const { cfg, el } = entry; const body = cfg.render(entry);
+      const { cfg, el } = entry; const savedFocus=FD.captureFocus(el); const body = cfg.render(entry); entry.titleId=entry.titleId||('sheet-title-'+FD.key()); el.setAttribute('aria-labelledby',entry.titleId);
       el.replaceChildren(...[
         cfg.center ? null : h('div', { class: 'grab', 'aria-hidden': 'true' }),
-        h('div', { class: 'sheet-h' }, cfg.back ? FD.iconBtn('arrow-left', FD.t('L_BACK'), cfg.back) : null, h('h3', null, typeof cfg.title === 'function' ? cfg.title() : cfg.title), FD.iconBtn('x', FD.t('L_CLOSE'), () => FD.sheet.close())),
+        h('div', { class: 'sheet-h' }, cfg.back ? FD.iconBtn('arrow-left', FD.t('L_BACK'), cfg.back) : null, h('h3', {id:entry.titleId}, typeof cfg.title === 'function' ? cfg.title() : cfg.title), FD.iconBtn('x', FD.t('L_CLOSE'), () => FD.sheet.close())),
         h('div', { class: 'sheet-b' }, body), cfg.footer ? h('div', { class: 'sheet-f' }, cfg.footer(entry)) : null].filter(Boolean));
+      if(!focus&&(savedFocus||document.activeElement===document.body))FD.restoreOverlayFocus(el,savedFocus);
       if (focus) setTimeout(() => { const f = el.querySelector('.sheet-b button, .sheet-b input, .sheet-b textarea'); (f || el.querySelector('.icon-btn')).focus({ preventScroll: true }); }, 60);
     },
     redraw() { const top = S.stack[S.stack.length - 1]; if (top) FD.sheet.draw(top, false); },
@@ -288,7 +306,7 @@
       const top = S.stack.pop(); if (!top) return; if (!fromPop) FD.ovPop(1);
       top.el.classList.remove('on'); top.scrim.classList.remove('on'); top.wrap.style.pointerEvents = top.el.style.pointerEvents = top.scrim.style.pointerEvents = 'none'; setTimeout(() => top.wrap.remove(), 300);
       if (top.cfg.onClose) top.cfg.onClose();
-      if (top.returnFocus && top.returnFocus.focus && document.contains(top.returnFocus)) top.returnFocus.focus({ preventScroll: true });
+      if (top.returnFocus && top.returnFocus.focus && document.contains(top.returnFocus)) top.returnFocus.focus({ preventScroll: true }); else FD.restoreFocus(document,top.returnToken);
     },
     closeAll() { while (S.stack.length) FD.sheet.close(); },
     top: () => S.stack[S.stack.length - 1],
@@ -336,7 +354,8 @@
     const head = h('tr', null, columns.map(c => {
       const sorted = st.key === c.key;
       const th = h('th', { class: (c.num ? 'n ' : '') + (c.sort ? 'sortable' : ''), scope: 'col', 'aria-sort': sorted ? (st.dir === 'asc' ? 'ascending' : 'descending') : null, tabindex: c.sort ? '0' : null, style: c.width ? { width: c.width } : null },
-        c.label, c.sort ? h('span', { class: 'sort', 'aria-hidden': 'true' }, sorted ? (st.dir === 'asc' ? ' ▲' : ' ▼') : ' ↕') : null);
+        h('span',{class:'th-content'},h('span',{class:'th-copy'},h('span',{class:'th-label'},c.label),c.hint?h('span',{class:'th-hint'},c.hint):null),
+          c.sort?h('span',{class:'sort','aria-hidden':'true'},I(sorted?(st.dir==='asc'?'arrow-up':'arrow-down'):'arrow-down','s12')):null));
       if (c.sort) {
         const go = () => { if (st.key === c.key) st.dir = st.dir === 'asc' ? 'desc' : 'asc'; else { st.key = c.key; st.dir = c.firstDir || 'desc'; } FD.rerenderTable(id); };
         th.addEventListener('click', go); th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
@@ -345,9 +364,9 @@
     }));
     const body = data.length ? data.map(r => h('tr', { class: (onRow ? 'click ' : '') + (rowClass ? rowClass(r) : ''), tabindex: onRow ? '0' : null,
       on: onRow ? { click: e => { if (!e.target.closest('button, a, input, select')) onRow(r); }, keydown: e => { if (e.key === 'Enter' && e.target.tagName === 'TR') onRow(r); } } : null },
-      columns.map(c => h('td', { class: c.num ? 'n' : '' }, c.render ? c.render(r) : r[c.key]))))
+      columns.map(c => h('td', { class: c.num ? 'n' : '', 'data-label': typeof c.label === 'string' ? c.label : '' }, c.render ? c.render(r) : r[c.key]))))
       : h('tr', null, h('td', { colspan: columns.length }, FD.empty(empty)));
-    const wrap = h('div', { class: 'table-wrap', dataset: { table: id } }, h('table', { class: 't' }, h('thead', null, head), h('tbody', null, body)));
+    const wrap = h('div', { class: 'table-wrap', dataset: { table: id } }, h('table', { class: 't' + (columns.length > 3 && !/Compact$/.test(id) ? ' t-stack' : '') }, h('thead', null, head), h('tbody', null, body))); // t-stack: rows become label/value cards on phones
     wrap._args = arguments[0];
     return wrap;
   };
@@ -387,7 +406,8 @@
   };
   // Line chart: s0 solid brand, s1 dashed muted (e.g. before-pilot average). Crosshair + tooltip.
   FD.line = (series, labels, opts = {}) => {
-    const W = 600, H = opts.h || 200, L = 44, R = 12, T = 12, B = 26;
+    // drawing width follows the screen so axis text stays ~12px instead of scaling with the card
+    const vw = typeof innerWidth === 'number' ? innerWidth : 600, W = opts.fit ? Math.max(320, Math.min(1320, vw - (vw > 768 ? 200 : 64))) : 600, H = opts.h || 200, L = 44, R = 12, T = 12, B = 26;
     const all = series.flatMap(s => s.values).filter(v => v != null);
     const max = Math.max(1, ...all) * 1.1, min = 0;
     const X = i => L + (i / Math.max(1, labels.length - 1)) * (W - L - R), Y = v => T + (1 - (v - min) / (max - min)) * (H - T - B);
@@ -427,9 +447,16 @@
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad')); };
     img.src = url;
   });
-  FD.lightbox = src => { const lb = h('div', { class: 'lightbox', role: 'dialog', tabindex: '-1', on: { click: () => lb.remove(), keydown: e => { if (e.key === 'Escape') lb.remove(); } } }, h('img', { src, alt: '' })); document.body.appendChild(lb); lb.focus(); };
+  FD.lightbox = (src,opts={}) => {
+    const origin=opts.returnFocus||document.activeElement,label=opts.label||FD.t('L_PHOTO');
+    const close=()=>{lb.remove();if(origin&&origin.isConnected)origin.focus({preventScroll:true});};
+    const lb=h('div',{class:'lightbox',role:'dialog','aria-modal':'true','aria-label':label,tabindex:'-1',on:{click:e=>{if(e.target===lb)close();},keydown:e=>{if(e.key==='Escape'){e.stopPropagation();close();}trap(lb,e);}}},FD.iconBtn('x',FD.t('L_CLOSE'),close),h('img',{src,alt:label}));
+    document.body.appendChild(lb);lb.querySelector('button').focus();
+  };
   // ---------- SKU icons: professional line icons (same stroke as the UI set) + one flavour accent ----------
   // Outline in currentColor; the flavour colour fills only the key part (frosting, cream, crumb, pack band).
+  // a theme colour by token name, for places that need a literal value (map pins); follows light/dark
+  FD.tok = name => (typeof getComputedStyle === 'function' && getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim()) || '';
   const FLAV = { vanilla: '#E3B55B', chocolate: '#7A4A2E', strawberry: '#E0668A', marble: '#A0724A', fruit: '#E0892F', brown: '#A06B3B', red: '#C0463A', diet: '#6F9A3B', butter: '#2F6FD0', choco: '#6B4226' };
   function flavour(k) { const n = k.name.toLowerCase();
     if (k.group === 'GRP_RUSK') return n.includes('red') ? 'red' : n.includes('diet') ? 'diet' : 'brown';
@@ -454,6 +481,7 @@
       ? `<rect x="4" y="5" width="16" height="15" rx="1.5"/><path d="M4 9h16" /><rect x="4.9" y="5.9" width="14.2" height="2.2" rx=".6" ${acc(c)}/><circle cx="12" cy="14.5" r="3"/><path d="M11 13.8h.01M13 14.2h.01M11.8 15.6h.01" stroke-width="2"/>`
       : `<ellipse cx="12" cy="7" rx="8" ry="2.6" ${acc(c)}/><ellipse cx="12" cy="7" rx="8" ry="2.6"/><path d="M4 7v10c0 1.4 3.6 2.6 8 2.6s8-1.2 8-2.6V7"/><path d="M4 12c0 1.4 3.6 2.6 8 2.6s8-1.2 8-2.6" stroke-opacity=".35"/>`,
     // rusk: stand-up pouch with slice window
+    GRP_OTHER: c => `<ellipse cx="12" cy="5.5" rx="6.5" ry="2" ${acc(c)}/><path d="M5.5 5.5v13c0 1.1 2.9 2 6.5 2s6.5-.9 6.5-2v-13"/><path d="M5.5 10h13M5.5 15h13" stroke-opacity=".45"/>`,
     GRP_RUSK: c => `<rect x="5.8" y="4.8" width="12.4" height="3.2" rx=".8" ${acc(c)}/><path d="M6 4h12l1.5 3.5V20a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1V7.5z"/><rect x="8.5" y="11" width="7" height="5.5" rx="1.2"/><path d="M10.5 11v5.5M13.5 11v5.5" stroke-opacity=".45"/>`,
   };
   FD.skuIcon = (code, size = 28) => {

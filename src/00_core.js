@@ -12,12 +12,14 @@
   };
   FD.int = (r, a, b) => a + Math.floor(r() * (b - a + 1));
   FD.pick = (r, arr) => arr[Math.floor(r() * arr.length)];
-  FD.addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-  FD.dow = iso => new Date(iso + 'T00:00:00Z').getUTCDay();
+  const ADD_MEMO = new Map(), PARSE_MEMO = new Map(), DOW_MEMO = new Map();
+  const parseIso = s => { let v = PARSE_MEMO.get(s); if (v === undefined) PARSE_MEMO.set(s, v = Date.parse(s)); return v; };
+  FD.addDays = (iso, n) => { if (!n) return iso; const k = iso + '|' + n; let v = ADD_MEMO.get(k); if (v === undefined) { const d = new Date(parseIso(iso)); d.setUTCDate(d.getUTCDate() + n); ADD_MEMO.set(k, v = d.toISOString().slice(0, 10)); } return v; };
+  FD.dow = iso => { let v = DOW_MEMO.get(iso); if (v === undefined) DOW_MEMO.set(iso, v = new Date(parseIso(iso)).getUTCDay()); return v; };
   FD.isSellingDay = iso => FD.dow(iso) !== 5;
-  FD.daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
-  FD.BASE_START = '2026-08-17'; FD.PILOT_START = '2026-10-12';
-  FD.TODAY = '2026-11-18'; FD.PILOT_END = '2027-01-09';
+  FD.daysBetween = (a, b) => Math.round((parseIso(b) - parseIso(a)) / 864e5);
+  FD.BASE_START = '2026-09-15'; FD.PILOT_START = '2026-09-22'; // PILOT_START: recommendations live from here (one week of before-data)
+  FD.TODAY = '2026-10-22'; FD.PILOT_END = '2026-10-31';
   FD.lang = 'en'; FD.digits = 'arab';
   const subs = {};
   FD.bus = {

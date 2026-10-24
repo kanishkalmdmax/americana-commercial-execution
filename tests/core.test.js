@@ -1,3 +1,4 @@
+const fx = require('./fx');
 const test = require('node:test'); const assert = require('node:assert');
 const load = require('./load');
 test('rng is deterministic', () => {
@@ -6,9 +7,9 @@ test('rng is deterministic', () => {
 });
 test('calendar facts', () => {
   const FD = load(1);
-  assert.strictEqual(FD.dow('2026-11-18'), 3);
-  assert.strictEqual(FD.daysBetween(FD.PILOT_START, FD.TODAY), 37);
-  assert.strictEqual(FD.isSellingDay('2026-11-20'), false);
+  assert.strictEqual(FD.dow(FD.TODAY), 4); // Thu 22 Oct 2026
+  assert.strictEqual(FD.daysBetween(FD.PILOT_START, FD.TODAY), 30);
+  assert.strictEqual(FD.isSellingDay('2026-10-09'), false); // Friday
   assert.strictEqual(FD.addDays('2026-10-31', 1), '2026-11-01');
 });
 test('bus delivers', () => {

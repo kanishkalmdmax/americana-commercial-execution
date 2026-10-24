@@ -69,7 +69,7 @@
         case 'time': out.time = FD.fmt.time(v); break;
         case 'ratio': out.ratio = FD.fmt.num(v, 1); break;
         case 'cost': case 'rev': case 'earn': case 'price': out[k] = FD.fmt.num(v, 2); break;
-        case 'n': case 'qty': case 'got': case 'days': case 'pct': case 'pcs': case 'rank': out[k] = FD.fmt.num(Math.round(v)); break;
+        case 'n': case 'm': case 'qty': case 'got': case 'days': case 'pct': case 'pcs': case 'rank': out[k] = FD.fmt.num(Math.round(v)); break;
         default: out[k] = v;
       }
     }
@@ -95,7 +95,7 @@
       const x = st.returns.filter(x => x.store === r.store && x.sku === (r.alt || r.sku) && x.date >= r.date && x.date <= st.clock.date).pop();
       return x && inLast(st, x.date, 7) ? { key: 'F_RETURN_UPSELL|' + r.id, at: x.date, slots: { storeId: r.store, skuCode: r.alt || r.sku, qty: r.got || 1, unitOf: r.alt || r.sku, vsrId: r.vsr }, action: { label: 'ACT_REVIEW_STORE', kind: 'store', store: r.store } } : null;
     })],
-    ['F_MISSING_REASONS', 1, st => st.world.vsrs.map(v => {
+    ['F_MISSING_REASONS', 1, st => st.world.vsrs.filter(v => v.kind === 'sales').map(v => {
       const miss = st.recs.filter(r => FD.recVsr(r) === v.id && NEEDS.includes(r.outcome) && !r.reason && !r.exempted && r.date < st.clock.date);
       if (miss.length < 3) return null;
       const oldest = miss.reduce((m, r) => (r.date < m ? r.date : m), miss[0].date);
@@ -128,13 +128,12 @@
       }
       return out.sort((a, b) => b.n - a.n).slice(0, 3);
     }],
-    ['F_VSR_BELOW', 2, st => st.world.vsrs.map(v => {
-      const b = FD.baseline(st, v.id); if (!b.perDay) return null;
-      const w1 = FD.vsrMetrics(st, v.id, FD.addDays(st.clock.date, -6), st.clock.date), w2 = FD.vsrMetrics(st, v.id, FD.addDays(st.clock.date, -13), FD.addDays(st.clock.date, -7));
-      const d1 = pct(w1.perDay - b.perDay, b.perDay), d2 = pct(w2.perDay - b.perDay, b.perDay);
+    ['F_VSR_BELOW', 2, st => st.world.vsrs.filter(v => v.kind === 'sales').map(v => {
+      const w1 = FD.likeForLike(st, v.id, FD.addDays(st.clock.date, -6), st.clock.date), w2 = FD.likeForLike(st, v.id, FD.addDays(st.clock.date, -13), FD.addDays(st.clock.date, -7));
+      if (!w1.expected || !w2.expected) return null; const d1 = w1.pct, d2 = w2.pct;
       return d1 <= -10 && d2 <= -10 ? { key: 'F_VSR_BELOW|' + v.id + '|' + weekKey(st), at: st.clock.date, slots: { vsrId: v.id, pct: -Math.max(d1, d2) }, action: { label: 'ACT_OPEN_VSR', kind: 'vsr', vsr: v.id } } : null;
     })],
-    ['F_NOT_OFFERED', 2, st => st.world.vsrs.map(v => {
+    ['F_NOT_OFFERED', 2, st => st.world.vsrs.filter(v => v.kind === 'sales').map(v => {
       const rs = st.recs.filter(r => FD.recVsr(r) === v.id && r.outcome && r.outcome !== 'CARRIED' && inLast(st, r.date, 7));
       const p = pct(rs.filter(r => r.outcome === 'NOT_OFFERED').length, rs.length);
       return rs.length >= 10 && p >= 40 ? { key: 'F_NOT_OFFERED|' + v.id + '|' + weekKey(st), at: st.clock.date, slots: { vsrId: v.id, pct: p }, action: { label: 'ACT_OPEN_VSR', kind: 'vsr', vsr: v.id } } : null;
@@ -157,10 +156,12 @@
       slots: { storeId: r.store, vsrId: FD.recVsr(r), date: r.reasonAt.date }, action: { label: 'ACT_VIEW', kind: 'rec', rec: r.id } }))],
     ['F_ENGINE_MISS', 3, st => {
       const by = {}; st.misses.filter(m => m.type === 'UNREC' && inLast(st, m.date, 7)).forEach(m => { (by[m.sku] = by[m.sku] || []).push(m); });
-      return Object.entries(by).filter(([, ms]) => ms.length >= 3).map(([sku, ms]) => ({ key: 'F_ENGINE_MISS|' + sku + '|' + weekKey(st), at: ms[ms.length - 1].date, slots: { skuCode: sku, n: new Set(ms.map(m => m.store)).size }, action: { label: 'ACT_REVIEW_SKU', kind: 'sku', sku } }));
+      return Object.entries(by).filter(([, ms]) => ms.length >= 3).sort((x, y) => y[1].length - x[1].length).slice(0, 3).map(([sku, ms]) => /* top 3, not one per product */ ({ key: 'F_ENGINE_MISS|' + sku + '|' + weekKey(st), at: ms[ms.length - 1].date, slots: { skuCode: sku, n: new Set(ms.map(m => m.store)).size }, action: { label: 'ACT_REVIEW_SKU', kind: 'sku', sku } }));
     }],
-    ['F_WATCHLIST', 2, st => FD.skuPerf(st, FD.addDays(st.clock.date, -27), st.clock.date).filter(x => x.returnRate >= 8 && !x.watch).map(x => ({ key: 'F_WATCHLIST|' + x.code + '|' + weekKey(st), at: st.clock.date,
-      slots: { skuCode: x.code, pct: x.returnRate }, action: { label: 'ACT_REVIEW_SKU', kind: 'sku', sku: x.code } }))],
+    ['F_WATCHLIST', 2, st => { const sp = FD.skuPerf(st, FD.addDays(st.clock.date, -27), st.clock.date); const sold = sp.filter(x => x.returnRate > 0); const avg = sold.reduce((a, x) => a + x.returnRate, 0) / Math.max(1, sold.length);
+      // well above this market's normal return rate (real returns run about 12% across the range)
+      return sp.filter(x => x.returnRate >= Math.max(15, 2 * avg) && !x.watch).sort((a, b) => b.returnRate - a.returnRate).slice(0, 3).map(x => ({ key: 'F_WATCHLIST|' + x.code + '|' + weekKey(st), at: st.clock.date,
+      slots: { skuCode: x.code, pct: x.returnRate }, action: { label: 'ACT_REVIEW_SKU', kind: 'sku', sku: x.code } })); }],
     ['F_SKIPPED', 3, st => st.world.vsrs.map(v => {
       const sk = FD.planFor(st, v.id, st.clock.date).stops.filter(s => s.status === 'SKIPPED');
       return sk.length >= 2 ? { key: 'F_SKIPPED|' + v.id + '|' + st.clock.date, at: st.clock.date, slots: { vsrId: v.id, n: sk.length, reasonCode: mode(sk.map(s => s.skipReason)) }, action: { label: 'ACT_OPEN_VSR', kind: 'vsr', vsr: v.id } } : null;
@@ -174,7 +175,7 @@
     ['F_COVER', 4, st => st.covers.filter(c => c.date === st.clock.date).map(c => ({ key: 'F_COVER|' + c.date + '|' + c.route, at: c.date,
       slots: { vsr2Id: c.vsr, vsrId: st.world.vsrs.find(v => v.route === c.route).id, routeId: c.route }, action: { label: 'ACT_OPEN_ROUTE', kind: 'vsr', vsr: c.vsr } }))],
   ];
-  FD.followUps = st => FD.cached('fu', st, '', () => FU_RULES.flatMap(([tpl, pri, run]) => run(st).filter(Boolean).map(x => Object.assign(x, { tpl: x.tpl || tpl, pri })))
+  FD.followUps = st => FD.cached('fu', st, '', () => FU_RULES.flatMap(([tpl, pri, run]) => run(st).filter(Boolean).map(x => Object.assign(x, { tpl: x.tpl || tpl, pri }))).concat(FD.pgFollowUps ? FD.pgFollowUps(st) : [])
     .filter(f => !st.followupDone[f.key] && !(st.followupSnooze[f.key] > st.clock.date))
     .sort((a, b) => a.pri - b.pri || ((b.slots.n || 0) - (a.slots.n || 0)) || String(b.at).localeCompare(String(a.at))));
 
@@ -186,7 +187,7 @@
   };
   FD.coachDrafts = st => FD.cached('coach', st, '', () => {
     const out = []; const wk = weekKey(st);
-    for (const v of st.world.vsrs) {
+    for (const v of st.world.vsrs.filter(x => x.kind === 'sales')) {
       const mine = st.recs.filter(r => FD.recVsr(r) === v.id && inLast(st, r.date, 7));
       const add = (tpl, key, slots) => { const k = tpl + '|' + v.id + '|' + key + '|' + wk; if (!st.tipDone[k]) out.push({ key: k, vsr: v.id, tpl, slots }); };
       const priceBySku = {}; mine.filter(r => r.reason === 'R_PRICE').forEach(r => { priceBySku[r.sku] = (priceBySku[r.sku] || 0) + 1; });
@@ -195,7 +196,7 @@
       const comp = mine.filter(r => r.reason === 'R_COMPETITOR');
       if (comp.length >= 3) add('K_COMPETITOR', '', FD.tipSlots(mode(comp.map(r => r.sku)), { brandId: mode(comp.map(r => r.brand).filter(Boolean)) || 'BR_OTHER' }));
       const absent = {}; mine.filter(r => r.reason === 'R_BUYER_ABSENT').forEach(r => { absent[r.store] = (absent[r.store] || 0) + 1; });
-      Object.entries(absent).filter(([, n]) => n >= 3).forEach(([s, n]) => add('K_BUYER_ABSENT', s, { storeId: s, n }));
+      Object.entries(absent).filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).slice(0, 2).forEach(([s, n]) => add('K_BUYER_ABSENT', s, { storeId: s, n })); // the two strongest stores, not a wall of drafts
       const decided = mine.filter(r => r.outcome && r.outcome !== 'CARRIED');
       if (decided.length >= 10 && pct(decided.filter(r => r.outcome === 'NOT_OFFERED').length, decided.length) >= 40) add('K_NOT_OFFERED', '', {});
       if (st.recs.filter(r => FD.recVsr(r) === v.id && NEEDS.includes(r.outcome) && !r.reason && !r.exempted && r.date < st.clock.date).length >= 3) add('K_REASONS', '', {});
@@ -282,7 +283,7 @@
   FD.opportunities = (st, f = {}) => FD.cached('op', st, JSON.stringify(f), () => {
     const out = [];
     for (const s of st.world.stores) {
-      if ((f.route && s.route !== f.route) || (f.vsr && s.vsr !== f.vsr) || (f.label && s.label !== f.label) || (f.tag && !s.tags.includes(f.tag))) continue;
+      if (!FD.salesVan(st, s.vsr) || (f.route && s.route !== f.route) || (f.vsr && s.vsr !== f.vsr) || (f.label && s.label !== f.label) || (f.tag && !s.tags.includes(f.tag))) continue;
       for (const r of FD.recommend(st, s.id, st.clock.date).recs) if (!f.cat || FD.sku(r.sku).category === f.cat)
         out.push({ store: s.id, sku: r.sku, type: r.type, ev: r.ev, value: r.value, qty: r.qty, reasonId: r.reasonId, slots: r.slots });
     }

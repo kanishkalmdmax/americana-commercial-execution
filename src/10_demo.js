@@ -6,7 +6,7 @@
   const st = () => FD.state;
   const LS = 'fielddrive.demoPanel';
   const pos = (() => { try { return JSON.parse(localStorage.getItem(LS)) || null; } catch (e) { return null; } })();
-  const D = { open: false, vsr: null, mode: 'RANDOM', coverRoute: 'R1', coverVsr: 'V4', resetArmed: false, el: null, x: pos && pos.x, y: pos && pos.y };
+  const D = { open: false, vsr: null, mode: 'RANDOM', coverRoute: null, coverVsr: null, resetArmed: false, el: null, x: pos && pos.x, y: pos && pos.y };
 
   function arrivedStore(vsr) {
     const s = st(); const plan = FD.planFor(s, vsr, s.clock.date);
@@ -23,6 +23,7 @@
     const btn = (label, fn, cls = 'secondary', off) => h('button', { type: 'button', class: 'btn ' + cls, disabled: !!off, on: { click: fn } }, label);
     const nm = id => (s.world.stores.find(x => x.id === id) || {}).name;
     const plan = FD.planFor(s, v, s.clock.date); const here = arrivedStore(v); const nextStop = plan.stops.find(x => x.status === 'PLANNED');
+    if (!D.coverRoute) { D.coverRoute = s.world.routes[0].id; D.coverVsr = s.world.vsrs.find(v => v.kind === 'sales' && v.route !== D.coverRoute).id; }
     const waiting = Object.keys(s.pendingOrders).length; const cover = s.covers.find(c => c.date === s.clock.date && c.route === D.coverRoute);
     const onPhone = () => FD.route().role === 'vsr';
     const row = (...c) => h('div', { class: 'row wrap', style: { gap: '6px' } }, c);
@@ -31,19 +32,33 @@
       h('header', { on: { pointerdown: drag } }, I('settings', 's16'), h('span', { class: 'grow' }, 'Demo controls'), h('span', { class: 'chip outline' }, 'Demo only'),
         h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Close', style: { width: '28px', height: '28px' }, on: { click: toggle } }, I('x', 's16'))),
       h('section', null, h('h5', null, 'CLOCK · ' + s.clock.date + ' ' + s.clock.time),
-        row(...[['07:00', 'Morning'], ['13:00', 'Midday'], ['19:00', 'Evening'], ['21:30', 'End of day']].map(([tm, lb]) => btn(lb, () => FD.dx('CLOCK_SET', { date: s.clock.date, time: tm }), s.clock.time === tm ? 'primary' : 'secondary'))),
+        row(...[['07:00', 'Morning'], ['13:00', 'Midday'], ['17:00', 'Evening'], ['23:59', 'End of day']].map(([tm, lb]) => btn(lb, () => FD.dx('CLOCK_SET', { date: s.clock.date, time: tm }), s.clock.time === tm ? 'primary' : 'secondary'))),
+        row(btn('Next data sync (+1 h)', () => { FD.dx('SYNC_NEXT', {}); note('synced to ' + st().clock.time); }, 'secondary', s.clock.time >= '23:59')),
         row(btn('Previous day', () => FD.dx('CLOCK_SET', { date: FD.addDays(s.clock.date, -1), time: '07:00' }), 'secondary', s.clock.date <= FD.PILOT_START), btn('Next day', () => { FD.dx('CLOCK_SET', { date: FD.addDays(s.clock.date, 1), time: '07:00' }); note('simulated the rest of the day'); }))),
       h('section', null, h('h5', null, 'SALESMAN VISIT'), sel(vsrOpts, v, x => { D.vsr = x; if (onPhone()) FD.go('#/vsr/' + x + '/today'); else redraw(); }),
         h('div', { class: 'small' }, here ? 'At store: ' + nm(here) : nextStop ? 'Next stop: ' + nm(nextStop.store) : 'All stops visited today'),
         row(btn('Arrive at next stop', () => { FD.dx('ARRIVE', { vsr: v }); const a = arrivedStore(v); if (a) { note('arrived at ' + nm(a)); if (onPhone()) FD.go('#/vsr/' + v + '/store/' + a); } }, 'primary', !nextStop || !!here)),
         sel([['RANDOM', 'Random outcome'], ['FULL', 'Sold in full'], ['PARTIAL', 'Sold partly'], ['ALT', 'Sold alternative'], ['NOT_SOLD', 'Not sold']], D.mode, x => { D.mode = x; }),
-        row(btn('Simulate SalesBuzz order', () => { FD.dx('SB_ORDER', { vsr: v, store: here, mode: D.mode });
+        row(btn('Simulate order', () => { FD.dx('SB_ORDER', { vsr: v, store: here, mode: D.mode });
           const rs = st().recs.filter(r => r.store === here && r.date === st().clock.date && r.outcome);
-          note(st().pendingOrders[here] ? 'order waiting for SalesBuzz sync' : 'order at ' + nm(here) + ': ' + rs.filter(r => FD.SOLD.includes(r.outcome)).length + ' sold, ' + rs.filter(r => !FD.SOLD.includes(r.outcome)).length + ' not sold'); }, 'primary', !here)),
+          note(st().pendingOrders[here] ? 'order awaiting data sync' : 'order at ' + nm(here) + ': ' + rs.filter(r => FD.SOLD.includes(r.outcome)).length + ' sold, ' + rs.filter(r => !FD.SOLD.includes(r.outcome)).length + ' not sold'); }, 'primary', !here)),
         !here ? h('div', { class: 'small muted' }, 'Arrive at a store to simulate its order') : null,
-        h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: s.delaySync, on: { change: e => FD.dx('SB_ORDER_DELAY', { on: e.target.checked }) } }), 'Delay SalesBuzz sync'),
+        h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: s.delaySync, on: { change: e => FD.dx('SB_ORDER_DELAY', { on: e.target.checked }) } }), 'Delay data sync'),
         row(btn('Deliver delayed order' + (waiting ? ' (' + waiting + ')' : ''), () => { FD.dx('SB_DELIVER_DELAYED', {}); note('delayed order delivered'); }, 'secondary', !waiting), btn('Edit last order', () => { FD.dx('SB_ORDER_EDIT', {}); note('order edited, outcome re-graded'); }, 'secondary', !s.lastOrder))),
+      (()=>{const refs=Object.keys((FD.SHELF_RESULTS||{}).photos||{}).map(Number).filter(r=>FD.scUsable(FD.scResult(r)));if(!refs.length)return null;
+        if(!refs.includes(+D.scRef))D.scRef=refs[0];D.scPhase=D.scPhase||'BEFORE';
+        // presenter shortcut: the same as the salesman picking that field photo in the capture sheet
+        const add=()=>{const visit=st().visits.find(x=>x.date===st().clock.date&&x.store===here&&x.vsr===v);let a=FD.pgAssessments(st(),here).find(x=>x.date===st().clock.date&&x.visitId===(visit?visit.id:null));
+          const id=a?a.id:'pg-'+FD.key();if(!a)FD.dx('PG_START',{id,store:here,visitId:visit?visit.id:null,vsr:v});
+          const ok=FD.tryPhotoBatch({key:FD.key(),id,photos:[{id:'pg-photo-'+FD.key(),src:FD.PHOTOS[D.scRef],phase:D.scPhase,ref:+D.scRef}]});note(ok?D.scPhase.toLowerCase()+' photo checked at '+nm(here):'photo not saved (storage full)');};
+        return h('section',null,h('h5',null,'SHELF CHECK · FIELD PHOTOS'),
+          sel(refs.map(r=>[String(r),'Photo '+(r+1)]),String(D.scRef),x=>{D.scRef=+x;}),
+          sel([['BEFORE','Before'],['AFTER','After']],D.scPhase,x=>{D.scPhase=x;}),
+          row(btn('Add shelf photo',add,'secondary',!here)),!here?h('div',{class:'small muted'},'Arrive at a store to add a shelf photo'):null);})(),
       h('section', null, h('h5', null, 'AFTER THE VISIT'),
+        row(btn('Simulate WhatsApp pre-order', () => { const mine = s.world.stores.filter(x => x.vsr === v); const pick = mine[(s.preorders.length * 7 + 3) % mine.length];
+          const txt = ['Please bring 2 cartons of rolls tomorrow', 'Need cake bars, shelf is empty', 'Send 1 carton of slice cake with the next visit', 'Out of cupcakes, please add to my order'][s.preorders.length % 4];
+          FD.dx('PREORDER_ADD', { store: pick.id, text: txt }); note('pre-order from ' + pick.name); })),
         row(btn('Simulate return on an upsell', () => { FD.dx('RETURN_ADD', {}); note('return recorded'); })),
         (() => { const lastOf = th => th.messages[th.messages.length - 1]; const wait = s.threads.filter(x => x.messages.length && lastOf(x).by === 'SUP' && (x.team || x.vsr === v))
             .sort((a, b) => (lastOf(b).at.date + lastOf(b).at.time).localeCompare(lastOf(a).at.date + lastOf(a).at.time))[0];
@@ -51,12 +66,13 @@
             FD.dx('MSG_SEND', { anchor: wait.anchor, by: v, text: FD.t(q), qr: q, replyTo: lastOf(wait).id || null }); note((s.world.vsrs.find(x => x.id === v) || {}).name + ' replied'); }, 'secondary', !wait)); })(),
         h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: s.offline, on: { change: e => FD.dx('OFFLINE_SET', { on: e.target.checked }) } }), 'Salesman phone offline')),
       h('section', null, h('h5', null, 'COVERING SALESMAN (TODAY)'),
-        row(sel(s.world.routes.map(r => [r.id, 'Route ' + r.id.slice(1)]), D.coverRoute, x => { D.coverRoute = x; }), sel(vsrOpts, D.coverVsr, x => { D.coverVsr = x; })),
+        row(sel(s.world.routes.map(r => [r.id, r.id]), D.coverRoute, x => { D.coverRoute = x; }), sel(vsrOpts, D.coverVsr, x => { D.coverVsr = x; })),
         row(btn('Apply', () => { FD.dx('COVER_SET', { route: D.coverRoute, vsr: D.coverVsr }); note('cover set'); }), btn('Clear', () => { FD.dx('COVER_SET', { route: D.coverRoute, vsr: null }); note('cover cleared'); }, 'secondary', !cover)),
-        cover ? h('div', { class: 'small muted' }, 'Today: ' + (s.world.vsrs.find(x => x.id === cover.vsr) || {}).name + ' covers Route ' + D.coverRoute.slice(1)) : null),
+        cover ? h('div', { class: 'small muted' }, 'Today: ' + (s.world.vsrs.find(x => x.id === cover.vsr) || {}).name + ' covers ' + D.coverRoute) : null),
       h('section', null, h('h5', null, 'PRESENTER'),
         row(btn('Engine learning (internal)', () => FD.go('#/sup/learn'))),
         row(btn('Guided demo (5 steps)', guided, 'primary'), btn('Replay tour', () => { FD.dx('TOUR_RESET'); FD.tour(FD.route().role); })),
+        row(btn('Bring back dismissed items', () => { FD.closeAllOverlays(); note(FD.undismiss() + ' dismissals undone'); }, 'secondary')),
         row(btn(D.resetArmed ? 'Click again to reset' : 'Reset demo', () => { if (!D.resetArmed) { D.resetArmed = true; redraw(); setTimeout(() => { D.resetArmed = false; redraw(); }, 3000); return; }
           D.resetArmed = false; FD.closeAllOverlays(); FD.reset(); note('reset to seed data'); }, D.resetArmed ? 'danger' : 'secondary')),
         h('div', { class: 'small muted' }, 'Ctrl + . or Esc closes this panel')));
@@ -87,25 +103,25 @@
     if (st().lang !== 'en') { /* keep the presenter's language */ }
     runStep();
   }
-  const V2 = 'V2';
+  const V2 = () => st().priceVan; // the van whose real data shows the price pattern
   const STEPS = [
-    { cap: '1 / 5 · Imran starts his day. He reviews today\'s recommended products across his stops and confirms the list.', run() {
-      FD.dx('CLOCK_SET', { date: st().clock.date, time: '07:00' }); FD.dx('SET_VSR', { vsr: V2 }); FD.go('#/vsr/' + V2 + '/today'); } },
+    { cap: '1 / 5 · The salesman starts his day. He reviews today\'s recommended products across his stops and confirms the list.', run() {
+      FD.dx('CLOCK_SET', { date: st().clock.date, time: '07:00' }); FD.dx('VAN_RELEASE', { van: V2() }); FD.dx('SET_VSR', { vsr: V2() }); FD.go('#/vsr/' + V2() + '/today'); } },
     { cap: '2 / 5 · He reaches his first store. Live location triggers the notification: what this store is missing and what to offer.', run() {
-      FD.dx('DAY_CONFIRM', { vsr: V2 }); FD.dx('CLOCK_SET', { date: st().clock.date, time: '09:10' });
-      const plan = FD.planFor(st(), V2, st().clock.date); const stop = plan.stops.find(x => x.status === 'PLANNED' && plan.recs.some(r => r.store === x.store && r.outcome === null));
-      if (!stop) return; G.store = stop.store; FD.dx('ARRIVE', { vsr: V2, store: stop.store }); setTimeout(() => FD.go('#/vsr/' + V2 + '/store/' + stop.store), 900); } },
-    { cap: '3 / 5 · He sells in SalesBuzz as usual. FieldDrive reads the order: the upsell was not in it, so he taps the reason (price) in two taps.', run() {
-      if (!G.store) return; FD.dx('SB_ORDER', { vsr: V2, store: G.store, mode: 'NOT_SOLD' });
+      FD.dx('DAY_CONFIRM', { vsr: V2() }); FD.dx('CLOCK_SET', { date: st().clock.date, time: '09:10' });
+      const plan = FD.planFor(st(), V2(), st().clock.date); const stop = plan.stops.find(x => x.status === 'PLANNED' && plan.recs.some(r => r.store === x.store && r.outcome === null));
+      if (!stop) return; G.store = stop.store; FD.dx('ARRIVE', { vsr: V2(), store: stop.store }); setTimeout(() => FD.go('#/vsr/' + V2() + '/store/' + stop.store), 900); } },
+    { cap: '3 / 5 · He places an order as usual. FieldDrive reads it: the upsell was not included, so he taps the reason (price) in two taps.', run() {
+      if (!G.store) return; FD.dx('SB_ORDER', { vsr: V2(), store: G.store, mode: 'NOT_SOLD' });
       const rec = st().recs.find(r => r.store === G.store && r.date === st().clock.date && r.outcome === 'NOT_SOLD'); G.rec = rec && rec.id;
       if (rec) setTimeout(() => FD.vsr.reasonSheet(rec.id, 'NOT_SOLD'), 900);
       setTimeout(() => { const gr = G.rec && st().recs.find(r => r.id === G.rec); if (G.caption && gr && !gr.reason) { FD.sheet.closeAll(); FD.dx('REASON_SAVE', { recId: G.rec, reason: 'R_PRICE', comment: 'Owner says the box price is too high for his shop.' }); FD.toast('S_SAVED'); } }, 3200); } },
     { cap: '4 / 5 · The supervisor sees it immediately under "Why it didn\'t sell", with the reason and comment, and a drafted coaching tip.', run() {
-      FD.go('#/sup/home'); setTimeout(() => FD.sup.reasonDrawer({ group: 'RG_MONEY', kind: 'NOT_SOLD' }), 500); } },
-    { cap: '5 / 5 · He sends the tip in one click. Imran gets it on his phone and on the next matching card. Loop closed.', run() {
+      FD.go('#/sup/weekly'); setTimeout(() => FD.sup.reasonDrawer({ group: 'RG_MONEY', kind: 'NOT_SOLD' }), 500); } },
+    { cap: '5 / 5 · He sends the tip in one click. The salesman gets it on his phone and on the next matching card. Loop closed.', run() {
       FD.drawer.closeAll(); const rec = G.rec && st().recs.find(r => r.id === G.rec);
-      FD.dx('TIP_SEND', { vsr: V2, tpl: 'K_PRICE', slots: FD.tipSlots(rec ? rec.sku : '3040421754') });
-      FD.go('#/vsr/' + V2 + '/me'); } },
+      FD.dx('TIP_SEND', { vsr: V2(), tpl: 'K_PRICE', slots: FD.tipSlots(rec ? rec.sku : FD.SKUS[0].code) });
+      FD.go('#/vsr/' + V2() + '/me'); } },
   ];
   function runStep() {
     const s = STEPS[G.step];

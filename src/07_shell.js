@@ -35,7 +35,7 @@
       h('div', { class: 'row', style: { gap: '10px' } }, h('span', { class: 'logo-dot' }, FD.icon('route', 's16')), h('b', { style: { fontSize: '18px' } }, 'FieldDrive')),
       h('div', { class: 'muted small' }, FD.t('L_SIGNED_OUT')),
       h('div', { class: 'field' }, h('label', null, FD.t('L_SIGN_IN_AS')), FD.select([{ id: 'SUP', label: FD.nameOf(st.world.supervisor) + ' · ' + FD.t('L_SUPERVISOR') }].concat(st.world.vsrs.map(v => ({ id: v.id, label: FD.nameOf(v) + ' · ' + FD.t('L_ROLE_VSR') }))), who, x => { who = x; })),
-      FD.btn(FD.t('L_SIGN_IN'), () => FD.signIn(who === 'SUP' ? '#/sup/home' : '#/vsr/' + who + '/today'), 'primary lg block')));
+      FD.btn(FD.t('L_SIGN_IN'), () => FD.signIn(who === 'SUP' ? '#/sup/today' : '#/vsr/' + who + '/today'), 'primary lg block')));
   }
   FD.render = function () {
     const st = FD.state; if (!st) return;
@@ -47,14 +47,14 @@
     const key = location.hash;
     const scroller = () => r.role === 'vsr' ? document.querySelector('.v-body') : document.scrollingElement;
     if (lastKey) { const s = document.querySelector(lastKey.startsWith('#/vsr') ? '.v-body' : 'html'); if (s) scrollMem[lastKey] = s.scrollTop; }
-    const app = document.getElementById('app');
+    const app = document.getElementById('app'); const focusToken=key===lastKey?FD.captureFocus(app):null;
     let view;
     try {
-      const fn = FD.views[r.role][r.page] || FD.views[r.role][r.role === 'vsr' ? 'today' : 'home'];
+      const fn = FD.views[r.role][r.page] || FD.views[r.role][r.role === 'vsr' ? 'today' : 'today'];
       view = r.role === 'vsr' ? FD.vsr.shell(r, fn) : FD.sup.layout(r, fn);
     } catch (err) {
       console.error(err);
-      view = h('div', { class: 'err-card' }, h('b', null, 'Something went wrong on this screen. '), String(err && err.message || err), ' ', FD.btn('Home', () => FD.go('#/sup/home'), 'secondary sm'));
+      view = h('div', { class: 'err-card' }, h('b', null, 'Something went wrong on this screen. '), String(err && err.message || err), ' ', FD.btn('Home', () => FD.go('#/sup/today'), 'secondary sm'));
     }
     app.replaceChildren(view);
     document.body.classList.toggle('vsr-mode', r.role === 'vsr');
@@ -62,7 +62,7 @@
     const s = scroller(); if (s) s.scrollTop = key === lastKey ? (scrollMem[key] || 0) : (scrollMem[key] || 0);
     lastKey = key;
     FD.drawer.refresh(false);
-    FD.sheet.rehost(); FD.sheet.refreshLive(); FD.restoreSearchFocus();
+    FD.sheet.rehost(); FD.sheet.refreshLive(); FD.restoreSearchFocus(); if(focusToken)FD.restoreFocus(app,focusToken);
     if (FD.afterRender) FD.afterRender(r);
   };
 
@@ -71,11 +71,11 @@
     let c = document.getElementById('chrome');
     if (!c) { c = h('div', { id: 'chrome', class: 'chrome' }); document.body.appendChild(c); }
     const sw = FD.seg([{ id: 'sup', label: FD.t('L_ROLE_SUP'), icon: 'chart' }, { id: 'vsr', label: FD.t('L_ROLE_VSR'), icon: 'phone' }], r.role, id => {
-      if (id === 'sup') FD.go('#/sup/home'); else openAsSheet();
+      if (id === 'sup') FD.go('#/sup/today'); else openAsSheet();
     }, 'glass');
     sw.setAttribute('aria-label', 'Role');
     const lang = h('button', { class: 'lang-btn glass', type: 'button', 'aria-label': FD.t('L_LANGUAGE'), title: FD.t('L_LANGUAGE'),
-      on: { click: () => FD.dx('SET_LANG', { lang: FD.state.lang === 'ar' ? 'en' : 'ar' }) } }, FD.state.lang === 'ar' ? 'EN' : 'ع');
+      on: { click: () => FD.dx('SET_LANG', { lang: FD.state.lang === 'ar' ? 'en' : 'ar' }) } }, FD.state.lang === 'ar' ? 'English' : 'عربي'); // name the language it switches to, not a lone letter
     c.replaceChildren(sw, lang);
   }
   function openAsSheet() {
@@ -106,7 +106,7 @@
     b.addEventListener('touchmove', e => { if (y0 != null && e.touches[0].clientY - y0 < -20) hide(); }, { passive: true });
     screen.appendChild(b);
     requestAnimationFrame(() => b.classList.add('on'));
-    const t = setTimeout(hide, 6000);
+    const t = setTimeout(hide, 4000); addEventListener('hashchange', hide, { once: true });
     function hide() { clearTimeout(t); b.classList.remove('on'); setTimeout(() => b.remove(), 350); }
   };
   FD.openNotifTarget = n => {
@@ -122,14 +122,15 @@
     const steps = role === 'vsr' ? ['O_V1', 'O_V2', 'O_V3'] : ['O_S1', 'O_S2', 'O_S3'];
     let i = 0, ring = null, card = null;
     if (FD.tourEnd) FD.tourEnd(); // never two tours stacked
-    let raf = 0; const onScroll = () => { if (card && !raf) raf = requestAnimationFrame(() => { raf = 0; if (card) show(true); }); };
-    const end = () => { if (ring) ring.remove(); if (card) card.remove(); ring = card = null; document.removeEventListener('keydown', onKey); removeEventListener('resize', onResize); removeEventListener('scroll', onScroll, true); if (FD.tourEnd === end) FD.tourEnd = null; FD.dx('TOUR_SEEN', { role }); };
+    let raf = 0, showTimer = 0, ended = false; const onScroll = () => { if (card && !raf) raf = requestAnimationFrame(() => { raf = 0; if (card) show(true); }); };
+    const end = () => { ended = true; clearTimeout(showTimer); if (raf) cancelAnimationFrame(raf); if (ring) ring.remove(); if (card) card.remove(); ring = card = null; document.removeEventListener('keydown', onKey); removeEventListener('resize', onResize); removeEventListener('scroll', onScroll, true); if (FD.tourEnd === end) FD.tourEnd = null; FD.dx('TOUR_SEEN', { role }); };
     FD.tourEnd = end; addEventListener('scroll', onScroll, true);
     const onResize = () => { if (card) show(); }; addEventListener('resize', onResize);
     document.querySelectorAll('.coach-mark,.coach-ring').forEach(x => x.remove()); // never two tours stacked
     const onKey = e => { if (e.key === 'Escape') end(); };
     document.addEventListener('keydown', onKey);
     function show(quiet) {
+      if (ended) return;
       if (ring) ring.remove(); if (card) card.remove();
       const target = document.querySelector(`[data-tour="${role}${i + 1}"]`);
       // bring the target on screen first, otherwise the card can land below the fold on short windows
@@ -149,9 +150,9 @@
       Object.assign(card.style, { top: top + 'px', left: left + 'px' });
       if (!quiet) card.querySelector('.btn.primary').focus();
     }
-    setTimeout(show, 350);
+    showTimer = setTimeout(show, 350);
   };
-  FD.maybeTour = r => { if (!FD.state.tourSeen[r.role] && !document.querySelector('.coach-mark') && !FD.demoRunning) FD.tour(r.role); };
+  FD.maybeTour = r => { if (r.role === 'sup' && !FD.state.tourSeen[r.role] && !document.querySelector('.coach-mark') && !FD.demoRunning) FD.tour(r.role); };
 
   // ---------- shared thread sheet (recommendation, store or follow-up anchor) ----------
   // chat lives in 07b_chat.js
