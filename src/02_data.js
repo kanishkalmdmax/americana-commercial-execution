@@ -41,8 +41,10 @@
   FD.realStops = iso => (STOPS.get(iso) || []).map(([, van, store, start, end, nc, onPlan]) => ({ van, store, start, end, nc, onPlan: !!onPlan }));
   FD.realLines = (iso, van, store) => (LINES.get(iso) || []).filter(l => l[2] === van && l[3] === store).map(([, time, , , sku, units, value]) => ({ sku, units, value, time }));
   FD.realPays = iso => (PAYS.get(iso) || []).map(([, time, van, store, amount]) => ({ time, van, store, amount }));
-  // open balance a store already owed before a day (documents still open at extract time)
+  // open invoices a store already had before a day (still open at extract time), and the part past its due date on that day
   FD.dueBefore = (store, iso) => ((FD.REAL.dues || {})[store] || []).filter(([d]) => d < iso).reduce((a, [, v]) => a + v, 0);
+  FD.overdueAt = (store, iso) => ((FD.REAL.dues || {})[store] || []).filter(([d, , due]) => d < iso && due < iso).reduce((a, [, v]) => a + v, 0);
+  FD.overdueDays = (store, iso) => ((FD.REAL.dues || {})[store] || []).filter(([d, , due]) => d < iso && due < iso).reduce((a, [, , due]) => Math.max(a, FD.daysBetween(due, iso)), 0);
   FD.realReturns = iso => (RETS.get(iso) || []).map(([, van, store, sku, units, value, reason, saleDate]) => ({ van, store, sku, units, value, reason, saleDate: saleDate || null }));
   FD.ncReason = id => { const e = FD.CATALOG['NC_' + id]; return e ? [e.en, e.ar] : null; }; // fixed text per SalesBuzz no-sale code
   const DAYS = new Map(); for (const l of R.lines) { const k = l[3] + '|' + l[4]; (DAYS.get(k) || DAYS.set(k, new Set()).get(k)).add(l[0]); }
@@ -52,19 +54,22 @@
     const hood = {}; for (const s of R.stores) hood[s.van] = [s.hood_en, s.hood_ar];
     const routes = R.vans.filter(v => v.kind !== 'inactive').map(v => ({ id: v.route, name: `${v.route} · ${(hood[v.id] || [''])[0]}`, name_ar: `${v.route.replace('RYD_', 'مسار ')} · ${(hood[v.id] || ['', ''])[1]}`, hoods: [(hood[v.id] || [''])[0]], remote: false }));
     const vans = R.vans.filter(v => v.kind !== 'inactive'); // a van with a plan and no visits all month adds nothing to the mockup
-    const vsrs = vans.map(v => ({ id: v.id, name: v.name_en, name_ar: v.name_ar, route: v.route, kind: v.kind, sup: v.sup, first: v.first, last: v.last }));
+    const vsrs = vans.map(v => ({ id: v.id, name: v.name_en, name_ar: v.name_ar, route: v.route, kind: v.kind, sup: v.sup, first: v.first, last: v.last, outOfRoute: v.outOfRoute || null }));
     const routeOf = Object.fromEntries(vsrs.map(v => [v.id, v.route]));
     // weekly packs per product per store over the history weeks (drives quantities and future-day orders)
     const weeks = FD.daysBetween(FD.BASE_START, FD.TODAY) / 7; const carry = {};
     for (const l of R.lines) if (l[0] < FD.TODAY) { const c = carry[l[3]] || (carry[l[3]] = {}); c[l[4]] = (c[l[4]] || 0) + l[5] / weeks; }
     const hash = s => { let x = 2166136261; for (const c of s) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); } return x >>> 0; };
+    // size from the trade name (markets / centres are mini-markets; baqala, shop, corner are small), else from the store's sales class;
+    // shelf space follows the sales class. Tags stay demo values until location data (nearby schools, mosques) is joined.
+    const sizeOf = s => /أسواق|اسواق|سوبر|هايبر|مركز/.test(s.name_ar) ? 'MINI' : /بقالة|بقاله|محل|ركن|كشك/.test(s.name_ar) ? 'SMALL' : s.cls === 'A' ? 'LARGE' : 'SMALL';
     const stores = R.stores.map(s => {
       const r = FD.rng(hash(s.id)); const tags = [FD.TAGS[FD.int(r, 0, FD.TAGS.length - 1)]];
       if (r() < 0.5) { const t = FD.pick(r, FD.TAGS); if (!tags.includes(t)) tags.push(t); }
       const c = {}; for (const [k, w] of Object.entries(carry[s.id] || {})) c[k] = Math.max(1, Math.round(w));
       return { id: s.id, sb: s.sb, name: s.name_en, name_ar: s.name_ar, route: routeOf[s.van], vsr: s.van, hood: s.hood_en, lat: s.lat, lng: s.lng,
-        label: s.cls, size: FD.pick(r, ['SMALL', 'SMALL', 'LARGE', 'MINI']), tags, shelf: FD.pick(r, ['low', 'med', 'med', 'high']),
-        credit: s.credit || 'OK', balance: s.balance || 0, creditLimit: s.creditLimit || 0, onboarding: 'APPROVED', days: s.days, phone: '+9665' + String(10000000 + hash(s.sb) % 89999999), carry: c, dropped: {} };
+        label: s.cls, size: sizeOf(s), tags, shelf: { A: 'high', B: 'med', C: 'low' }[s.cls] || 'med',
+        credit: FD.overdueDays(s.id, FD.TODAY) > 30 ? 'WATCH' : 'OK', overdue: +FD.overdueAt(s.id, FD.TODAY).toFixed(2), openAr: +FD.dueBefore(s.id, FD.TODAY).toFixed(2), balance: s.balance || 0, creditLimit: s.creditLimit || 0, onboarding: 'APPROVED', days: s.days, phone: '+9665' + String(10000000 + hash(s.sb) % 89999999), carry: c, dropped: {} };
     });
     const top = FD.SKUS.filter(k => k.category !== 'other').slice(0, 8);
     const promos = [

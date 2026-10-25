@@ -5,7 +5,7 @@ test('real data shape and shift', () => {
   assert.strictEqual(R.today, '2026-10-22');
   assert.strictEqual(R.vans.length, 11);
   assert.ok(!R.vans.some(v => v.kind === 'collection')); // collection is a per-visit outcome, not a van type
-  assert.deepStrictEqual(R.vans.filter(v => v.kind === 'inactive').map(v => v.route), ['RYD_11']);
+  assert.deepStrictEqual(R.vans.filter(v => v.kind === 'inactive').map(v => v.route), ['RYD_04', 'RYD_05']); // stopped after August; RYD_11 runs RYD_04's stores in October
   assert.ok(R.plan.every(p => p[0] >= '2026-09-15' && p[0] <= '2026-10-31'));
   assert.ok(R.stops.every(s => s[0] <= '2026-10-22'));
   assert.ok(R.stops.some(s => s[0] === '2026-10-22'));

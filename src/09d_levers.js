@@ -53,7 +53,7 @@
 
   // open items that move one metric: today's alerts and checks, and follow-ups
   // Open now, by category: one row per kind of work with its count; it opens to the salesmen involved; a bulk action where one is safe
-  const CAT_IC = { A_MISSED: 'alert', A_OFFPLAN: 'map-pin', A_PACE: 'clock', A_PREORDER: 'inbox', X_CARRY: 'repeat', X_PREORDER: 'inbox', X_DUE: 'calendar', X_QUESTION: 'help', X_SKIPPED: 'alert', X_SHORT: 'truck' };
+  const CAT_IC = { X_OWNER_NOT: 'message', A_MISSED: 'alert', A_OFFPLAN: 'map-pin', A_PACE: 'clock', A_PREORDER: 'inbox', X_CARRY: 'repeat', X_PREORDER: 'inbox', X_DUE: 'calendar', X_QUESTION: 'help', X_SKIPPED: 'alert', X_SHORT: 'truck', X_DAMAGED: 'package' };
   const inLever = (type, k) => { const l = FD.leverOf(type); return l === k || (k === 'avgSale' && l === 'upsell'); }; // extra lines and upsells move the average sale
   S.leverActions = (k, ctx) => {
     const s = st(), context = FD.metricActionContext(s, ctx), dd = context.to, cats = new Map();

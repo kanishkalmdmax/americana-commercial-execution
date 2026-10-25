@@ -21,7 +21,8 @@
     const unread = s.notifs.filter(n => n.vsr === vsr.id && !n.read).length;
     const todo = V.todoItems(vsr.id).length;
     const tabs = [['today', 'route', 'L_TAB_TODAY'], ['store', 'store', 'L_TAB_STORE'], ['msgs', 'message', 'L_MESSAGES'], ['todo', 'check-circle', 'L_TAB_TODO'], ['me', 'user', 'L_TAB_ME']];
-    const unreadMsgs = s.threads.filter(x => (x.vsr === vsr.id && x.unreadVsr) || (x.team && (x.unreadVsrs || {})[vsr.id])).length;
+    const unreadMsgs = s.threads.filter(x => (x.vsr === vsr.id && x.unreadVsr) || (x.team && (x.unreadVsrs || {})[vsr.id])).length
+      + [...new Set((s.ownerMsgs || []).map(m => m.store))].filter(id => { const x = storeOf(id); return x && x.vsr === vsr.id && FD.ownerUnread(s, id, vsr.id); }).length;
     return h('div', { class: 'vsr-stage' }, h('div', { class: 'phone' }, h('div', { class: 'phone-screen' },
       h('div', { class: 'status-bar', 'aria-hidden': 'true' }, h('span', null, s.clock.time), h('span', { class: 'row', style: { gap: '6px' } }, I('signal'), I(s.offline ? 'wifi-off' : 'wifi'), I('battery'))),
       h('header', { class: 'app-bar' },
@@ -105,7 +106,7 @@
     FD.sheet.open({ title: tx(tp.tpl + '_T', tp.slots), render: () => h('div', { class: 'stack s16' },
       h('div', { class: 'tipbox', style: { fontSize: '15px' } }, I('bulb'), h('div', null, tipText(tp))),
       h('div', { class: 'small muted' }, FD.nameOf(st().world.supervisor) + ' · ' + FD.fmt.date(tp.sentAt.date) + ' ' + FD.fmt.time(tp.sentAt.time))),
-      footer: () => [FD.btn(t('L_DONE'), () => FD.sheet.close(), 'primary lg block')] });
+      footer: () => [FD.btn(t('W_TIP_GOT'), () => { FD.dx('TIP_ACK', { id: tp.id }); FD.sheet.close(); }, 'primary lg block')] });
   };
 
   V.planChangesSheet = items => { items.forEach(n => { if (!n.read) FD.dx('NOTIF_READ', { id: n.id }); });
@@ -230,9 +231,10 @@
       h('div', { class: 'grow' }, h('div', { class: 'nm row', style: { gap: '6px' } }, FD.sizeIcon(s.size), h('span', null, FD.nameOf(s))),
         h('div', { class: 'meta' }, t('LBL_' + s.label) + ' · ' + s.tags.map(x => t('TAGN_' + x.slice(4))).join(FD.lang === 'ar' ? '، ' : ', ')),
         stop.status === 'SKIPPED' ? h('div', { class: 'meta' }, t(stop.skipReason)) : null,
-        h('div', { class: 'row wrap', style: { marginTop: '6px', gap: '6px' } }, V.statusChip(stop), stop.revisit ? FD.chip([I('repeat', 's14'), t('L_REVISIT')], 'warn') : null, st().preorders.some(p => p.store === stop.store && p.forDate === stop.date && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, stop.reassigned || stop.supAdded ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, stop.offPlan ? FD.chip(t('SK_OFFPLAN'), 'info') : null,
+        h('div', { class: 'row wrap', style: { marginTop: '6px', gap: '6px' } }, V.statusChip(stop), stop.revisit ? FD.chip([I('repeat', 's14'), t('L_REVISIT')], 'warn') : null, st().preorders.some(p => p.store === stop.store && p.forDate === stop.date && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, FD.waChips(st(), stop.store, stop.date), stop.reassigned || stop.supAdded ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, stop.offPlan ? FD.chip(t('SK_OFFPLAN'), 'info') : null,
           plan.carried && plan.carried.some(r => r.store === stop.store) ? FD.chip(t('L_OPEN_SHORT'), 'warn') : null,
-          s.credit !== 'OK' ? FD.creditChip(s.credit, true) : null, attn ? FD.sup.attnChips(Object.assign({}, attn, { reasons: attn.reasons.slice(0, 1) })) : null,
+          !FD.invoicedThisMonth(st(), s.id, stop.date) ? FD.chip(t('L_NOT_INVOICED_M'), 'warn') : null, s.overdue > 0 ? FD.chip(tx('L_OVERDUE_AMT', { money: FD.fmt.money0(s.overdue) }), 'bad') : null,
+          s.credit !== 'OK' && !(s.overdue > 0) ? FD.creditChip(s.credit, true) : null, attn ? FD.sup.attnChips(Object.assign({}, attn, { reasons: attn.reasons.slice(0, 1) })) : null,
           n ? FD.chip(tx('L_RECS_N', { n }), 'info') : FD.chip(t('L_NO_RECS'), '')))),
       h('div', { class: 'row', style: { gap: 0 } },
         h('a', { class: 'icon-btn', href: `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`, target: '_blank', rel: 'noopener', 'aria-label': t('L_NAVIGATE'), title: t('L_NAVIGATE'), on: { click: e => e.stopPropagation() } }, I('navigation')),
@@ -297,15 +299,19 @@
     if (L['vsr:storeTabFor'] !== storeId) { L['vsr:storeTab'] = 'offer'; L['vsr:storeTabFor'] = storeId; } // each store opens on Offer
     const tab = ['offer','profile'].includes(L['vsr:storeTab'])?L['vsr:storeTab']:'offer';
     const lastOrder = FD.SKUS.map(k => FD.lastOrder(s, storeId, k.code, d)).filter(Boolean).sort().pop();
-    const head = h('div', { class: 'stack s8', style: { marginTop: '2px' } },
-      h('div', { class: 'row wrap', style: { gap: '6px' } }, FD.chip(t('LBL_' + store.label), 'info'), FD.chip([FD.sizeIcon(store.size), t('SIZE_' + store.size)]), store.tags.map(x => FD.chip(t('TAGN_' + x.slice(4)), 'outline')),
-        store.credit !== 'OK' ? FD.creditChip(store.credit, true) : null),
-      h('div', { class: 'row between' }, h('span', { class: 'small muted' }, lastOrder ? t('L_LAST_VISIT', { date: FD.fmt.date(lastOrder) }) : ''), visit ? V.statusChip(visit) : null),
-      h('div', { class: 'row' }, FD.btn(t('L_MSG_SUP'), () => FD.threadSheet({ type: 'store', id: storeId }, 'VSR'), 'secondary sm', 'message'),
-        h('a', { class: 'btn secondary sm', href: `https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lng}`, target: '_blank', rel: 'noopener' }, I('navigation', 's16'), t('L_NAVIGATE'))),
+    // two lines for every store: what it is and when it last ordered (always the same line), then today's facts with message and navigate
+    // in thumb reach; area tags live in Profile. Keeps Offer high on the screen.
+    const nOffer = s.recs.filter(x => x.store === storeId && x.date === d && FD.recVsr(x) === vsr.id && !x.blockedAt).length + FD.openTemps(s, storeId, d).filter(x => x.date < d).length;
+    const head = h('div', { class: 'stack', style: { gap: '6px', marginTop: '2px' } },
+      h('div', { class: 'small muted store-line' }, [t('LBL_' + store.label), t('SIZE_' + store.size), lastOrder ? t('L_LAST_VISIT', { date: FD.fmt.date(lastOrder) }) : t('SA_NO_ORDER_EVER')].join(' · ')),
+      h('div', { class: 'row store-meta' }, h('div', { class: 'row wrap grow', style: { gap: '6px', minWidth: 0 } }, visit ? V.statusChip(visit) : null,
+          store.overdue > 0 ? FD.chip([I('wallet', 's14'), tx('L_OVERDUE_AMT', { money: FD.fmt.money0(store.overdue) })], 'bad') : store.credit !== 'OK' ? FD.creditChip(store.credit, true) : null,
+          !FD.invoicedThisMonth(s, storeId, d) ? FD.chip(t('L_NOT_INVOICED_M'), 'warn') : null),
+        h('button', { type: 'button', class: 'round-btn', 'aria-label': t('L_MSG_SUP'), title: t('L_MSG_SUP'), on: { click: () => FD.threadSheet({ type: 'store', id: storeId }, 'VSR') } }, I('message', 's18')),
+        h('a', { class: 'round-btn', 'aria-label': t('L_NAVIGATE'), title: t('L_NAVIGATE'), href: `https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lng}`, target: '_blank', rel: 'noopener' }, I('navigation', 's18'))),
       h('div',{class:'store-tabs-row'},
         h('div',{class:'tabs store-tabs',style:{padding:0}},[['offer','L_OFFER'],['profile','L_PROFILE']].map(([id,lb])=>
-          h('button',{type:'button',class:tab===id?'on':'',on:{click:()=>{L['vsr:storeTab']=id;FD.render();}}},t(lb)))),
+          h('button',{type:'button',class:tab===id?'on':'',on:{click:()=>{L['vsr:storeTab']=id;FD.render();}}},t(lb),id==='offer'&&nOffer?h('span',{class:'pill-count'},FD.fmt.num(nOffer)):null))),
 ));
     const body = [head];
     if (tab === 'offer') { const rq = FD.scRequestCard({ store: storeId, visitId: visit?.id }); if (rq) body.push(rq); const sc = FD.scVisitCard({ store: storeId, visitId: visit?.id }); if (sc) body.push(sc); }
@@ -313,7 +319,7 @@
       h('div', { class: 'grow', style: { minWidth: 0 } }, h('b', null, t('L_PREORDER_FROM_OWNER')), h('div', { dir: 'auto' }, FD.txtOf(p.text)), h('div', { class: 'small muted' }, t('L_VIA_WHATSAPP') + ' · ' + FD.fmt.time(p.at.time))),
       p.photo ? h('img', { src: p.photo, alt: '', style: { width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', cursor: 'zoom-in' }, on: { click: () => FD.lightbox(p.photo) } }) : null)));
     const due = FD.storeSkuStats(s, storeId, d).filter(x => x.cover != null && x.cover <= 2); // regular reorders, not upsells: a quiet line only
-    if (due.length) body.push(h('div', { class: 'reorder-hint' }, I('repeat', 's16'), h('span', null, t('L_LIKELY_NEEDS', { label: due.slice(0, 3).map(x => FD.nameOf(FD.sku(x.code))).join(FD.lang === 'ar' ? '، ' : ', ') }))));
+    if (due.length) body.push(h('div', { class: 'reorder-hint' }, I('repeat', 's16'), h('span', null, t('L_LIKELY_NEEDS', { label: due.slice(0, 3).map(x => FD.nameOf(FD.sku(x.code)) + ' ×' + FD.fmt.num(Math.max(1, Math.round(x.avgVisit)))).join(FD.lang === 'ar' ? '، ' : ', ') }))));
     if (!onPlan) body.push(h('div', { class: 'banner info', style: { marginTop: '12px' } }, I('calendar'), h('div', { class: 'grow' }, h('b', null, t('L_NOT_ON_PLAN')), h('div', { class: 'small' }, t('L_OFF_PLAN_NOTE'))),
       FD.isSellingDay(d) ? FD.btn(t('L_ADD_VISIT_TODAY'), () => { FD.dx('OFFPLAN_ADD', { vsr: vsr.id, store: storeId }); FD.toast('S_SAVED'); }, 'primary sm', 'plus') : null));
     let cta = null;
@@ -323,10 +329,10 @@
       if (!live.length) {
         const g = FD.recommend(s, storeId, d).gated[0];
         body.push(h('div', { class: 'v-card', style: { marginTop: '14px' } }, g && (store.credit === 'BLOCKED' || store.onboarding !== 'APPROVED') ? FD.empty('X_STORE_GATED', { gateId: g.gate }, 'lock') : FD.empty('X_STORE_WELL', null, 'check-circle')));
-      } else body.push(h('div', { class: 'stack s8', style: { marginTop: '14px' } }, live.map((x, i) => V.recCard(x, i === 0))));
+      } else body.splice(1, 0, h('section', { class: 'offer-list', style: { marginTop: '12px' } }, live.map((x, i) => V.offerRow(x, i === 0))));
       recs.filter(x => x.blockedAt).forEach(x => body.push(h('div', { class: 'v-card rec gone', style: { marginTop: '8px' } }, h('div', { class: 'row' }, I('ban'), FD.skuLabel(x.sku, t('E_BLOCKED'))))));
       const openVisit = (plan.stops || []).some(x => x.store === storeId && x.status !== 'DONE' && x.status !== 'SKIPPED');
-      if (openVisit && (live.some(x => x.outcome === null) || FD.openTemps(s, storeId, d).length)) cta = FD.btn(t('L_OPEN_SB'), () => V.salesBuzz(), 'primary lg block', 'external');
+      if (openVisit && (live.some(x => x.outcome === null) || FD.openTemps(s, storeId, d).length)) cta = FD.btn(t('L_OPEN_SB'), () => V.salesBuzz(storeId), 'primary lg block', 'external');
     } else body.push(V.profile(storeId));
     const hood = FD.lang === 'ar' ? FD.HOOD_AR[store.hood] : store.hood;
     return { title: FD.nameOf(store), sub: hood && !FD.nameOf(store).includes(hood) ? hood : null, tools: FD.scCameraButton({ store: storeId, visitId: visit?.id }), back: r.id ? () => FD.go('#/vsr/' + vsr.id + (onPlan ? '/today' : '/store')) : null, body, cta };
@@ -390,7 +396,7 @@
     // compact by default: product, quantity, what the store pays; the rest one tap away (store shelf price is not known, so not shown)
     const more = !!V._more[rec.id];
     return h('article', { class: 'v-card rec', 'data-tour': first ? 'vsr3' : null, 'aria-label': FD.nameOf(sku) },
-      h('div', { class: 'top' }, FD.chip(t('TYPE_' + rec.type), rec.type === 'PROMO' ? 'warn' : 'info'), rec.pinned ? FD.chip([I('pin', 's14'), t('L_PIN')], 'brand') : null, h('span', { class: 'grow' }),
+      h('div', { class: 'top' }, FD.typeChip(rec.type), rec.pinned ? FD.chip([I('pin', 's14'), t('L_PIN')], 'brand') : null, h('span', { class: 'grow' }),
         th ? h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('L_MESSAGES'), on: { click: () => FD.threadSheet({ type: 'rec', id: rec.id }, 'VSR') } }, I('message'), th.unreadVsr ? h('span', { class: 'dot' }, '1') : null)
           : FD.iconBtn('message', t('L_MESSAGES'), () => FD.threadSheet({ type: 'rec', id: rec.id }, 'VSR'))),
       h('div', { class: 'row', style: { gap: '12px', alignItems: 'center' } }, FD.skuTile(rec.sku, 40), h('h4', { class: 'grow' }, FD.nameOf(sku))),
@@ -409,18 +415,26 @@
         h('div', null, I('truck', 's14'), van == null ? t('D_NOT_VERIFIED') : van > 0 ? tx('D_ON_VAN', { qty: van, unitOf: rec.sku }) : t('D_NOT_ON_VAN')),
         h('div', null, I('clock', 's14'), tx('D_DATA_AGE', { date: FD.addDays(today(), -1), time: '21:40' })),
         h('div', null, I('calendar', 's14'), t('D_EXPIRES'))),
-      tip ? h('div', { class: 'tipbox' }, I('bulb', 's16'), h('span', null, tx('D_TIP', { supId: 'S1', tip: tipText(tip) }))) : null,
+      tip ? h('div', { class: 'tipbox' }, I('bulb', 's16'), h('span', { class: 'grow' }, tx('D_TIP', { supId: 'S1', tip: tipText(tip) })), tip.ack ? FD.chip([I('check', 's14'), t('W_TIP_GOT')], 'good') : FD.btn(t('W_TIP_GOT'), () => FD.dx('TIP_ACK', { id: tip.id }), 'secondary sm')) : null,
       // how to sell against the competitor, and where it goes on the shelf
       FD.COMPETITOR[sku.group] ? h('div', { class: 'rec-line' }, I('target', 's16'), h('span', null, h('b', null, t('L_COMPETITOR') + ': '), tx('CMP_LINE', { brandId: FD.COMPETITOR[sku.group][0], price: FD.COMPETITOR[sku.group][1] }) + ' · ' + t(FD.COMPETITOR[sku.group][2]),
         h('span', { class: 'small muted', style: { display: 'block' } }, t('L_FIELD_CHECK')))) : null,
       FD.PLACEMENT[sku.group] ? h('div', { class: 'rec-line' }, I('layers', 's16'), h('span', null, h('b', null, t('L_WHERE_PLACE') + ': '), t(FD.PLACEMENT[sku.group]))) : null,
-      open || rec.shelfAsk ? h('div', { class: 'shelf-ask' }, h('span', { class: 'small' }, t('L_SHELF_ASK')),
-        FD.seg([{ id: 'GOT', label: t('L_SHELF_GOT') }, { id: 'NO', label: t('L_SHELF_NO') }], rec.shelfAsk || '', v => FD.dx('SHELF_ASK', { recId: rec.id, result: rec.shelfAsk === v ? null : v }))) : null,
       ) : null,
       open ? h('div', { class: 'row', style: { marginTop: '12px' } }, h('button', { type: 'button', class: 'btn secondary sm', on: { click: () => V.reasonSheet(rec.id, 'NOT_OFFERED') } }, I('eye-off', 's16'), t('L_DIDNT_OFFER'))) : null,
       outcome);
   };
-  V._viewed = {}; V._more = {};
+  V._viewed = {}; V._more = {}; V._open = {};
+  V.offerRow = function (rec, first) {
+    const q = rec.qtyModified ?? rec.qty, on = !!V._open[rec.id], o = rec.outcome;
+    const qty = FD.fmt.num(q) + ' ' + unitText(rec.sku, q); // short in the row; the full wording is in the card
+    const done = o ? FD.chip(t(FD.SOLD.includes(o) ? 'L_SQ_SALE' : o === 'NOT_OFFERED' ? 'E_NOT_FOLLOWED' : 'E_NOT_SOLD'), FD.SOLD.includes(o) ? 'good' : rec.reason ? 'warn' : 'bad') : null;
+    return h('div', { class: 'v-card offer-row' + (on ? ' on' : ''), 'data-tour': first ? 'vsr3' : null },
+      h('button', { type: 'button', class: 'offer-h', 'aria-expanded': String(on), on: { click: () => { V._open[rec.id] = !on; FD.render(); } } },
+        FD.skuTile(rec.sku, 36), h('span', { class: 'grow', style: { minWidth: 0 } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, FD.nameOf(FD.sku(rec.sku))), h('span', { class: 'row', style: { gap: '6px', marginTop: '2px' } }, FD.typeChip(rec.type), h('span', { class: 'small muted ellipsis' }, qty + ' · ' + money(q * FD.sku(rec.sku).cost)))),
+        done, I(on ? 'chevron-up' : 'chevron-down', 's16')),
+      on ? V.recCard(rec, false) : null);
+  };
   // Visit again: later today or on the next visit day (R2-Q4) — inserts a revisit stop into that day's plan
   V.revisitSheet = function (storeId) {
     let when = 'today';
@@ -430,17 +444,21 @@
       footer: () => [h('button', { type: 'button', class: 'btn primary lg block', on: { click: FD.once(() => { FD.dx('REVISIT_ADD', { vsr: st().vsrId, store: storeId, when }); FD.sheet.close(); FD.toast('S_SAVED'); }) } }, t('L_SAVE'))] });
   };
 
-  V.salesBuzz = function () {
-    const screen = document.querySelector('.phone-screen'); if (!screen) return;
+  V.salesBuzz = function (storeId) {
+    const screen = document.querySelector('.phone-screen'); if (!screen) return; const s = st(), d = today();
+    const offers = storeId ? s.recs.filter(r => r.store === storeId && r.date === d && !r.blockedAt && r.outcome === null).map(r => ({ sku: r.sku, q: r.qtyModified ?? r.qty, rec: true })) : [];
+    const refill = storeId ? FD.storeSkuStats(s, storeId, d).filter(x => x.cover != null && x.cover <= 2 && !offers.some(o => o.sku === x.code)).slice(0, 5).map(x => ({ sku: x.code, q: Math.max(1, Math.round(x.avgVisit)) })) : [];
+    const list = offers.concat(refill);
     const el = h('div', { class: 'sb-hand', role: 'dialog', 'aria-modal': 'true' }, h('div', null,
       h('div', { class: 'sb-logo', 'aria-hidden': 'true' }, I('package', 's24')), h('b', { style: { fontSize: '18px' } }, t('L_ORDERS')),
-      h('p', { class: 'muted', style: { maxWidth: '260px', margin: '0 auto 20px' } }, t('S_SB_OPENING')),
+      h('p', { class: 'muted', style: { maxWidth: '260px', margin: '0 auto 12px' } }, t('S_SB_OPENING')),
+      list.length ? h('div', { class: 'v-card sb-list' }, list.map(x => h('div', { class: 'list-row' }, I(x.rec ? 'bulb' : 'repeat', 's16'), h('span', { class: 'grow ellipsis' }, FD.nameOf(FD.sku(x.sku))), h('b', { class: 'tabular' }, '×' + FD.fmt.num(x.q))))) : null,
       FD.btn(t('L_BACK_FD'), () => el.remove(), 'secondary lg', 'arrow-left')));
     screen.appendChild(el); el.querySelector('button').focus();
   };
 
   V.profile = function (storeId) {
-    const s = st(); const d = today(); const shelf = FD.shelf(s, storeId, d);
+    const s = st(); const d = today();
     const visits = s.visits.filter(v => v.store === storeId && v.status === 'DONE' && v.date < d).slice(-6);
     const recent = h('div', { class: 'v-card', style: { padding: '8px 0' } }, visits.slice().reverse().map(v => {
       const lines = FD.SKUS.flatMap(k => FD.storeOrders(s, storeId, k.code).filter(o => o.date === v.date && o.units > 0));
@@ -458,7 +476,6 @@
       FD.sup.glance(storeId, true),
       h('div', { class: 'v-card prof-list' },
         sec('products', 'L_STORE_PRODUCTS', FD.storeSkuStats(s, storeId, d).length, () => V.skuStats(storeId)),
-        sec('shelf', 'L_SHELF', null, () => FD.shelfView(shelf, { compact: true, filterKey: 'vsr:' + storeId })),
         sec('checks', 'SC_HISTORY', checksN, () => FD.scHistory(storeId)),
         sec('comp', 'CI_TITLE', FD.compIntel(s, storeId).brands.length, () => FD.compSection(storeId, { take: true })),
         sec('photos', 'L_PHOTOS', photosN, () => h('div', { class: 'stack s8' }, FD.btn(t('PG_TAKE_PHOTOS'), () => FD.pgCaptureSheet({ store: storeId }), 'secondary sm', 'camera'), FD.photoTimeline(storeId, 6))),
@@ -570,6 +587,10 @@
     if (!items.length) body.push(h('div', { class: 'v-card', style: { marginTop: '12px' } }, FD.empty('X_TODO_DONE', null, 'check-circle')));
     if (items.some(i => i.kind === 'review')) body.push(h('div', { class: 'v-card', style: { marginTop: '8px' } }, row('list', '', t('T_REVIEW'), null, () => FD.go('#/vsr/' + vsr.id + '/today'))));
     body.push(sec('revisit', 'L_VISIT_AGAIN', i => row('repeat', 'p2', tx('T_REVISIT', { storeId: i.store, n: i.n }), null, () => V.revisitSheet(i.store))));
+    // several offers missing a reason for the same outcome: one reason for all of them
+    const rsn = items.filter(i => i.kind === 'reason'), byOut = {}; rsn.forEach(i => (byOut[i.rec.outcome] = byOut[i.rec.outcome] || []).push(i.rec.id));
+    const big = Object.entries(byOut).sort((a, b) => b[1].length - a[1].length)[0];
+    if (big && big[1].length >= 2 && (L['todo:reason'] ?? true)) body.push(h('div', { class: 'row', style: { justifyContent: 'flex-end', marginTop: '8px' } }, FD.btn(tx('L_SAME_REASON', { n: FD.fmt.num(big[1].length) }), () => V.reasonSheet(big[1], big[0]), 'secondary sm', 'check')));
     body.push(sec('reason', 'L_TODO_REASONS', i => row('alert', 'p2', tx('T_REASON', { skuCode: i.rec.sku, storeId: i.rec.store }), FD.fmt.date(i.rec.date) + ' · ' + t(i.rec.outcome === 'NOT_SOLD' ? 'E_NOT_SOLD' : 'E_NOT_OFFERED'),
       () => V.reasonSheet(i.rec.id, i.rec.outcome))));
     body.push(sec('shelf', 'SC_TODO_H', i => row('camera', i.req ? 'p2' : '', t(i.req ? 'SC_TODO_REQ' : 'SC_TODO_FIX', { store: FD.nameOf(storeOf(i.store)) }), i.req ? t('SC_REQ_VSR') : t('SC_OPEN') + ' · ' + FD.fmt.num(i.fix), () => FD.go('#/vsr/' + vsr.id + '/store/' + i.store))));
@@ -586,15 +607,29 @@
   // ---------- MESSAGES (standalone chat, R2-Q2) ----------
   FD.registerView('vsr', 'msgs', (r, vsr) => {
     const s = st();
-    if (r.id) { const a = FD.chatAnchor(r.id); if (a) return { title: FD.chatTitle(a, 'VSR'), sub: FD.chatSub(a, 'VSR'), back: () => FD.go('#/vsr/' + vsr.id + '/msgs'), chat: true,
+    if (r.id) { const a = FD.chatAnchor(r.id);
+      if (a && a.type === 'wa' && storeOf(a.id)) { if (FD.ownerUnread(s, a.id, vsr.id)) setTimeout(() => FD.dx('OWNER_READ', { store: a.id, who: vsr.id }));
+        return { title: FD.nameOf(storeOf(a.id)), back: () => FD.go('#/vsr/' + vsr.id + '/msgs'), body: [FD.sup.ownerHead(a.id, vsr.id), FD.sup.ownerChat(a.id, () => FD.render(), false, vsr.id)] }; }
+      if (a) return { title: FD.chatTitle(a, 'VSR'), sub: FD.chatSub(a, 'VSR'), back: () => FD.go('#/vsr/' + vsr.id + '/msgs'), chat: true,
       tools: h('span', { class: 'row', style: { gap: '2px' } }, FD.iconBtn('search', t('L_SEARCH_CHAT'), () => FD.chatSearchToggle(a))), body: [FD.chatView(a, 'VSR', { mode: 'full', header: false, vsr: vsr.id })] }; }
     const team = s.threads.find(x => x.team); const general = s.threads.find(x => x.anchor.type === 'vsr' && x.anchor.id === vsr.id);
-    const row = (anchor, th) => { const last = th && th.messages[th.messages.length - 1]; const un = th && FD.chatUnread(th, 'VSR', vsr.id);
+    const row = (anchor, th) => { const last = th && th.messages[th.messages.length - 1]; const un = FD.chatUnreadN(th, 'VSR', vsr.id);
       return h('button', { type: 'button', class: 'list-row click chat-li', on: { click: () => FD.chatOpen(anchor, 'VSR') } },
         h('span', { class: 'chat-av' }, I(FD.chatIcon(anchor), 's16')), h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: un ? 600 : 500 } }, FD.chatTitle(anchor, 'VSR')),
           h('div', { class: 'small muted ellipsis', dir: 'auto' }, last ? FD.chatSnippet(last, 'VSR', vsr.id) : FD.chatSub(anchor, 'VSR'))),
-        h('div', { class: 'chat-li-end' }, last ? h('span', { class: 'small muted' }, last.at.date === today() ? FD.fmt.time(last.at.time) : FD.fmt.date(last.at.date)) : null, un ? h('span', { class: 'unread-dot', 'aria-label': t('L_UNREAD') }) : null)); };
-    return { title: t('L_MESSAGES'), body: [h('section', { class: 'v-section' }, h('div', { class: 'v-card' }, row({ type: 'vsr', id: vsr.id }, general), row({ type: 'team', id: 'ALL' }, team))),
+        h('div', { class: 'chat-li-end' }, last ? h('span', { class: 'small muted' }, last.at.date === today() ? FD.fmt.time(last.at.time) : FD.fmt.date(last.at.date)) : null, FD.unreadN(un))); };
+    const waRow = id => { const ms = FD.ownerThread(s, id), m = ms[ms.length - 1], un = FD.ownerUnreadN(s, id, vsr.id);
+      return h('button', { type: 'button', class: 'list-row click chat-li', on: { click: () => FD.chatOpen({ type: 'wa', id }, 'VSR') } }, h('span', { class: 'chat-av wa' }, FD.waLogo('s20')),
+        h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: un ? 600 : 500 } }, FD.nameOf(storeOf(id))), h('div', { class: 'small muted ellipsis', dir: 'auto' }, !m ? (FD.lang === 'ar' ? FD.HOOD_AR[storeOf(id).hood] : storeOf(id).hood) : m.kind === 'CARD' ? t('W_CARD_' + m.card) : FD.txtOf(m.text) || t('L_PREORDER'))),
+        h('div', { class: 'chat-li-end' }, FD.unreadN(un))); };
+    // search: store chats by store name or message text; with a search, his stores with no chat yet show too so he can start one
+    const q = (L['vsr:msgq'] || '').trim().toLowerCase(), hit = id => { const x = storeOf(id); return (x.name + ' ' + (x.name_ar || '') + ' ' + FD.ownerThread(s, id).map(m => FD.txtOf(m.text) || '').join(' ')).toLowerCase().includes(q); };
+    const withChat = new Set((s.ownerMsgs || []).map(m => m.store));
+    const mine = (q ? s.world.stores.filter(x => x.vsr === vsr.id).map(x => x.id) : [...withChat]).filter(id => { const x = storeOf(id); return x && x.vsr === vsr.id && (!q || hit(id)); })
+      .sort((a, b) => FD.waLastAt(s, b).localeCompare(FD.waLastAt(s, a)));
+    return { title: t('L_MESSAGES'), body: [h('div', { style: { padding: '8px 0 0' } }, FD.searchBox('vsrMsgs', t('L_SEARCH_CHATS'), L['vsr:msgq'] || '', v => { L['vsr:msgq'] = v; FD.render(); })),
+      h('section', { class: 'v-section' }, h('div', { class: 'v-card' }, row({ type: 'vsr', id: vsr.id }, general), row({ type: 'team', id: 'ALL' }, team))),
+      mine.length ? h('section', { class: 'v-section' }, h('h3', { class: 'row', style: { gap: '6px' } }, FD.waLogo('s16'), t('L_F_STORES')), h('div', { class: 'v-card' }, mine.slice(0, 30).map(waRow))) : q ? h('div', { class: 'v-card' }, FD.empty('X_FILTER')) : null,
       h('div', { class: 'small muted', style: { padding: '0 4px' } }, t('L_TAG_NOTE'))] };
   });
 
@@ -621,15 +656,14 @@
     const btn = (id, label) => h('button', { type: 'button', class: per.k === id ? 'on' : '', 'aria-pressed': String(per.k === id), on: { click: () => per.k !== id && set(id) } }, label);
     return h('div', { class: 'me-period' }, h('div', { class: 'seg me-seg', role: 'group', 'aria-label': t('ME_RESULTS') },
       btn('YDAY', t('ME_YDAY')), btn('WEEK', t('ME_WEEK')), btn('MONTH', t('ME_MONTH')),
-      h('label', { class: 'me-pick' + (pick ? ' on' : '') }, I('calendar', 's16'), h('span', null, pick ? FD.fmt.date(per.from) : t('ME_DAY')),
-        h('input', { type: 'date', 'aria-label': t('ME_PICK'), min: FD.BASE_START, max: FD.addDays(today(), -1), value: pick ? per.from : '',
-          on: { click: e => { try { e.target.showPicker(); } catch (_) { /* older browsers open on tap */ } }, change: e => { if (e.target.value) set(e.target.value); } } })))); };
+      h('button', { type: 'button', class: 'me-pick' + (pick ? ' on' : ''), 'aria-label': t('ME_PICK'), on: { click: () => FD.datePick({ title: t('ME_PICK'), value: pick ? per.from : null, min: FD.BASE_START, max: FD.addDays(today(), -1), onPick: set }) } },
+        I('calendar', 's16'), h('span', null, pick ? FD.fmt.date(per.from) : t('ME_DAY'))))); };
   const periodLabel = per => per.from === per.to ? FD.fmt.dateLong(per.from) : FD.fmt.date(per.from) + ' - ' + FD.fmt.date(per.to);
   const tipHead = x => x.k === 'CAKE' ? tx('KPI_TIP_CAKE', { money: m0(x.money) }) : tx('KPI_TIP_' + x.k, { n: x.n });
   const TIP_KPI = { UNVISITED: 'active', NOBUY: 'active', GROCERY: 'grocery', CAKE: 'cake', COLLECT: 'collect' };
   V.kpiStores = (vsr, tip) => FD.sheet.open({ title: tipHead(tip), render: () => h('div', { class: 'v-card' }, tip.stores.map(id => { const x = storeOf(id);
     return h('button', { type: 'button', class: 'list-row click', style: { width: '100%', textAlign: 'start' }, on: { click: () => { FD.sheet.close(); FD.go('#/vsr/' + vsr.id + '/store/' + id); } } },
-      h('div', { class: 'grow' }, h('div', { style: { fontWeight: 500 } }, FD.nameOf(x)), h('div', { class: 'small muted' }, tip.k === 'COLLECT' ? m0(x.balance) : x.hood)), I('chevron-right', 's16')); })) });
+      h('div', { class: 'grow' }, h('div', { style: { fontWeight: 500 } }, FD.nameOf(x)), h('div', { class: 'small muted' }, tip.k === 'COLLECT' ? m0(x.overdue) : x.hood)), I('chevron-right', 's16')); })) });
   // four tracks, each filled by progress toward its KPI (not by bonus earned)
   const kpiTracks = P => h('div', { class: 'pay-segs' }, KPI_KEYS.map(k => { const pr = Math.round(100 * FD.kpiProgress(P[k]));
     return h('div', { class: 'pay-seg ' + KPI_TONE[P[k].status], 'aria-label': t('KPI_SHORT_' + k.toUpperCase()) + ' ' + FD.fmt.pct(pr) + ', ' + t(KPI_STATUS[P[k].status]) },

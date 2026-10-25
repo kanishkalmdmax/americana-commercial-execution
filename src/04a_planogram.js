@@ -32,6 +32,8 @@
   FD.registerReducer('SC_REQUEST_BLOCK',(st,p)=>{const r=state(st).requests.find(x=>x.id===p.id);if(r&&r.status==='OPEN'&&['CLOSED','OWNER_NO','NO_ACCESS'].includes(p.reason))Object.assign(r,{status:'BLOCKED',reason:p.reason,doneAt:{date:st.clock.date,time:st.clock.time}});});
   // photos saved in the wrong slot: flip Before and After for the whole check
   FD.registerReducer('SC_SWAP',(st,p)=>{for(const ph of FD.pgPhotos(st,p.id))if(ph.phase==='BEFORE'||ph.phase==='AFTER')ph.phase=ph.phase==='BEFORE'?'AFTER':'BEFORE';});
+  // the Before photo needs no fix: the visit is complete without an After photo
+  FD.registerReducer('SC_NO_CHANGE',(st,p)=>{const a=FD.pgAssessment(st,p.id);if(a)a.noChange=p.on===false?null:{date:st.clock.date,time:st.clock.time};});
   FD.registerReducer('SC_DISMISS',(st,p)=>{const a=FD.pgAssessment(st,p.id);if(a&&FD.SC_CHECKS.includes(p.check))a.dismissed[p.check]={date:st.clock.date,time:st.clock.time,by:p.by||'SUP'};});
   FD.registerReducer('SC_WEIGHTS_SET',(st,p)=>{
     if(p.weights===null){delete st.rules.shelfWeights;return;}

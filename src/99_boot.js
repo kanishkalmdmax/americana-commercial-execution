@@ -32,5 +32,5 @@
     if (/[?&]test\b/.test(location.search)) setTimeout(FD.selfTest, 600);
   }
   // let the splash paint before the ~1s data build
-  requestAnimationFrame(() => setTimeout(boot, 30));
+  setTimeout(boot, 150); // a timer, not animation frames: a background tab or an unpainted window must still start
 })();

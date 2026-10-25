@@ -286,6 +286,9 @@
   const SOLD = ['FULL', 'PARTIAL', 'ALT'];
   const pct = (a, b) => (b ? (100 * a) / b : 0);
   // Per store x product, from SalesBuzz sell-in only (R2-Q5): no shelf count.
+  // a store with an order (units > 0) from the 1st of the month up to the day; drives the stores-that-bought bonus
+  FD.invoicedThisMonth = (st, store, iso) => st.orders.some(o => o.store === store && o.units > 0 && o.date <= iso && o.date >= iso.slice(0, 8) + '01');
+
   FD.storeSkuStats = (st, storeId, iso) => FD.cached('sks', st, storeId + iso, () => {
     const from28 = FD.addDays(iso, -28); const visits28 = st.visits.filter(v => v.store === storeId && v.status === 'DONE' && v.date > from28 && v.date <= iso).length || 1;
     return FD.SKUS.map(k => {
@@ -419,9 +422,9 @@
     const active = { done: invoiced, need, jp: jp.length, status: invoiced >= need ? 'DONE' : reachable >= need ? 'ON_TRACK' : 'AT_RISK' };
 
     const mine = st.world.stores.filter(s => s.vsr === vsrId);
-    const owed = mine.reduce((a, s) => a + (s.balance || 0), 0);
-    const late = mine.filter(s => s.credit && s.credit !== 'OK' && s.balance > 0).sort((a, b) => b.balance - a.balance);
-    const overduePct = owed ? sum(late.map(s => ({ value: s.balance }))) / owed : 0;
+    const owed = mine.reduce((a, s) => a + (s.openAr || 0), 0);
+    const late = mine.filter(s => s.overdue > 0).sort((a, b) => b.overdue - a.overdue);
+    const overduePct = owed ? sum(late.map(s => ({ value: s.overdue }))) / owed : 0;
     const collect = { owed, overduePct, overdue: overduePct * owed, limit: FD.KPI_RULE.overdueMax * owed, status: overduePct < FD.KPI_RULE.overdueMax ? 'ON_TRACK' : 'AT_RISK' };
 
     const parts = { cake, grocery, active, collect };

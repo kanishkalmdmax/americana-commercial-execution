@@ -28,11 +28,12 @@ test('manual order on a stop skips its real event', () => {
   FD.dispatch('CLOCK_SET', { date: FD.TODAY, time: '23:59' });
   assert.strictEqual(st.orders.filter(o => o.store === v.store && o.date === FD.TODAY).length, before);
 });
-test('no recommendations for collection or inactive vans, none for grocery items', () => {
+test('no recommendations for collection or inactive vans; grocery only at stores that buy cake but no grocery', () => {
   const FD = boot(); const st = FD.state;
   const off = new Set(st.world.vsrs.filter(v => v.kind !== 'sales').map(v => v.id));
   assert.ok(!st.recs.some(r => off.has(r.vsr)));
-  assert.ok(st.recs.every(r => FD.recommendable(r.sku)));
+  assert.ok(st.recs.every(r => FD.recommendable(r.sku) || r.reasonId === 'B_GAP_GROCERY'));
+  assert.ok(st.recs.some(r => r.reasonId === 'B_GAP_GROCERY'));
 });
 test('off-plan visits today are added as visits', () => {
   const FD = boot(); const st = FD.state; FD.dispatch('CLOCK_SET', { date: FD.TODAY, time: '23:59' });

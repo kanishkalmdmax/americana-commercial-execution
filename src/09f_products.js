@@ -14,12 +14,8 @@
   const facetLabels=['PF_CATEGORIES','PF_FAMILIES','PF_FLAVOURS','PF_PACKS'];
   const filters=()=>h('div',{class:'filters product-filters'},
     FD.searchBox('products',t('PG_SEARCH_PRODUCTS'),f.query,v=>{f.query=v;FD.render();}),
-    FD.productFacets(all,f).map((options,index)=>FD.select(
-      [{id:'',label:t(facetLabels[index])}].concat(options.map(o=>({id:o.id,label:t(o.labelId)+' ('+FD.fmt.num(o.count)+')'}))),
-      f.path[index]||'',value=>{f.path=FD.setProductPath(f.path,index,value);FD.render();FD.sheet.redraw();},
-      {'aria-label':t(facetLabels[index]),'data-focus':'product-filter-'+index})),
     FD.btn(t('PG_COLUMNS'),columnsSheet,'secondary sm'),
-    f.path.some(Boolean)||f.query?FD.btn(t('PG_RESET'),()=>{f.path=[];f.query='';FD.render();FD.sheet.redraw();},'ghost sm'):null);
+    FD.productPickBar(f,()=>FD.render())); // the same product picker as Opportunities
   return {title:t('L_NAV_SKUS'),bar:filters,body:[h('section',{class:'product-results'},
     h('div',{class:'product-result-count small muted','aria-live':'polite'},t('PG_PRODUCT_COUNT',{n:FD.fmt.num(rows.length)})),
     h('div',{class:'card'},FD.table({id:'products',rows,onRow:x=>S.skuDrawer(x.code),defaultSort:['sales','desc'],columns:cols.filter(c=>selected.includes(c.key))})))]};

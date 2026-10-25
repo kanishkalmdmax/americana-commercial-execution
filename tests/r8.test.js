@@ -3,7 +3,7 @@ const boot = () => { const FD = load(); FD.init(7, { storage: null }); return FD
 test('mockup shows only vans with data (no inactive van)', () => {
   const FD = boot(); const st = FD.state;
   assert.ok(st.world.vsrs.every(v => v.kind !== 'inactive'));
-  assert.strictEqual(st.world.vsrs.length, 10);
+  assert.strictEqual(st.world.vsrs.length, 9);
 });
 test('store glance: plain metrics from real orders and visits', () => {
   const FD = boot(); const st = FD.state; const d = FD.TODAY;
@@ -35,16 +35,14 @@ test('van positions: depot before the first visit, last visited store after', ()
   const last = st.visits.filter(x => x.date === d && x.vsr === v.id && x.status === 'DONE').sort((a, b) => (b.leftAt || '').localeCompare(a.leftAt || ''))[0];
   assert.strictEqual(p.store, last.store);
 });
-test('store WhatsApp: supervisor sends a promotion or an invoice copy; pre-orders arrive in the same thread', () => {
+test('store WhatsApp: supervisor sends a promotion or a note; pre-orders arrive in the same thread', () => {
   const FD = boot(); const st = FD.state; const s = st.world.stores.find(x => st.orders.some(o => o.store === x.id));
   FD.dispatch('OWNER_MSG_SEND', { store: s.id, kind: 'PROMO', ref: st.world.promos[0].id });
-  FD.dispatch('OWNER_MSG_SEND', { store: s.id, kind: 'INVOICE' });
   FD.dispatch('OWNER_MSG_SEND', { store: s.id, kind: 'TEXT', text: 'Thank you' });
   FD.dispatch('PREORDER_ADD', { store: s.id, text: 'Need 2 cartons' });
   const th = FD.ownerThread(st, s.id);
-  assert.deepStrictEqual(th.map(m => m.kind).slice(-4), ['PROMO', 'INVOICE', 'TEXT', 'PREORDER']);
+  assert.deepStrictEqual(th.map(m => m.kind).slice(-3), ['PROMO', 'TEXT', 'PREORDER']);
   assert.strictEqual(th[th.length - 1].by, 'OWNER');
-  assert.ok(th.find(m => m.kind === 'INVOICE').amount > 0);
   assert.throws(() => FD.dispatch('OWNER_MSG_SEND', { store: s.id, kind: 'PAYMENT_REMINDER' })); // not in scope (Q1 = A)
 });
 test('seeded owner conversations exist for the demo', () => {

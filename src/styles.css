@@ -44,10 +44,12 @@ svg.ic.s16 { width: 16px; height: 16px; } svg.ic.s24 { width: 24px; height: 24px
 
 /* ---------- splash ---------- */
 .splash { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100; transition: opacity .3s var(--ease); }
-.splash .mark { display: flex; align-items: center; gap: 12px; color: var(--navy); font-weight: 600; font-size: 20px; }
+.splash .mark { display: flex; align-items: center; gap: 12px; color: var(--ink); font-weight: 600; font-size: 20px; }
 .splash .bar { width: 160px; height: 3px; border-radius: 3px; background: var(--line); margin: 18px auto 0; overflow: hidden; }
-.splash .bar::after { content: ''; display: block; width: 40%; height: 100%; background: var(--brand); border-radius: 3px; animation: slide 1.1s var(--ease) infinite; }
+.splash .bar::after { content: ''; display: block; width: 40%; height: 100%; background: var(--brand); border-radius: 3px; animation: slide 1.1s var(--ease) infinite; will-change: transform; }
 @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+/* the loading line is the only sign the app is starting, so it keeps moving under reduced motion, just slower */
+@media (prefers-reduced-motion: reduce) { .splash .bar::after { animation-duration: 1.8s; } }
 .logo-dot { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(135deg, var(--brand-vivid), var(--navy)); display: grid; place-items: center; color: #fff; }
 
 /* ---------- buttons, chips, inputs ---------- */
@@ -1001,7 +1003,7 @@ table.t th .sort { display:inline-flex;align-items:center;justify-content:center
 @media (prefers-reduced-motion:reduce) {
  html { scroll-behavior:auto!important; }
  .drawer,.sheet,.scrim,.ring .fg,.switch,.switch::after,.coach-ring,.notif-banner,.toast,.chat-popup,.bubble,.pin,.map-pin { transition:none!important; }
- .toast,.fu-row,.menu,.coach-mark,.sb-hand,.chat-pop,.splash .bar::after,.spinner,.skeleton,.notif-banner,.alert-pulse,.van-marker,.map-pin,.pin { animation:none!important; }
+ .toast,.fu-row,.menu,.coach-mark,.sb-hand,.chat-pop,.spinner,.skeleton,.notif-banner,.alert-pulse,.van-marker,.map-pin,.pin { animation:none!important; }
  .spinner { border-color:var(--line);border-top-color:var(--ink); }
  .skeleton { background:var(--line); }
  .msg.flash .bubble { box-shadow:0 0 0 3px var(--focus); }
@@ -1291,5 +1293,104 @@ table.t td .sku-lbl > .ellipsis { max-width: 190px; }
 .stop-sq > i.paid::after { background: #fff; } .stop-sq > i.due::after { background: var(--ink); }
 /* plan editor: drag handle on planned stops */
 .plan-grip { cursor: grab; touch-action: none; color: var(--ink-3); margin-inline-start: -6px; }
-.plan-stop.dragging { opacity: .85; box-shadow: var(--shadow); outline: 2px solid var(--brand); }
+.plan-stop.dragging { position: relative; z-index: 5; opacity: .96; box-shadow: 0 12px 28px rgba(9,37,86,.22); outline: 2px solid var(--brand); cursor: grabbing; user-select: none; }
+.plan-stop:not(.dragging) { transition: transform .12s ease; }
 .plan-stop.dragging .plan-grip { cursor: grabbing; }
+/* WhatsApp (store owners): business card buttons, effect line, name tag, inbox tag */
+.wa-btns { display: grid; gap: 4px; margin-top: 8px; }
+.wa-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--brand); font-size: 13px; font-weight: 500; }
+.wa-btn.pick { border-color: var(--good); color: var(--good); background: var(--good-tint); }
+.wa-effect { display: flex; align-items: center; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--ink-3); }
+.wa-sign { margin-top: 4px; font-size: 12px; color: var(--ink-3); }
+.chat-av.wa { background: var(--good-tint); color: var(--good); }
+.wa-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.wa-head .wa-name { display: block; max-width: 100%; text-align: start; } .wa-head .wa-name b { display: block; font-size: 15px; }
+.wa-logo { fill: #25d366; flex: none; } .wa-logo.s20 { width: 20px; height: 20px; } .wa-logo.s16 { width: 16px; height: 16px; }
+.unread-n { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; flex: none; }
+.wa-pane { flex-direction: column; overflow: hidden; } .wa-pane > * { flex: none; }
+.wa-pane > .wa-card { flex: 1; min-height: 0; display: flex; flex-direction: column; } .wa-pane .wa-msgs { flex: 1; min-height: 0; max-height: none; overflow: auto; }
+.wa-pane .wa-card { border: 0; box-shadow: none; }
+/* tip card in the salesman chat */
+.bubble.tip-card { border-inline-start: 3px solid var(--warn); }
+.tip-status { margin-top: 6px; color: var(--ink-3); }
+.tip-out { margin-top: 2px; font-weight: 600; }
+.bubble.me .wa-sign, .bubble.me .tip-status { color: inherit; opacity: .85; }
+.sb-list { text-align: start; margin: 0 0 20px; max-height: 40vh; overflow: auto; } .sb-list .list-row { gap: 8px; }
+/* salesman's past day: name, then time / outcome chips, then actions; nothing overlaps the name */
+.day-row { display: grid; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--line); } .day-row:last-child { border-bottom: 0; }
+.day-row .day-name { text-align: start; font-weight: 600; overflow-wrap: anywhere; justify-self: start; }
+.day-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fu-jump { margin-inline-start: auto; }
+.wa-logo.s14 { width: 14px; height: 14px; }
+.wa-fact { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.wa-fact.good { color: var(--good); } .wa-fact.bad { color: var(--bad); } .wa-fact.warn { color: var(--warn-ink, var(--ink-2)); }
+/* offer list: one line per product; the full card opens under its row */
+.offer-list { display: grid; gap: 8px; }
+.offer-row { padding: 0; overflow: hidden; }
+.offer-h { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: none; border: 0; text-align: start; color: inherit; cursor: pointer; }
+.offer-row .rec { border: 0; box-shadow: none; border-radius: 0; border-top: 1px solid var(--line); }
+.offer-row .rec > .row:nth-child(2) { display: none; } /* name and tile are already in the row */
+.photo-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; } .photo-strip .photo-thumb { flex: none; padding: 0; border: 0; cursor: zoom-in; }
+/* store chat composer: small chips, attach and send sized for a short phone screen */
+.wa-compact .chat-chips .chip { height: 28px; padding: 0 10px; font-size: 12px; }
+.wa-compact .chat-send { width: 36px; height: 36px; border-radius: 18px; }
+.wa-compact .wa-attach { width: 36px; height: 36px; flex: none; }
+.wa-compact .chat-input { min-height: 36px; }
+/* date picker */
+.dp { display: grid; gap: 10px; padding: 4px 0 8px; max-width: 340px; margin: 0 auto; width: 100%; }
+.dp-h { display: flex; align-items: center; justify-content: space-between; } .dp-h b { font-size: 16px; }
+.dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.dp-w span { font-size: 12px; color: var(--ink-3); font-weight: 600; }
+.dp-day { aspect-ratio: 1; border-radius: 50%; border: 0; background: none; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; min-height: 38px; }
+.dp-day:hover:not(:disabled) { background: var(--hover); }
+.dp-day.now { box-shadow: inset 0 0 0 1.5px var(--brand); }
+.dp-day.on { background: var(--brand); color: #fff; font-weight: 600; }
+.dp-day:disabled { color: var(--ink-3); opacity: .45; cursor: default; }
+.dp-btn { display: inline-flex; align-items: center; gap: 8px; height: 34px; cursor: pointer; text-align: start; }
+button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) { background: none; }
+.notif-row { width: 100%; align-items: flex-start; gap: 10px; }
+.notif-row .notif-t { display: block; font-weight: 500; } .notif-row.un .notif-t { font-weight: 700; }
+.notif-row .notif-s { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar > .icon-btn { position: relative; }
+/* unread counts look like app badges: solid pill, white bold number */
+.unread-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; font-size: 11px; line-height: 18px; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--brand); color: #fff; }
+.seg-n { display: inline-grid; margin-inline-start: 6px; vertical-align: 1px; }
+/* recommendation types: fixed colours everywhere */
+.chip.ty-LAPSED { background: var(--ice); color: var(--info-ink, var(--brand)); }
+.chip.ty-GAP { background: var(--good-tint); color: var(--good); }
+.chip.ty-UPGRADE { background: #F1EAFE; color: #6B3FC9; }
+.chip.ty-PROMO { background: var(--warn-tint); color: var(--warn-ink); }
+.chip.ty-SUP { background: var(--navy); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip.ty-UPGRADE { background: #2C2148; color: #C4A8FF; } }
+:root[data-theme="dark"] .chip.ty-UPGRADE { background: #2C2148; color: #C4A8FF; }
+.store-meta { gap: 8px; align-items: center; }
+.round-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); color: var(--brand); display: grid; place-items: center; flex: none; cursor: pointer; }
+.round-btn:hover { background: var(--hover); }
+.round-btn .ic.s18 { width: 18px; height: 18px; }
+/* notifications: a round button the height of the search box, count badge on its corner */
+.notif-btn { position: relative; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); color: var(--ink-2); display: grid; place-items: center; flex: none; cursor: pointer; }
+.notif-btn:hover { background: var(--hover); color: var(--ink); }
+.notif-n { position: absolute; top: -7px; inset-inline-start: 24px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--badge, var(--bad)); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; border: 2px solid var(--bg); box-sizing: content-box; }
+.drawer .al-types .al-type { min-height: 26px; padding: 0 8px; }
+/* the item a notification points at */
+.flash { outline: 2px solid var(--brand); outline-offset: -2px; border-radius: 10px; animation: flashFade 2.6s ease forwards; }
+@keyframes flashFade { 0%, 70% { outline-color: var(--brand); } 100% { outline-color: transparent; } }
+/* release checks: one line each, icon + text, instead of a run-on sentence */
+.chk-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.chk-list li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--ink-2); line-height: 1.35; }
+.chk-list li .ic { flex: none; margin-top: 2px; color: var(--ink-3); }
+.store-line { line-height: 1.4; } .offer-h .chip.ty { height: 20px; font-size: 11px; padding: 0 7px; flex: none; }
+.vsr-tabs-row { gap: 12px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.vsr-tabs-row .tabs { border-bottom: 0; }
+.vsr-rank { gap: 8px; align-items: center; flex: none; }
+.vsr-rank .delta, .vsr-rank b { font-size: 15px; }
+/* plan editor card: number + name flush left; product rows start under the name */
+.plan-stop-h { align-items: flex-start; }
+.plan-stop-h .plan-seq { margin-top: 1px; }
+.plan-grip { margin-inline-start: 0; margin-inline-end: -6px; }
+.plan-stop .plan-rec { padding-inline-start: 46px; }
+.plan-stop .plan-add { padding-inline-start: 40px; }
+.plan-rec .chip.ty { height: 20px; font-size: 11px; padding: 0 7px; }
+.vsr-tabs-row > .grow { flex: 1 0 auto; min-width: max-content !important; } /* tabs keep their width; the rank wraps under them if needed */
+.vsr-rank { margin-inline-start: auto; padding: 4px 0; }
+.opp-panel .chip-btn:disabled { opacity: .38; cursor: default; }

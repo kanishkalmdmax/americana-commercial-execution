@@ -2,7 +2,7 @@ const test = require('node:test'); const assert = require('node:assert'); const 
 const boot = () => { const FD = load(); FD.init(7, { storage: null }); return FD; };
 test('C1: an inactive van has no plan, so it never captures shared stores', () => {
   const FD = boot(); const st = FD.state; const d = st.clock.date;
-  assert.ok(!st.visits.some(v => v.vsr === 'V11'));
+  assert.ok(!st.visits.some(v => v.vsr === 'V04' || v.vsr === 'V05'));
   FD.dispatch('RULE_SET', { rule: 'maxPerStore', value: 3 });
   assert.ok(!st.recs.some(r => !FD.salesVan(st, r.vsr)));
   const v = st.visits.find(x => x.date === d && x.vsr === 'V09' && x.status === 'PLANNED');

@@ -28,8 +28,12 @@
   const side=FD.ui.local['sc:side:'+id]||'BEFORE';
   const beforeCol=bPs.length?h('div',{class:'sc-col'+(side==='BEFORE'?' on':'')},head2(t('PG_BEFORE'),bPs,S.before),bPs.map(fig)):null;
   const afterCol=!bPs.length&&!aPs.length?null:aPs.length?h('div',{class:'sc-col'+(side==='AFTER'?' on':'')},head2(S.analysed&&S.cmp.afterSource==='NEXT'?t('SC_NEXT_LABEL'):t('PG_AFTER'),aPs,S.after),aPs.map(fig))
+   :(FD.pgAssessment(st(),id)||{}).noChange?h('div',{class:'sc-col sc-col-empty'+(side==='AFTER'?' on':'')},head2(t('PG_AFTER'),[],null),h('div',{class:'sc-empty'},FD.icon('check-circle','s20'),h('b',null,t('SC_NO_CHANGE')),h('span',{class:'small muted'},t('SC_NO_CHANGE_D')),
+     role==='VSR'&&editable?FD.btn(t('SC_NO_CHANGE_UNDO'),()=>{FD.dx('SC_NO_CHANGE',{id,on:false});redraw();},'ghost sm','undo'):null))
    :h('div',{class:'sc-col sc-col-empty'+(side==='AFTER'?' on':'')},head2(t('PG_AFTER'),[],null),h('div',{class:'sc-empty'},FD.icon('camera','s20'),h('b',null,t('SC_NO_AFTER')),
-     h('span',{class:'small muted'},t(role==='VSR'&&editable?'SC_NO_AFTER_VSR':'SC_NO_AFTER_SUP')),role==='VSR'&&editable?FD.btn(t('PG_CAPTURE_AFTER'),()=>FD.pgCaptureSheet({store:FD.pgAssessment(st(),id).store,visitId:FD.pgAssessment(st(),id).visitId,assessmentId:id,phase:'AFTER'}),'secondary sm','camera'):null));
+     h('span',{class:'small muted'},t(role==='VSR'&&editable?'SC_NO_AFTER_VSR':'SC_NO_AFTER_SUP')),role==='VSR'&&editable?FD.btn(t('PG_CAPTURE_AFTER'),()=>FD.pgCaptureSheet({store:FD.pgAssessment(st(),id).store,visitId:FD.pgAssessment(st(),id).visitId,assessmentId:id,phase:'AFTER'}),'secondary sm','camera'):null,
+     // one tap when the Before photo shows nothing to fix
+     role==='VSR'&&editable&&!(S.findings||[]).some(f=>f.status==='OPEN')?FD.btn(t('SC_NO_CHANGE'),()=>{FD.dx('SC_NO_CHANGE',{id});redraw();},'ghost sm','check'):null));
   const sideSw=beforeCol&&afterCol?h('div',{class:'sc-side-sw'},FD.seg([{id:'BEFORE',label:t('PG_BEFORE')},{id:'AFTER',label:t('PG_AFTER')}],side,v=>{FD.ui.local['sc:side:'+id]=v;redraw();})):null;
   const swap=bPs.length&&aPs.length&&S.cmp?.afterSource!=='NEXT'&&(editable||role==='SUP')?FD.btn(t('SC_SWAP'),()=>{FD.dx('SC_SWAP',{id});redraw();},'ghost sm','refresh'):null;
   const photos=h('div',null,h('div',{class:'sc-photos-bar'},sideSw,swap),h('div',{class:'sc-cols'},beforeCol,afterCol));
@@ -76,7 +80,7 @@
    comp);
  };
  FD.pgCaptureSheet=({store,visitId,assessmentId,phase='BEFORE'})=>{
-  let id=assessmentId||current(store,visitId)?.id,busy=false,status='',failures=[],optionsOpen=false;
+  let id=assessmentId||current(store,visitId)?.id,busy=false,status='',failures=[];
   const save=async files=>{
    if(busy)return;const capturedPhase=phase;busy=true;status=t('PG_SAVING');FD.sheet.redraw();
    const result=await FD.pgReadPhotos(files);failures=result.failed.slice();
@@ -91,7 +95,7 @@
    busy=false;FD.sheet.redraw();
   };
   FD.sheet.open({title:t('PG_TAKE'),render:()=>{
-   const input=h('input',{id:'pg-files',type:'file',accept:'image/*',multiple:true,capture:'environment',hidden:true,on:{change:e=>save(e.target.files)}});
+   const input=h('input',{id:'pg-files',type:'file',accept:'image/*',multiple:true,hidden:true,on:{change:e=>{const fs=[...e.target.files];e.target.value='';return save(fs);}}});
    const photos=id?FD.pgPhotos(st(),id):[],before=photos.filter(p=>p.phase==='BEFORE').at(-1);
    const reference=phase==='AFTER'&&before&&!photos.some(p=>p.phase==='AFTER');
    const editable=!!id&&FD.pgAssessment(st(),id).date===st().clock.date;
@@ -99,10 +103,9 @@
     FD.seg(['BEFORE','AFTER'].map(p=>({id:p,label:t('PG_'+p)})),phase,v=>{phase=v;FD.sheet.redraw();}),
     h('p',{class:'small muted'},t('PG_CAPTURE_HINT')),
     reference?h('div',{class:'capture-reference'},FD.photoButton({src:before.src,label:t('PG_BEFORE')}),h('span',{class:'small muted'},t('PG_MATCH_ANGLE'))):null,
-    input,h('button',{class:'btn primary block',type:'button',disabled:busy,on:{click:()=>input.click()}},t('PG_ADD')),
+    (ps=>ps.length?h('div',{class:'photo-strip'},ps.map(p=>h('button',{type:'button',class:'photo-thumb','aria-label':t('PG_'+phase),on:{click:()=>FD.lightbox(p.src)}},h('img',{src:p.src,alt:''})))):null)(photos.filter(p=>p.phase===phase)),
+    input,h('button',{class:'btn primary block',type:'button',disabled:busy,on:{click:()=>input.click()}},FD.icon('camera','s16'),t(photos.some(p=>p.phase===phase)?'PG_ADD_MORE':'PG_ADD')),
     h('div',{role:'status','aria-live':'polite',class:'small'},status,failures.length?h('ul',null,failures.map(name=>h('li',null,name))):null),
-    h('details',{class:'capture-options',open:optionsOpen,on:{toggle:e=>{optionsOpen=e.currentTarget.open;}}},h('summary',null,t('PG_PHOTO_OPTIONS')),
-      h('div',{class:'stack s8'},h('p',{class:'small muted'},t('PG_GUIDE')),h('p',{class:'small muted'},t('PG_TIPS')))),
     id?FD.scPanel(id,{role:'VSR',editable,redraw:()=>FD.sheet.redraw()}):null);
   },footer:()=>[FD.btn(t('L_DONE'),()=>{FD.sheet.close();FD.render();},'secondary block')]});
  };
@@ -115,20 +118,20 @@
  };
  // Competitor photo: brand, what was seen, optional note. Saved as competition, never scored by Shelf Check.
  FD.compCaptureSheet=({store})=>{
-  const S={src:null,brand:null,seen:[],note:''};
-  const input=h('input',{type:'file',accept:'image/*',capture:'environment',hidden:true,on:{change:async e=>{try{S.src=await FD.readPhoto(e.target.files[0]);FD.sheet.redraw();}catch(err){FD.toast('S_PHOTO_BIG');}}}});
+  const S={srcs:[],brand:null,seen:[],note:''};
+  const input=h('input',{type:'file',accept:'image/*',multiple:true,hidden:true,on:{change:async e=>{for(const f of [...e.target.files]){try{S.srcs.push(await FD.readPhoto(f));}catch(err){FD.toast('S_PHOTO_BIG');}}e.target.value='';FD.sheet.redraw();}}});
   const chip=(on,label,click)=>h('button',{type:'button',class:'chip lg chip-btn'+(on?' on':''),'aria-pressed':String(on),on:{click}},label);
-  const save=()=>{const ok=FD.tryCompPhoto({key:FD.key(),id:'cp-'+FD.key(),store,vsr:st().vsrId,src:S.src,brand:S.brand,seen:S.seen,note:S.note});
+  const save=()=>{const ok=S.srcs.every(src=>FD.tryCompPhoto({key:FD.key(),id:'cp-'+FD.key(),store,vsr:st().vsrId,src,brand:S.brand,seen:S.seen,note:S.note}));
    FD.toast(ok?'S_SAVED':'PG_NOT_SAVED');if(ok){FD.sheet.close();FD.render();}};
   FD.sheet.open({title:t('PG_CAPTURE_COMP'),render:()=>{
    const ta=h('textarea',{class:'textarea',dir:'auto',maxlength:'200',rows:'2',placeholder:t('L_ADD_COMMENT')+' · '+t('L_OPTIONAL'),'aria-label':t('L_ADD_COMMENT'),on:{input:e=>{S.note=e.target.value;}}});ta.value=S.note;
    return h('div',{class:'stack s12'},h('p',{class:'small muted'},t('CI_HINT')),input,
-    S.src?h('div',{class:'photo-thumb'},h('img',{src:S.src,alt:''}),h('button',{type:'button','aria-label':t('L_REMOVE'),on:{click:()=>{S.src=null;FD.sheet.redraw();}}},FD.icon('x','s14')))
-     :h('button',{class:'btn primary block',type:'button',on:{click:()=>input.click()}},FD.icon('camera','s16'),t('CI_ADD')),
+    S.srcs.length?h('div',{class:'photo-strip'},S.srcs.map((src,i)=>h('div',{class:'photo-thumb'},h('img',{src,alt:'',on:{click:()=>FD.lightbox(src)}}),h('button',{type:'button','aria-label':t('L_REMOVE'),on:{click:()=>{S.srcs.splice(i,1);FD.sheet.redraw();}}},FD.icon('x','s14'))))):null,
+    h('button',{class:'btn '+(S.srcs.length?'secondary':'primary')+' block',type:'button',on:{click:()=>input.click()}},FD.icon('camera','s16'),t(S.srcs.length?'PG_ADD_MORE':'CI_ADD')),
     h('div',{class:'small muted'},t('L_WHICH_BRAND')),h('div',{class:'row wrap'},FD.COMP_BRANDS.map(b=>chip(S.brand===b,t(b),()=>{S.brand=b;FD.sheet.redraw();}))),
     h('div',{class:'small muted'},t('CI_WHAT')),h('div',{class:'row wrap'},FD.COMP_SEEN.map(k=>chip(S.seen.includes(k),t(k),()=>{S.seen=S.seen.includes(k)?S.seen.filter(x=>x!==k):S.seen.concat(k);FD.sheet.redraw();}))),
     ta);
-  },footer:()=>[h('button',{type:'button',class:'btn primary lg block',disabled:!S.src||!S.brand,on:{click:save}},t('L_SAVE'))]});
+  },footer:()=>[h('button',{type:'button',class:'btn primary lg block',disabled:!S.srcs.length||!S.brand,on:{click:save}},t('L_SAVE'))]});
  };
  // Store competition for both roles: one line per brand, then the latest competitor photos.
  FD.compSection=(store,{take=false,flat=false}={})=>{

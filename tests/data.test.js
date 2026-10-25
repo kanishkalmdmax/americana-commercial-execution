@@ -3,7 +3,7 @@ const load = require('./load');
 const L = 5; // up to 02_data.js
 test('world from real data', () => {
   const FD = load(L); const w = FD.buildWorld(7);
-  assert.strictEqual(w.vsrs.length, 10); // the van with no visits all month is left out of the mockup
+  assert.strictEqual(w.vsrs.length, 9); // vans with no order in the last 21 days are left out of the mockup
   assert.ok(w.stores.length > 1000);
   assert.ok(w.stores.every(s => s.route && s.vsr && s.days.length && s.label));
   assert.ok(FD.SKUS.every(k => k.cost > 0 && k.retail > k.cost));

@@ -121,6 +121,11 @@
 
   // ---------- small components ----------
   FD.chip = (content, tone = '', extra = '') => h('span', { class: 'chip ' + tone + ' ' + extra }, content);
+  FD.flashTo = (sel, tries = 15) => { const els = [...document.querySelectorAll(sel)];
+    if (!els.length) { if (tries > 0) setTimeout(() => FD.flashTo(sel, tries - 1), 120); return; }
+    els[0].scrollIntoView({ block: 'center', behavior: 'smooth' }); els.forEach(e => { e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); setTimeout(() => e.classList.remove('flash'), 2800); }); };
+  // one colour per recommendation type, the same on every screen: reorder blue, new product green, upsell purple, promotion amber, supervisor pick navy
+  FD.typeChip = type => FD.chip(FD.t('TYPE_' + type), 'ty ty-' + type);
   FD.empty = (id, slots, icon = 'inbox') => h('div', { class: 'empty' }, I(icon), h('div', null, FD.tx(id, slots)));
   // ponytail: 500ms re-entry guard per handler stops double taps from sending twice
   let lastFire = { fn: null, at: 0 };
@@ -255,7 +260,10 @@
     },
     isOpen: () => !!D.el,
     refresh(focus) {
-      if (!D.el) return; const cfg = D.stack[D.stack.length - 1]; const savedFocus=FD.captureFocus(D.el);
+      // no drawer open: the same content is shown as a full page (expanded view), so a refresh from a click redraws the page;
+      // FD.render itself calls refresh(false), which must not loop back
+      if (!D.el) { if (focus === undefined) FD.render(); return; }
+      const cfg = D.stack[D.stack.length - 1]; const savedFocus=FD.captureFocus(D.el);
       let body; try { body = cfg.render(); } catch (err) { console.error(err); body = h('div', { class: 'err-card' }, String(err.message || err)); }
       if (body === null) return FD.drawer.back(); // subject no longer exists
       const bodyEl = h('div', { class: 'drawer-b' }, body);
@@ -406,30 +414,34 @@
   };
   // Line chart: s0 solid brand, s1 dashed muted (e.g. before-pilot average). Crosshair + tooltip.
   FD.line = (series, labels, opts = {}) => {
-    // drawing width follows the screen so axis text stays ~12px instead of scaling with the card
-    const vw = typeof innerWidth === 'number' ? innerWidth : 600, W = opts.fit ? Math.max(320, Math.min(1320, vw - (vw > 768 ? 200 : 64))) : 600, H = opts.h || 200, L = 44, R = 12, T = 12, B = 26;
+    // drawn at the card's real width (redrawn when it changes) so axis text stays 12px, never scaled up with the card
+    const vw = typeof innerWidth === 'number' ? innerWidth : 600, H = opts.h || 200, L = 44, R = 12, T = 12, B = 26;
+    let W = opts.fit ? Math.max(320, Math.min(1320, vw - (vw > 768 ? 200 : 64))) : 600;
     const all = series.flatMap(s => s.values).filter(v => v != null);
     const max = Math.max(1, ...all) * 1.1, min = 0;
     const X = i => L + (i / Math.max(1, labels.length - 1)) * (W - L - R), Y = v => T + (1 - (v - min) / (max - min)) * (H - T - B);
-    const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'linechart'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', opts.label || '');
-    let g = '<g class="grid">';
-    for (let k = 0; k <= 3; k++) { const v = (max / 3) * k; g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/>`; }
-    g += '</g><g class="axis">';
-    for (let k = 0; k <= 3; k++) { const v = (max / 3) * k; g += `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${FD.fmt.num(v >= 1000 ? v / 1000 : v, v >= 1000 ? 1 : 0)}${v >= 1000 ? 'k' : ''}</text>`; }
-    const step = Math.ceil(labels.length / 6);
-    labels.forEach((lb, i) => { if (i % step === 0 || i === labels.length - 1) g += `<text x="${X(i)}" y="${H - 6}" text-anchor="middle">${lb}</text>`; });
-    g += '</g>';
-    series.forEach((s, k) => { const d = s.values.map((v, i) => v == null ? '' : ((i && s.values[i - 1] != null ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1))).join(' '); g += `<path class="s${k}" d="${d}"/>`; });
-    g += `<line class="hover-line" x1="0" x2="0" y1="${T}" y2="${H - B}" opacity="0"/>`;
-    svg.innerHTML = g;
-    const hl = svg.querySelector('.hover-line');
-    svg.addEventListener('mousemove', e => {
+    const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'linechart'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', opts.label || '');
+    const draw = () => {
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      let g = '<g class="grid">';
+      for (let k = 0; k <= 3; k++) { const v = (max / 3) * k; g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/>`; }
+      g += '</g><g class="axis">';
+      for (let k = 0; k <= 3; k++) { const v = (max / 3) * k; g += `<text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${FD.fmt.num(v >= 1000 ? v / 1000 : v, v >= 1000 ? 1 : 0)}${v >= 1000 ? 'k' : ''}</text>`; }
+      const step = Math.max(1, Math.ceil(labels.length / Math.max(2, Math.floor((W - L - R) / 90)))), last = labels.length - 1; // about one date per 90px
+      labels.forEach((lb, i) => { if ((i % step === 0 && last - i >= step / 2) || i === last) g += `<text x="${X(i)}" y="${H - 6}" text-anchor="${i === last ? 'end' : 'middle'}">${lb}</text>`; });
+      g += '</g>';
+      series.forEach((s, k) => { const d = s.values.map((v, i) => v == null ? '' : ((i && s.values[i - 1] != null ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1))).join(' '); g += `<path class="s${k}" d="${d}"/>`; });
+      g += `<line class="hover-line" x1="0" x2="0" y1="${T}" y2="${H - B}" opacity="0"/>`;
+      svg.innerHTML = g; };
+    draw();
+    if (typeof ResizeObserver === 'function') new ResizeObserver(() => { const w = Math.round(svg.clientWidth); if (w > 0 && Math.abs(w - W) > 4) { W = w; draw(); } }).observe(svg);
+    svg.addEventListener('mousemove', e => { const hl = svg.querySelector('.hover-line');
       const r = svg.getBoundingClientRect(); const x = ((e.clientX - r.left) / r.width) * W;
       const i = Math.max(0, Math.min(labels.length - 1, Math.round(((x - L) / (W - L - R)) * (labels.length - 1))));
       hl.setAttribute('x1', X(i)); hl.setAttribute('x2', X(i)); hl.setAttribute('opacity', 1);
       FD.tip.show(e, h('div', null, h('b', null, labels[i]), series.map(s => h('div', null, s.name + ': ' + (s.values[i] == null ? '—' : (opts.fmt || FD.fmt.num)(s.values[i]))))));
     });
-    svg.addEventListener('mouseleave', () => { hl.setAttribute('opacity', 0); FD.tip.hide(); });
+    svg.addEventListener('mouseleave', () => { const hl = svg.querySelector('.hover-line'); hl.setAttribute('opacity', 0); FD.tip.hide(); });
     const legend = h('div', { class: 'legend', style: { marginTop: '6px' } }, series.map((s, k) => h('span', null, h('span', { class: 'sw', style: k ? { background: 'transparent', border: '2px dashed var(--ink-3)', height: '0', width: '14px', borderRadius: '0', verticalAlign: '3px' } : { background: 'var(--brand)', height: '3px', width: '14px', verticalAlign: '3px' } }), s.name)));
     return h('div', null, svg, series.length > 1 ? legend : null);
   };
@@ -496,4 +508,57 @@
   FD.skuLabel = (code, sub) => h('span', { class: 'sku-lbl' }, FD.skuTile(code, 30), h('span', { class: 'ellipsis' }, FD.nameOf(FD.sku(code)), sub ? h('small', { class: 'muted', style: { display: 'block' } }, sub) : null));
   FD.skuTile = (code, size = 22, box) => { const ic = FD.skuIcon(code, size); const el = h('span', { class: 'sku-ic-wrap', style: box ? { width: box + 'px', height: box + 'px' } : null }, ic); el.style.setProperty('--flav', ic.style.getPropertyValue('--flav')); return el; };
   FD.key = () => 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  // date picker: a month grid in a sheet (bottom sheet on the phone), in place of the browser's own calendar.
+  // Month and weekday names come from the browser's locale data (Gregorian), not from generated text.
+  const loc = () => FD.lang === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB';
+  FD.datePick = ({ value, min, max, title, onPick }) => {
+    let m = (value || max || FD.state.clock.date).slice(0, 7);
+    const ym = (iso, k) => { const [y, mo] = iso.split('-').map(Number); const d = new Date(Date.UTC(y, mo - 1 + k, 1)); return d.toISOString().slice(0, 7); };
+    FD.sheet.open({ center: true, title: title || FD.t('L_PICK_DATE'), render: () => {
+      const [y, mo] = m.split('-').map(Number), first = new Date(Date.UTC(y, mo - 1, 1)), days = new Date(Date.UTC(y, mo, 0)).getUTCDate(), lead = first.getUTCDay(); // weeks start on Sunday
+      const fmtM = new Intl.DateTimeFormat(loc(), { month: 'long', year: 'numeric', timeZone: 'UTC' }), fmtW = new Intl.DateTimeFormat(loc(), { weekday: 'narrow', timeZone: 'UTC' });
+      const prevOk = !min || ym(m, -1) >= min.slice(0, 7), nextOk = !max || ym(m, 1) <= max.slice(0, 7), today = FD.state.clock.date;
+      const cells = []; for (let i = 0; i < lead; i++) cells.push(h('span', { class: 'dp-pad' }));
+      for (let d = 1; d <= days; d++) { const iso = m + '-' + String(d).padStart(2, '0'), off = (min && iso < min) || (max && iso > max);
+        cells.push(h('button', { type: 'button', class: 'dp-day' + (iso === value ? ' on' : '') + (iso === today ? ' now' : ''), disabled: off, 'aria-pressed': String(iso === value), 'aria-label': FD.fmt.dateLong ? FD.fmt.dateLong(iso) : iso,
+          on: { click: () => { FD.sheet.close(); onPick(iso); } } }, FD.fmt.num(d))); }
+      return h('div', { class: 'dp' },
+        h('div', { class: 'dp-h' }, h('button', { type: 'button', class: 'icon-btn', disabled: !prevOk, 'aria-label': FD.t('L_PREV_MONTH'), on: { click: () => { m = ym(m, -1); FD.sheet.redraw(); } } }, FD.icon('chevron-left', 's16')),
+          h('b', null, fmtM.format(first)),
+          h('button', { type: 'button', class: 'icon-btn', disabled: !nextOk, 'aria-label': FD.t('L_NEXT_MONTH'), on: { click: () => { m = ym(m, 1); FD.sheet.redraw(); } } }, FD.icon('chevron-right', 's16'))),
+        h('div', { class: 'dp-grid dp-w', 'aria-hidden': 'true' }, [0, 1, 2, 3, 4, 5, 6].map(i => h('span', null, fmtW.format(new Date(Date.UTC(2026, 9, 4 + i)))))), // 4 Oct 2026 is a Sunday
+        h('div', { class: 'dp-grid' }, cells));
+    } });
+  };
+  // ---------- product picker: one standard panel for every product filter ----------
+  // Levels: category, family, flavour, pack size. Nothing picked at a level = no limit there. Each tap adds or removes one option
+  // (several per level allowed). Levels are linked both ways: options the other picks rule out are greyed.
+  const PLV = ['category', 'family', 'flavour', 'packKey'], PLH = ['PFH_CATEGORY', 'PFH_FAMILY', 'PFH_FLAVOUR', 'PFH_PACK'];
+  const pVal = (m, i) => m[PLV[i]], pLabel = (m, i) => i === 3 ? m.packLabelId : 'PT_' + String(m[PLV[i]]).toUpperCase();
+  const pMatch = (m, path, skip) => path.every((v, i) => i === skip || !v || !v.length || [].concat(v).includes(pVal(m, i)));
+  FD.productPickCount = sel => (sel.path || []).reduce((a, v) => a + [].concat(v || []).length, 0);
+  FD.productPanel = (sel, onChange, codes = FD.SKUS.map(k => k.code)) => FD.sheet.open({ center: true, title: FD.t('L_COL_PRODUCT'), render: () => {
+    sel.path = sel.path || []; const metas = codes.map(c => FD.productMeta(c)).filter(Boolean);
+    return h('div', { class: 'stack s16 opp-panel' }, PLV.map((f, i) => {
+      const all = new Map(); for (const m of metas) if (!all.has(pVal(m, i))) all.set(pVal(m, i), { id: pVal(m, i), labelId: pLabel(m, i), count: 0 });
+      for (const m of metas) if (pMatch(m, sel.path, i)) all.get(pVal(m, i)).count++;
+      const opts = [...all.values()].sort((a, b) => FD.t(a.labelId).localeCompare(FD.t(b.labelId), FD.lang)), cur = [].concat(sel.path[i] || []);
+      return h('div', null, h('div', { class: 'small muted' }, FD.t(PLH[i])), h('div', { class: 'row wrap' }, opts.map(o => { const on = cur.includes(o.id);
+        return h('button', { type: 'button', class: 'chip chip-btn' + (on ? ' on' : ''), disabled: !o.count && !cur.includes(o.id), 'aria-pressed': String(on), on: { click: () => {
+          const next = on ? cur.filter(x => x !== o.id) : cur.concat(o.id);
+          sel.path = Array.from({ length: 4 }, (_, k) => k === i ? next : sel.path[k] || []); while (sel.path.length && !sel.path[sel.path.length - 1].length) sel.path.pop();
+          onChange(); FD.sheet.redraw(); } } }, FD.t(o.labelId) + ' · ' + FD.fmt.num(o.count)); })));
+    })); },
+    footer: () => [FD.btn(FD.t('PG_RESET'), () => { sel.path = []; onChange(); FD.sheet.redraw(); }, 'secondary', 'undo'), h('span', { class: 'grow' }),
+      FD.btn(FD.t('L_DONE') + ' · ' + FD.fmt.num(FD.productFilter(codes, { path: sel.path || [] }).length), () => FD.sheet.close(), 'primary')] });
+  // the button that opens it, plus one removable chip per pick
+  FD.productPickBar = (sel, onChange, codes = FD.SKUS.map(k => k.code)) => { const n = FD.productPickCount(sel);
+    const lbl = (i, id) => { const m = codes.map(c => FD.productMeta(c)).find(x => x && pVal(x, i) === id); return m ? FD.t(pLabel(m, i)) : id; };
+    return [FD.btn(FD.t('L_COL_PRODUCT') + (n ? ' · ' + FD.fmt.num(n) : ''), () => FD.productPanel(sel, onChange, codes), n ? 'primary sm' : 'secondary sm', 'package')]
+      .concat((sel.path || []).flatMap((v, i) => [].concat(v || []).map(id => h('button', { type: 'button', class: 'chip chip-btn on', 'aria-label': FD.t('L_REMOVE') + ' · ' + lbl(i, id),
+        on: { click: () => { sel.path[i] = [].concat(sel.path[i]).filter(x => x !== id); while (sel.path.length && ![].concat(sel.path[sel.path.length - 1] || []).length) sel.path.pop(); onChange(); } } }, lbl(i, id), I('x', 's14')))))
+      .concat(n ? [FD.btn(FD.t('PG_RESET'), () => { sel.path = []; onChange(); }, 'ghost sm')] : []); };
+  // a field-like button that opens the picker
+  FD.dateBtn = ({ value, placeholder, label, ...o }) => h('button', { type: 'button', class: 'input dp-btn', 'aria-label': label, on: { click: () => FD.datePick(Object.assign({ value, title: label }, o)) } },
+    FD.icon('calendar', 's16'), h('span', null, value ? FD.fmt.date(value) : placeholder || FD.t('L_PICK_DATE')));
 })();

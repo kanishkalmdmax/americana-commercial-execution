@@ -5,7 +5,7 @@ function ui(){
  const FD=load();FD.init(7,{storage:null});global.document={};global.requestAnimationFrame=()=>{};
  let seq=0;FD.key=()=>String(++seq);FD.ui={local:{}};FD.h=node;FD.icon=k=>node('icon',{k});FD.registerView=(role,name,fn)=>{FD.views[role][name]=fn;};FD.views={sup:{},vsr:{}};
  FD.btn=(text,fn,cls)=>node('button',{on:{click:fn},class:cls},text);FD.iconBtn=(icon,text,fn)=>FD.btn(text,fn);FD.select=(options,value,change)=>node('select',{options,value,change});FD.seg=(options,value,change)=>node('group',{options,value,change});
- FD.skuLabel=code=>node('span',null,FD.nameOf(FD.sku(code)));FD.skuTile=()=>null;FD.skuIcon=()=>null;FD.chip=x=>node('span',null,x);FD.searchBox=()=>node('input');FD.empty=()=>null;FD.table=cfg=>node('table',{cfg},cfg.rows.map(r=>cfg.columns.map(c=>c.render?.(r))));FD.photoButton=p=>node('button',{'aria-label':p.label},node('img',{src:p.src}));FD.sizeIcon=()=>null;FD.creditChip=()=>null;FD.avatar=()=>null;FD.ring=()=>null;FD.delta=()=>null;FD.line=()=>null;FD.spark=()=>null;FD.bars=()=>null;FD.drawer={refresh(){},open(cfg){return cfg.render();}};FD.sheet={open(cfg){FD._sheet=cfg;return cfg.render();},redraw(){},close(){}};FD.dx=FD.dispatch;
+ FD.skuLabel=code=>node('span',null,FD.nameOf(FD.sku(code)));FD.skuTile=()=>null;FD.skuIcon=()=>null;FD.chip=x=>node('span',null,x);FD.typeChip=x=>node('span',null,FD.t('TYPE_'+x));FD.productPickBar=()=>node('div');FD.searchBox=()=>node('input');FD.empty=()=>null;FD.table=cfg=>node('table',{cfg},cfg.rows.map(r=>cfg.columns.map(c=>c.render?.(r))));FD.photoButton=p=>node('button',{'aria-label':p.label},node('img',{src:p.src}));FD.sizeIcon=()=>null;FD.creditChip=()=>null;FD.avatar=()=>null;FD.ring=()=>null;FD.delta=()=>null;FD.line=()=>null;FD.spark=()=>null;FD.bars=()=>null;FD.drawer={refresh(){},open(cfg){return cfg.render();}};FD.sheet={open(cfg){FD._sheet=cfg;return cfg.render();},redraw(){},close(){}};FD.dx=FD.dispatch;
  for(const f of ['08_vsr.js','08b_planogram.js','09_sup.js','09b_today.js','09d_levers.js','09e_planogram.js','09f_products.js']){const p=path.join(__dirname,'../src',f);delete require.cache[require.resolve(p)];require(p);}
  return FD;
 }
@@ -31,10 +31,10 @@ test('supervisor store header shows store type openly, no IDs, occasional action
   const tabs=nodes.find(n=>n.attrs.class==='tabs store-sections');assert.deepEqual(tabs.children.map(content),['L_OVERVIEW','L_NAV_SKUS','L_TIMELINE','L_WHATSAPP'].map(k=>FD.t(k)));
  }
 }finally{cleanup();}});
-test('photo capture puts optional display settings and detailed tips behind a disclosure',()=>{try{
+test('photo capture is one hint and the add button; several photos, no tips block',()=>{try{
  const FD=ui();FD.pgCaptureSheet({store:FD.state.world.stores[0].id,phase:'BEFORE'});
- const nodes=walk(FD._sheet.render()),options=nodes.find(n=>n.tag==='details'&&n.attrs.class==='capture-options');
- assert.ok(options);assert.ok(!options.attrs.open);
+ const nodes=walk(FD._sheet.render());
+ assert.ok(!nodes.some(n=>n.tag==='details'&&n.attrs.class==='capture-options'));assert.ok(nodes.find(n=>n.tag==='input'&&n.attrs.type==='file').attrs.multiple);
  assert.ok(nodes.some(n=>n.tag==='input'&&n.attrs.type==='file'));
 }finally{cleanup();}});
 test('extreme relative changes show their precise small baseline without adding normal comparison text',()=>{try{
@@ -121,17 +121,15 @@ test('Today shows operational work while Analytics owns the performance strip',(
  const analytics=FD.views.sup.weekly();assert.equal(strips,1);assert.ok(analytics.body.length);
  assert.equal(analytics.body.flatMap(walk).filter(n=>(n.attrs.class||'').split(' ').includes('fu-row')).length,0);
 }finally{global.setTimeout=timer;delete global.innerWidth;cleanup();}});
-test('product assortment filters sit above one full-width list without a navigation tree',()=>{try{
+test('product filters: one picker button above one full-width list; picks narrow the list',()=>{try{
  const FD=ui();FD.render=()=>{};
  for(const lang of ['en','ar']){
   FD.lang=lang;const page=FD.sup.productPage(),bar=page.bar(),body=page.body;
-  assert.equal(walk(bar).filter(n=>n.tag==='select').length,4);
+  assert.equal(walk(bar).filter(n=>n.tag==='select').length,0);
   assert.equal(body.flatMap(walk).filter(n=>n.tag==='aside'||n.tag==='nav').length,0);
-  const category=walk(bar).filter(n=>n.tag==='select')[0];category.attrs.change('biscuit');
-  const refreshedFamily=walk(page.bar()).filter(n=>n.tag==='select')[1];
-  assert.ok(!refreshedFamily.attrs.options.some(o=>o.id==='swiss'),'an open filters sheet must refresh dependent choices');
-  const next=FD.sup.productPage();const rows=next.body.flatMap(walk).find(n=>n.tag==='table').attrs.cfg.rows;
-  assert.ok(rows.every(x=>FD.sku(x.code).category==='biscuit'));FD.ui.local['products:browse']={path:[],query:''};
+  FD.ui.local['products:browse'].path=[['biscuit']];
+  const rows=FD.sup.productPage().body.flatMap(walk).find(n=>n.tag==='table').attrs.cfg.rows;
+  assert.ok(rows.length&&rows.every(x=>FD.sku(x.code).category==='biscuit'));FD.ui.local['products:browse']={path:[],query:''};
  }
 }finally{cleanup();}});
 test('capture identifies failed files and attributes off-plan captures to the active salesman',async()=>{try{

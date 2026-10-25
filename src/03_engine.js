@@ -52,8 +52,11 @@
   FD.candidates = function (ctx, storeId, iso) {
     const s = storeOf(ctx, storeId); const out = []; const peers = FD.peers(ctx, s);
     const peerCarry = new Map(); for (const p of peers) for (const c of carriedSet(ctx, p.id, iso)) peerCarry.set(c, (peerCarry.get(c) || 0) + 1);
+    // grocery (canned) is offered only to a store that buys cake but no grocery yet: the salesman's grocery bonus is earned there
+    const cakeOnly = FD.SKUS.some(k => k.category !== 'other' && ordersOf(ctx, storeId, k.code).some(o => o.date < iso))
+      && !FD.SKUS.some(k => k.category === 'other' && ordersOf(ctx, storeId, k.code).some(o => o.date < iso));
     for (const sku of FD.SKUS) {
-      if (sku.category === 'other') continue; // grocery lines are sold, never recommended (R7-12)
+      if (sku.category === 'other') continue; // grocery: one offer below, for cake-only stores
       const code = sku.code; const all = ordersOf(ctx, storeId, code).filter(o => o.date < iso);
       const last = all.length ? all.reduce((m, o) => o.date > m ? o.date : m, all[0].date) : null;
       // tuned to the real data: stores order about monthly, so one past order is enough history for lapsed
@@ -83,6 +86,9 @@
         if (promo) out.push({ sku: code, type: 'PROMO', reasonId: 'B_PROMO', slots: { promoId: promo.promoId, date: promo.end }, promo: promo.id });
       }
     }
+    // cake-only store: the canned line most of its peers carry (at least 10% of them)
+    if (cakeOnly && peers.length) { const g = FD.SKUS.filter(k => k.category === 'other').map(k => ({ k, pct: Math.round(100 * (peerCarry.get(k.code) || 0) / peers.length) })).sort((a, b) => b.pct - a.pct)[0];
+      if (g && g.pct >= 10) out.push({ sku: g.k.code, type: 'GAP', reasonId: 'B_GAP_GROCERY', slots: { pct: g.pct } }); }
     const seen = new Set(); return out.filter(c => !seen.has(c.sku) && seen.add(c.sku));
   };
 

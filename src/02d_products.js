@@ -38,7 +38,7 @@
       return [...groups].map(([id,cs]) => ({id,path:path.concat(id),labelId:depth===3 ? FD.productMeta(cs[0]).packLabelId : 'PT_'+id.toUpperCase(),count:cs.length,codes:cs,children:depth<3?build(cs,depth+1,path.concat(id)):[]}));
     }; return build(codes,0,[]);
   };
-  FD.productFilter = (codes,{path=[],query=''}={}) => { const q=query.trim().toLocaleLowerCase(); return [...new Set(codes)].filter(code => { const m=FD.productMeta(code), k=FD.sku(code); return m && path.every((v,i)=>!v||[m.category,m.family,m.flavour,m.packKey][i]===v) && (!q || (k.name+' '+k.name_ar+' '+code).toLocaleLowerCase().includes(q)); }); };
+  FD.productFilter = (codes,{path=[],query=''}={}) => { const q=query.trim().toLocaleLowerCase(); return [...new Set(codes)].filter(code => { const m=FD.productMeta(code), k=FD.sku(code); return m && path.every((v,i)=>{const x=[m.category,m.family,m.flavour,m.packKey][i];return !v||(Array.isArray(v)?!v.length||v.includes(x):x===v);}) && (!q || (k.name+' '+k.name_ar+' '+code).toLocaleLowerCase().includes(q)); }); };
   FD.setProductPath = (path,index,value) => {
     const next=Array.from({length:index+1},(_,i)=>i===index?value:(path[i]||''));
     while(next.length&&!next[next.length-1])next.pop();
@@ -50,9 +50,9 @@
     for(const code of FD.productFilter(codes,{path:prefix,query})){
       const value=option(code);if(!options.has(value.id))options.set(value.id,value);options.get(value.id).count++;
     }
-    if(path[index]&&!options.has(path[index])){
-      const sample=codes.find(code=>FD.productMeta(code)?.[field]===path[index]);
-      if(sample)options.set(path[index],option(sample));
+    for(const want of [].concat(path[index]||[]))if(!options.has(want)){
+      const sample=codes.find(code=>FD.productMeta(code)?.[field]===want);
+      if(sample)options.set(want,option(sample));
     }
     return [...options.values()].sort((a,b)=>FD.t(a.labelId).localeCompare(FD.t(b.labelId),FD.lang));
   });

@@ -1,6 +1,6 @@
 (function () {
   const FD = globalThis.FD;
-  const KEY = 'fielddrive.v5'; // v5: real October 2026 data through 22 Oct (salesbuzz_2026-10-23)
+  const KEY = 'fielddrive.v6'; // v6: WhatsApp cards and tips in chat (data through 22 Oct, salesbuzz_2026-10-23)
   const subs = [];
   let storage = null, chan = null, replaying = false;
 
@@ -342,17 +342,41 @@
       R.OWNER_MSG_IN(st, { store: a.id, kind: 'PHOTO', photo: FD.PHOTOS ? FD.PHOTOS[7] : null, text: E2('This is my shelf now. Good, send 3 cartons with the next visit please.', 'هذا الرف الآن. تمام، أرسلوا ٣ كراتين مع الزيارة القادمة لو سمحتم.'), at: { date: y2, time: '11:40' } }); }
     if (b) { R.OWNER_MSG_IN(st, { store: b.id, kind: 'PHOTO', photo: FD.PHOTOS ? FD.PHOTOS[2] : null, text: E2('Cake shelf is almost empty.', 'رف الكيك شبه فاضي.'), at: { date: y, time: '18:20' } });
       R.OWNER_MSG_SEND(st, { store: b.id, kind: 'TEXT', text: E2('Thank you. Our salesman will bring cake bars tomorrow.', 'شكرًا لك. مندوبنا سيحضر كيك بار غدًا.'), at: { date: y, time: '18:42' } }); }
-    if (c) { R.OWNER_MSG_SEND(st, { store: c.id, kind: 'INVOICE', at: { date: y, time: '19:05' } });
-      R.OWNER_MSG_IN(st, { store: c.id, text: E2('Received, thanks.', 'وصلت، شكرًا.'), at: { date: y, time: '19:30' } });
-      R.OWNER_MSG_IN(st, { store: c.id, kind: 'PHOTO', photo: FD.PHOTOS ? FD.PHOTOS[12] : null, text: E2('New stock is on the shelf.', 'البضاعة الجديدة على الرف.'), at: { date: y, time: '19:34' } }); }
+    if (c) { R.OWNER_MSG_IN(st, { store: c.id, kind: 'PHOTO', photo: FD.PHOTOS ? FD.PHOTOS[12] : null, text: E2('New stock is on the shelf.', 'البضاعة الجديدة على الرف.'), at: { date: y, time: '19:34' } }); }
     // three pre-orders that came in this morning from stores on today's plan
     const planned = [...new Set(st.visits.filter(v => v.date === FD.TODAY && v.status === 'PLANNED' && FD.salesVan(st, v.vsr)).map(v => v.store))];
     const notes = [E2('Please bring 2 cartons of rolls today.', 'لو سمحت أحضر كرتونين رولات اليوم.'), E2('Need cake bars, shelf is empty.', 'نحتاج كيك بار، الرف فاضي.'), E2('Add 1 carton of slice cake to my order.', 'أضف كرتون كيك شرائح لطلبي.')];
     const later = st.world.stores.find(x => !planned.includes(x.id) && FD.salesVan(st, x.vsr) && !st.visits.some(v => v.store === x.id && v.date === FD.TODAY) && st.orders.some(o => o.store === x.id));
     [planned[5], planned[17], later ? later.id : planned[40]].filter(Boolean).forEach((sid, i) => R.PREORDER_ADD(st, { store: sid, text: notes[i], photo: i === 1 && FD.PHOTOS ? FD.PHOTOS[4] : null, at: { date: FD.TODAY, time: ['06:12', '06:35', '06:51'][i] } }));
   }
+  // WhatsApp cards sent yesterday evening and the owners' button replies (simulated, deterministic): about a third reply
+  function seedWaCards(st) {
+    const r = FD.rng(st.seed * 31 + 7), pick = (xs, ws) => { let x = r(), i = 0; for (; i < ws.length - 1 && x >= ws[i]; i++) x -= ws[i]; return xs[i]; };
+    let y = FD.addDays(FD.TODAY, -1); while (!FD.isSellingDay(y)) y = FD.addDays(y, -1); const hm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    const send = (store, card, slots, sentMin, by) => { R.OWNER_MSG_SEND(st, { store, kind: 'CARD', card, slots, by: by || 'SUP', at: { date: y, time: hm(sentMin) } }); return st.ownerMsgs[st.ownerMsgs.length - 1]; };
+    const reply = (m, choice, sub, min) => R.WA_REPLY(st, { msg: m.id, choice, sub, at: { date: y, time: hm(min) } });
+    const sent = { VISIT: [], BALANCE: [], EXPIRY: [], RATING: [], NEWPROD: [] };
+    // visit notices for today's plan (one per store, from its salesman), times spread along the route
+    const today = st.visits.filter(v => v.date === FD.TODAY && !v.offPlan && FD.salesVan(st, v.vsr)).sort((a, b) => a.seq - b.seq);
+    for (const v of today) { const m = send(v.store, 'VISIT', { vsrId: v.vsr, date: FD.TODAY, time: hm(8 * 60 + Math.min(v.seq, 20) * 25) }, 19 * 60 + 30, v.vsr); sent.VISIT.push(m);
+      if (r() < 0.34) { const c = pick(['W_R_CONFIRM', 'W_R_CHANGE', 'W_R_NOT'], [0.72, 0.14, 0.14]); reply(m, c, c === 'W_R_NOT' ? pick(['W_S_STOCK', 'W_S_CLOSED', 'W_S_DAY'], [0.55, 0.25, 0.2]) : null, 19 * 60 + 35 + Math.floor(r() * 90)); } }
+    // balance reminders to stores with an open balance on today's plan
+    for (const v of today.filter(v => FD.dueBefore(v.store, FD.TODAY) >= 100).slice(0, 14)) { const m = send(v.store, 'BALANCE', { money: Math.round(FD.dueBefore(v.store, FD.TODAY)) }, 10 * 60); sent.BALANCE.push(m);
+      if (r() < 0.45) reply(m, pick(['W_R_PAYVISIT', 'W_R_PAID'], [0.7, 0.3]), null, 10 * 60 + 20 + Math.floor(r() * 300)); }
+    // ratings after yesterday's visits that had an order
+    const done = [...new Map(st.visits.filter(v => v.date === y && v.status === 'DONE' && FD.salesVan(st, v.vsr)).map(v => [v.store, v])).values()]
+      .filter(v => st.orders.some(o => o.date === y && o.store === v.store)).slice(0, 12);
+    for (const v of done) { const g = send(v.store, 'RATING', { vsrId: v.vsr }, 21 * 60); sent.RATING.push(g); if (r() < 0.45) reply(g, pick(['W_R_GOOD', 'W_R_FAIR', 'W_R_POOR'], [0.7, 0.2, 0.1]), null, 21 * 60 + 5 + Math.floor(r() * 50)); }
+    // expiry checks and a new-product card to a few stores on today's plan
+    const sku = (FD.SKUS.find(k => FD.recommendable(k.code)) || FD.SKUS[0]).code;
+    today.slice(30, 38).forEach(v => { const m = send(v.store, 'EXPIRY', {}, 11 * 60); sent.EXPIRY.push(m); if (r() < 0.5) reply(m, pick(['W_R_NO', 'W_R_YES'], [0.7, 0.3]), null, 11 * 60 + 30 + Math.floor(r() * 200)); });
+    today.slice(50, 56).forEach(v => { const m = send(v.store, 'NEWPROD', { skuCode: sku, n: 6 }, 12 * 60); sent.NEWPROD.push(m); if (r() < 0.5) reply(m, pick(['W_R_ADD', 'W_R_NOTNOW'], [0.4, 0.6]), null, 12 * 60 + 15 + Math.floor(r() * 200)); });
+    // make sure each reply that drives a rule appears at least once in the demo
+    for (const [card, choice, sub] of [['VISIT', 'W_R_NOT', 'W_S_STOCK'], ['VISIT', 'W_R_CHANGE'], ['BALANCE', 'W_R_PAID'], ['BALANCE', 'W_R_PAYVISIT'], ['RATING', 'W_R_POOR'], ['EXPIRY', 'W_R_YES'], ['NEWPROD', 'W_R_ADD']]) {
+      if (sent[card].some(m => m.reply && m.reply.choice === choice)) continue; const m = sent[card].find(x => !x.reply); if (m) reply(m, choice, sub || null, 21 * 60 + 40); }
+  }
   function seedExtras(st) {
-    seedOwnerChats(st);
+    seedOwnerChats(st); seedWaCards(st);
     const y = FD.addDays(FD.TODAY, -1); const sales = st.world.vsrs.filter(v => v.kind === 'sales');
     const doneStores = [...new Set(st.visits.filter(x => x.status === 'DONE' && x.date < FD.TODAY && FD.salesVan(st, x.vsr)).map(x => x.store))];
     // shelf photos: every store on today's plan and every third visited store has 1-3 photos from its last visits
@@ -629,10 +653,12 @@
   R.TIP_SEND = (st, p) => {
     const t = { id: nextId(st, 'TP'), vsr: p.vsr, tpl: p.tpl, slots: p.slots || {}, text: p.text || null, status: 'SENT', sentAt: now(st), read: false, draftKey: p.draftKey || null };
     st.tips.push(t); if (p.draftKey) st.tipDone[p.draftKey] = true;
+    postMsg(st, { type: 'vsr', id: p.vsr }, 'SUP', { text: null, tip: t.id, store: (p.slots || {}).storeId || null, sku: (p.slots || {}).skuCode || null }); // the tip is a card in his chat
     notify(st, p.vsr, 'N_TIP', { tipTpl: p.tpl }, { screen: 'tip', tip: t.id });
   };
   R.TIP_DISMISS = (st, p) => { st.tipDone[p.draftKey] = true; };
   R.TIP_READ = (st, p) => { const t = st.tips.find(x => x.id === p.id); if (t) t.read = true; };
+  R.TIP_ACK = (st, p) => { const t = st.tips.find(x => x.id === p.id); if (t) { t.read = true; t.ack = t.ack || now(st); } };
   // one conversation per salesman + one team group; store / product / recommendation travel as tags on the message
   function postMsg(st, anchor, by, msg) {
     let vsr = null, tag = { store: msg.store || null, sku: msg.sku || null, rec: msg.rec || null };
@@ -646,7 +672,7 @@
     if (!th) { th = { id: nextId(st, 'TH'), anchor: key, store: null, vsr: team ? null : vsr, messages: [], unreadSup: false, unreadVsr: false, team, unreadVsrs: {}, seenVsrs: {} }; st.threads.push(th); }
     const at = msg.at || now(st); const seen = at.date + ' ' + at.time;
     const m = { id: nextId(st, 'MS'), by, at, text: msg.text, photo: msg.photo || null, files: msg.files || [], replyTo: msg.replyTo || null, qr: msg.qr || null, topic: msg.topic || null, system: msg.system || null, reason: msg.reason || null,
-      store: team ? null : tag.store, sku: team ? null : tag.sku, rec: team ? null : tag.rec };
+      store: team ? null : tag.store, sku: team ? null : tag.sku, rec: team ? null : tag.rec, tip: msg.tip || null };
     th.messages.push(m);
     if (th.team) { th.unreadVsrs = th.unreadVsrs || {}; th.seenVsrs = th.seenVsrs || {}; for (const v of st.world.vsrs) if (v.id !== by) th.unreadVsrs[v.id] = true; if (by !== 'SUP') { th.unreadSup = true; th.seenVsrs[by] = seen; } else th.seenSup = seen; }
     else if (by === 'SUP') { th.unreadVsr = true; th.unreadSup = false; th.seenSup = seen; } else { th.unreadSup = true; th.seenVsr = seen; }
@@ -716,19 +742,25 @@
     planNote(st, to.id, v.store); notify(st, from, 'N_REMOVED_STOP', { storeId: v.store }, { screen: 'today' });
   };
   R.LOAD_CONFIRM = (st, p) => R.DAY_CONFIRM(st, p);
-  // store owner WhatsApp: the supervisor sends a promotion, an invoice copy or a note; owners send pre-orders, shelf photos and notes
-  const OWNER_OUT = ['PROMO', 'INVOICE', 'TEXT'];
-  const lastInvoice = (st, store) => { const os = st.orders.filter(o => o.store === store && o.units > 0 && o.date <= st.clock.date); if (!os.length) return null;
-    const d = os.reduce((m, o) => (o.date > m ? o.date : m), os[0].date); return { date: d, amount: +os.filter(o => o.date === d).reduce((a, o) => a + o.value, 0).toFixed(2) }; };
-  FD.lastInvoice = lastInvoice;
+  // store owner WhatsApp: the supervisor or salesman sends a card, a promotion or a note; owners send pre-orders, shelf photos, notes and card replies
+  const OWNER_OUT = ['PROMO', 'TEXT', 'CARD'];
   FD.ownerThread = (st, store) => (st.ownerMsgs || []).filter(m => m.store === store);
+  // owner messages plus card replies; read state is this count, so a message stamped with the same clock minute still shows as new
+  FD.ownerEvents = (st, store) => FD.ownerThread(st, store).reduce((n, m) => n + (m.by === 'OWNER' ? 1 : 0) + (m.reply ? 1 : 0), 0);
   R.OWNER_MSG_SEND = (st, p) => {
     if (!OWNER_OUT.includes(p.kind)) throw new Error('Not an outbound store message: ' + p.kind);
-    const m = { id: nextId(st, 'WM'), store: p.store, by: 'SUP', kind: p.kind, at: p.at || now(st), text: p.text || null, promo: p.kind === 'PROMO' ? p.ref : null };
-    if (p.kind === 'INVOICE') { const inv = lastInvoice(st, p.store); if (!inv) return; Object.assign(m, inv); }
+    if (p.kind === 'CARD' && FD.WA_CARDS && !FD.WA_CARDS[p.card]) return; // a card type that was removed (saved demo history) is dropped
+    // by: 'SUP' or the salesman's id; sign: the name the owner sees under a written reply
+    const m = { id: nextId(st, 'WM'), store: p.store, by: p.by || 'SUP', kind: p.kind, at: p.at || now(st), text: p.text || null, promo: p.kind === 'PROMO' ? p.ref : null, sign: p.sign || null,
+      card: p.kind === 'CARD' ? p.card : null, slots: p.kind === 'CARD' ? (p.slots || {}) : null, photo: p.photo || null, reply: null };
     (st.ownerMsgs = st.ownerMsgs || []).push(m);
   };
   R.OWNER_MSG_IN = (st, p) => { (st.ownerMsgs = st.ownerMsgs || []).push({ id: nextId(st, 'WM'), store: p.store, by: 'OWNER', kind: p.kind || 'TEXT', at: p.at || now(st), text: p.text || null, photo: p.photo || null }); };
+  R.OWNER_READ = (st, p) => { (st.ownerSeen = st.ownerSeen || {})[p.who + '|' + p.store] = FD.ownerEvents(st, p.store); };
+  // the owner tapped a card button; 'See or change items' on a visit notice becomes a pre-order for that visit
+  R.WA_REPLY = (st, p) => { const m = (st.ownerMsgs || []).find(x => x.id === p.msg); if (!m || m.kind !== 'CARD' || m.reply) return;
+    m.reply = { choice: p.choice, sub: p.sub || null, at: p.at || now(st) };
+    if (m.card === 'VISIT' && p.choice === 'W_R_CHANGE') st.preorders.push({ id: nextId(st, 'PO'), store: m.store, text: '', photo: null, at: m.reply.at, status: 'NEW', forDate: m.slots.date, via: 'WHATSAPP' }); };
   R.PREORDER_ADD = (st, p) => {
     const d = st.clock.date; const vis = st.visits.find(v => v.date === d && v.store === p.store && (v.status === 'PLANNED' || v.status === 'ARRIVED'));
     const forDate = vis ? d : nextPlanned(st, p.store, FD.addDays(d, 1));

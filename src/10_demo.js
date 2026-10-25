@@ -35,6 +35,10 @@
         row(...[['07:00', 'Morning'], ['13:00', 'Midday'], ['17:00', 'Evening'], ['23:59', 'End of day']].map(([tm, lb]) => btn(lb, () => FD.dx('CLOCK_SET', { date: s.clock.date, time: tm }), s.clock.time === tm ? 'primary' : 'secondary'))),
         row(btn('Next data sync (+1 h)', () => { FD.dx('SYNC_NEXT', {}); note('synced to ' + st().clock.time); }, 'secondary', s.clock.time >= '23:59')),
         row(btn('Previous day', () => FD.dx('CLOCK_SET', { date: FD.addDays(s.clock.date, -1), time: '07:00' }), 'secondary', s.clock.date <= FD.PILOT_START), btn('Next day', () => { FD.dx('CLOCK_SET', { date: FD.addDays(s.clock.date, 1), time: '07:00' }); note('simulated the rest of the day'); }))),
+      // simulation switches (moved out of the supervisor's Rules)
+      h('section', null, h('h5', null, 'LIVE DEMO'),
+        h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: s.rules.liveNotifs !== false, on: { change: e => FD.dx('LIVE_SET', { on: e.target.checked }) } }), FD.t('L_R_LIVE')),
+        h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!s.rules.liveData, on: { change: e => FD.dx('LIVEDATA_SET', { on: e.target.checked }) } }), FD.t('L_R_LIVEDATA'))),
       h('section', null, h('h5', null, 'SALESMAN VISIT'), sel(vsrOpts, v, x => { D.vsr = x; if (onPhone()) FD.go('#/vsr/' + x + '/today'); else redraw(); }),
         h('div', { class: 'small' }, here ? 'At store: ' + nm(here) : nextStop ? 'Next stop: ' + nm(nextStop.store) : 'All stops visited today'),
         row(btn('Arrive at next stop', () => { FD.dx('ARRIVE', { vsr: v }); const a = arrivedStore(v); if (a) { note('arrived at ' + nm(a)); if (onPhone()) FD.go('#/vsr/' + v + '/store/' + a); } }, 'primary', !nextStop || !!here)),

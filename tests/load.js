@@ -8,7 +8,7 @@ module.exports = function load(upTo = files.length) {
     require(p);
     if (f === '02_data.js') { const extra = path.join(__dirname, '..', 'src', '02d_products.js'); delete require.cache[require.resolve(extra)]; require(extra); }
     if (f === '04_store.js') { const extra = path.join(__dirname, '..', 'src', '04a_planogram.js'); delete require.cache[require.resolve(extra)]; require(extra); }
-    if (f === '05c_control.js') { const extra = path.join(__dirname, '..', 'src', '05d_planogram.js'); delete require.cache[require.resolve(extra)]; require(extra); const usability=path.join(__dirname,'..','src','05e_usability.js'); delete require.cache[require.resolve(usability)]; require(usability); }
+    if (f === '05c_control.js') { const extra = path.join(__dirname, '..', 'src', '05d_planogram.js'); delete require.cache[require.resolve(extra)]; require(extra); const usability=path.join(__dirname,'..','src','05e_usability.js'); delete require.cache[require.resolve(usability)]; require(usability); const wa=path.join(__dirname,'..','src','05f_whatsapp.js'); delete require.cache[require.resolve(wa)]; require(wa); }
   }
   return globalThis.FD;
 };

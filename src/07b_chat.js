@@ -29,6 +29,7 @@
   const nameBy = by => by === 'SUP' ? FD.nameOf(st().world.supervisor) : FD.nameOf(st().world.vsrs.find(v => v.id === by));
   const isMine = (m, who, vsr) => who === 'SUP' ? m.by === 'SUP' : m.by === vsr;
   FD.chatUnread = (th, who, vsr) => who === 'SUP' ? !!th.unreadSup : th.team ? !!(th.unreadVsrs || {})[vsr] : !!th.unreadVsr;
+  FD.chatUnreadN = (th, who, vsr) => { if (!th || !FD.chatUnread(th, who, vsr)) return 0; let n = 0; for (let i = th.messages.length - 1; i >= 0 && !isMine(th.messages[i], who, vsr); i--) n++; return Math.max(n, 1); };
   const seenAt = (th, who, vsr) => (who === 'SUP' ? th.seenSup : th.team ? (th.seenVsrs || {})[vsr] : th.seenVsr) || '';
   FD.chatSnippet = (m, who, vsr) => (isMine(m, who, vsr) ? t('L_YOU') + ': ' : '') + (m.text || ((m.files || []).length || m.photo ? t('L_ATTACHMENT') : ''));
   FD.chatTitle = (a, who) => a.type === 'team' ? t('L_WHOLE_TEAM') : who === 'SUP' ? nameBy(a.id) : FD.nameOf(st().world.supervisor);
@@ -128,6 +129,12 @@
       if (m.at.date !== lastDay) { lastDay = m.at.date; nodes.push(h('div', { class: 'chat-day' }, h('span', null, dayLabel(m.at.date)))); }
       const mine = isMine(m, who, vsr);
       if (!divDone && !q && C.divider[slot] != null && stamp(m.at) > C.divider[slot] && !mine) { divDone = true; nodes.push(h('div', { class: 'chat-new' }, h('span', null, t('L_NEW_MSGS')))); }
+      if (m.tip) { const tp = s.tips.find(x => x.id === m.tip); if (tp) { const o = FD.tipOutcome(s, tp); const acked = tp.ack;
+        nodes.push(h('div', { class: 'msg ' + (mine ? 'me' : 'them'), id: 'm-' + (m.id || '') }, h('div', { class: 'bubble tip-card ' + (mine ? 'me' : 'them') },
+          h('div', { class: 'msg-topic' }, I('bulb', 's14'), ' ', t('W_TIP'), ' · ', FD.tx(tp.tpl + '_T', tp.slots)), tagLine(m), h('div', { class: 'msg-text', dir: 'auto' }, tp.text || FD.tx(tp.tpl, tp.slots)),
+          h('div', { class: 'tip-status small' }, [FD.t('W_TIP_SENT', { time: FD.fmt.time(tp.sentAt.time) }), tp.read ? FD.t('W_TIP_SEEN') : null, acked ? FD.t('W_TIP_GOT') + ' ' + FD.fmt.time(acked.time) : null].filter(Boolean).join(' · ')),
+          o.offered ? h('div', { class: 'tip-out small' }, FD.t('W_TIP_OUT', { n: FD.fmt.num(o.offered), m: FD.fmt.num(o.sold) })) : null,
+          who !== 'SUP' && !acked ? FD.btn(t('W_TIP_GOT'), () => { FD.dx('TIP_ACK', { id: tp.id }); rerender(); }, 'secondary sm') : null))); continue; } }
       if (m.system) { nodes.push(h('div', { class: 'msg sys', id: 'm-' + (m.id || '') }, h('div', { class: 'bubble sys' }, tagLine(m), h('b', null, t('L_REASON_IS', { reason: t(m.reason) })), m.text ? h('div', { dir: 'auto' }, mark(m.text, q)) : null,
         m.photo ? FD.photoButton({src:m.photo,label:t('PG_PHOTO_LABEL')}) : null, h('div', { class: 'msg-meta' }, h('time', null, nameBy(m.by) + ' · ' + FD.fmt.time(m.at.time)))))); continue; }
       const photos = (m.photos || []).concat(m.photo ? [m.photo] : []); const files = m.files || [];
@@ -160,6 +167,7 @@
     const ctx = C.ctx[key];
     const tag = D.untag || anchor.type === 'team' ? null : ctx ? ctx : F.store ? { store: F.store } : who !== 'SUP' && hereStore(vsr) ? { store: hereStore(vsr) } : null;
     const fileIn = h('input', { type: 'file', multiple: true, hidden: true, accept: 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt', on: { change: e => { addFiles([...e.target.files]); e.target.value = ''; } } });
+    const picIn = h('input', { type: 'file', accept: 'image/*', multiple: true, hidden: true, on: { change: e => { addFiles([...e.target.files]); e.target.value = ''; } } });
     const camIn = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true, on: { change: e => { addFiles([...e.target.files]); e.target.value = ''; } } });
     async function addFiles(fs) {
       for (const f of fs) {
@@ -200,7 +208,8 @@
       D.files.length ? h('div', { class: 'chat-attach' }, D.files.map((f, i) => h('div', { class: 'att' }, f.kind === 'img' ? h('img', { src: f.data, alt: '' }) : h('span', { class: 'chat-file-ic' }, I('file', 's16')),
         h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'small ellipsis' }, f.name), h('div', { class: 'small muted' }, fmtSize(f.size))),
         h('button', { type: 'button', class: 'att-x', 'aria-label': t('L_REMOVE'), on: { click: () => { D.files.splice(i, 1); rerender(); } } }, I('x', 's14'))))) : null,
-      h('div', { class: 'chat-row' }, fileIn, camIn, FD.iconBtn('paperclip', t('L_ATTACH'), () => fileIn.click()), who !== 'SUP' ? FD.iconBtn('camera', t('L_PHOTO'), () => camIn.click()) : null,
+      h('div', { class: 'chat-row' }, fileIn, camIn, picIn, h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('L_ATTACH'), title: t('L_ATTACH'), 'aria-haspopup': 'menu', on: { click: e => FD.menu(e.currentTarget, [
+        who !== 'SUP' ? { icon: 'camera', label: t('L_PHOTO'), onClick: () => camIn.click() } : null, { icon: 'image', label: t('L_CHOOSE_PHOTOS'), onClick: () => picIn.click() }, { icon: 'paperclip', label: t('L_CHOOSE_FILES'), onClick: () => fileIn.click() }]) } }, I('paperclip')),
         h('div', { class: 'grow' }, ta), h('button', { class: 'btn primary chat-send', type: 'button', 'aria-label': t('L_SEND'), on: { click: () => send(D.text) } }, I('send', 's16'))));
     return h('div', { class: 'chat chat-' + mode }, header, searchBar, panel, chips, list, composer);
   };

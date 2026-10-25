@@ -16,7 +16,8 @@ test('first visit auto-releases', () => {
 });
 test('salesman day closes once SalesBuzz has closed it (end of day)', () => {
   const FD = boot(); const st = FD.state; FD.dispatch('CLOCK_SET', { date: FD.TODAY, time: '23:59' });
-  for (const v of st.world.vsrs) assert.ok(['CLOSED', 'NO_ACTIVITY'].includes(FD.vanStage(st, v.id, FD.TODAY)), v.id + ' ' + FD.vanStage(st, v.id, FD.TODAY));
+  const worked = new Set(FD.REAL.stops.filter(x => x[0] === FD.TODAY).map(x => x[1])); // a van with a plan but no SalesBuzz day stays unclosed
+  for (const v of st.world.vsrs.filter(x => worked.has(x.id))) assert.ok(['CLOSED', 'NO_ACTIVITY'].includes(FD.vanStage(st, v.id, FD.TODAY)), v.id + ' ' + FD.vanStage(st, v.id, FD.TODAY));
 });
 test('collection vans never raise a pace alert, and no van without data is shown', () => {
   const FD = boot(); const st = FD.state; FD.dispatch('CLOCK_SET', { date: FD.TODAY, time: '15:00' });
@@ -69,7 +70,7 @@ test('dispatch question rule and exception shape', () => {
   const FD = boot(); const st = FD.state;
   let any = 0;
   for (const v of st.world.vsrs.filter(x => x.kind === 'sales')) for (const e of FD.dispatchExceptions(st, v.id, FD.TODAY)) {
-    any++; assert.ok(['X_QUESTION', 'X_DUE', 'X_SKIPPED', 'X_SHORT', 'X_PREORDER'].includes(e.type));
+    any++; assert.ok(['X_QUESTION', 'X_DUE', 'X_SKIPPED', 'X_SHORT', 'X_DAMAGED', 'X_PREORDER', 'X_OWNER_NOT'].includes(e.type));
     if (e.type === 'X_QUESTION') assert.ok(e.slots.n >= 4 && e.slots.m <= 1);
   }
   assert.ok(any > 0);

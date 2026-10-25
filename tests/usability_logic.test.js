@@ -8,7 +8,7 @@ test('all metric comparisons use relative percent changes and handle zero baseli
  for(const pair of [[null,2],[2,null],[NaN,2],[2,Infinity]])assert.equal(FD.relativeChange(...pair),null);
 });
 test('unread team messages remain represented in navigation badges',()=>{
- const FD=load();FD.init(7,{storage:null});const s=FD.state;s.threads=[{team:true,unreadSup:1}];
+ const FD=load();FD.init(7,{storage:null});const s=FD.state;s.threads=[{team:true,unreadSup:1}];s.ownerMsgs=[];
  assert.equal(FD.supervisorBadgeCounts(s).msgs,1);assert.equal(FD.supervisorBadgeCounts(s,[s.world.vsrs[0].id]).msgs,1);
 });
 test('metric action context scopes alerts and follow-ups and carries historical dates',()=>{

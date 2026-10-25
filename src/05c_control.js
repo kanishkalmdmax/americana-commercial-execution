@@ -27,7 +27,7 @@
   // Which of the five sales metrics each alert, pre-release check and follow-up moves. Shared by both apps.
   FD.LEVER_OF = {
     A_MISSED: 'visits', A_OFFPLAN: 'visits', A_PACE: 'visits', A_PREORDER: 'withSale',
-    X_CARRY: 'visits', X_PREORDER: 'withSale', X_DUE: 'withSale', X_QUESTION: 'withSale', X_SKIPPED: 'visits', X_SHORT: 'upsell',
+    X_CARRY: 'visits', X_OWNER_NOT: 'visits', X_PREORDER: 'withSale', X_DUE: 'withSale', X_QUESTION: 'withSale', X_SKIPPED: 'visits', X_SHORT: 'upsell', X_DAMAGED: 'returns',
     F_RETURN_UPSELL: 'returns', F_WATCH_OK: 'returns', F_WATCH_BAD: 'returns', F_WATCHLIST: 'returns',
     F_MISSING_REASONS: 'upsell', F_REPEAT_DECLINE: 'upsell', F_COMPETITOR: 'upsell', F_GAP_CLUSTER: 'upsell', F_NOT_OFFERED: 'upsell', F_PLANOGRAM:'upsell', F_ENGINE_MISS: 'upsell', F_PROMO_LOW: 'upsell',
     F_VSR_BELOW: 'avgSale', F_CREDIT: 'withSale', F_SKIPPED: 'visits', F_PLAN_CHANGE: 'visits', F_COVER: 'visits',
@@ -56,8 +56,8 @@
   // suggestions for a van's plan on a later day: carry-overs, stores due to order, and stores that rarely order (to drop)
   // ponytail: top 6 per van by expected sale (pre-orders first, stores to drop last), so the evening review stays short
   FD.planSuggestions = (st, vanId, iso) => { FD.ensureDay(st, iso);
-    const all = FD.carryOvers(st, vanId, iso).concat(FD.dispatchExceptions(st, vanId, iso).filter(x => ['X_DUE', 'X_QUESTION', 'X_PREORDER'].includes(x.type)));
-    const rank = x => x.type === 'X_PREORDER' ? 1e9 : x.type === 'X_QUESTION' ? -1 : FD.expectedSales(st, x.store);
+    const all = FD.carryOvers(st, vanId, iso).concat(FD.dispatchExceptions(st, vanId, iso).filter(x => ['X_DUE', 'X_QUESTION', 'X_PREORDER', 'X_OWNER_NOT'].includes(x.type)));
+    const rank = x => x.type === 'X_PREORDER' ? 1e9 : x.type === 'X_OWNER_NOT' ? 1e8 : x.type === 'X_QUESTION' ? -1 : FD.expectedSales(st, x.store);
     const seen = new Set(); return all.filter(x => !seen.has(x.store + x.type) && seen.add(x.store + x.type)).sort((a, b) => rank(b) - rank(a)).slice(0, 6); };
   FD.DEPOT = { lat: 24.598, lng: 46.781 }; // Americana Riyadh depot (map pin)
   FD.vanPosition = function (st, id, iso) {
@@ -96,7 +96,7 @@
     const paid = {}; for (const x of FD.realPays(iso)) if (x.van === id && x.time <= t) paid[x.store] = (paid[x.store] || 0) + x.amount;
     const stops = plan.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0)).map(x => ({ store: x.store, at: x.arrivedAt,
       kind: x.status === 'DONE' ? (sold.has(x.store) ? 'sale' : 'nosale') : x.status === 'ARRIVED' ? 'now' : x.status === 'MISSED' ? 'missed' : 'todo',
-      col: paid[x.store] ? 'paid' : x.status === 'DONE' && FD.dueBefore(x.store, iso) > 0 ? 'due' : null, paid: paid[x.store] || 0 }));
+      col: paid[x.store] ? 'paid' : x.status === 'DONE' && FD.overdueAt(x.store, iso) > 0 ? 'due' : null, paid: paid[x.store] || 0 }));
     return { stops, planned: plan.length, done: plan.filter(x => x.status === 'DONE').length, offPlan: vs.filter(x => x.offPlan && x.status === 'DONE').length, missed,
       sales: +sales.toFixed(2), expected: +plan.reduce((a, x) => a + FD.expectedSales(st, x.store), 0).toFixed(2), collected: +collected.toFixed(2), returns: +returns.toFixed(2) };
   };
@@ -109,6 +109,7 @@
     const later = st.visits.find(v => v.store === store && v.date > iso && v.supAdded && v.status !== 'SKIPPED'); // only a stop someone put back counts, not the next routine visit
     if (later) return { id: 'L_OUT_REPLANNED', slots: { date: later.date } };
     const how = (st.alertDone || {})[['A_MISSED', van, store, iso].join('|')];
+    if (how === 'REPLANNED') { const next = st.visits.find(v => v.store === store && v.date > iso && v.status !== 'SKIPPED'); return next ? { id: 'L_OUT_REPLANNED', slots: { date: next.date } } : { id: 'L_OUT_RESOLVED' }; }
     return how ? { id: 'L_OUT_' + (how === true ? 'RESOLVED' : how) } : null; };
   FD.alerts = (st, iso) => { const done = st.alertDone || {}; return allAlerts(st, iso).filter(a => !done[FD.alertKey(a, iso)]); };
   function allAlerts(st, iso) {
@@ -153,12 +154,14 @@
       const planN = {}; for (const p of FD.REAL.plan) if (p[0] >= from && p[0] < iso && active.has(p[1])) planN[p[2]] = (planN[p[2]] || 0) + 1;
       const ordDays = {}; for (const o of st.orders) if (o.date < iso && o.src === 'SB') (ordDays[o.store] || (ordDays[o.store] = new Set())).add(o.date);
       for (const x of today) {
-        const n = planN[x.store] || 0, m = ordDays[x.store] ? [...ordDays[x.store]].filter(d => d >= from).length : 0;
-        if (v.kind === 'sales' && n >= 4 && m <= 1) out.push({ type: 'X_QUESTION', store: x.store, visit: x.id, slots: { storeId: x.store, n, m } });
+        // stores here order about once a month, so only a store with no order in 45 days is questioned (one monthly order keeps it on plan)
+        const n = planN[x.store] || 0, m = ordDays[x.store] ? [...ordDays[x.store]].filter(d => d >= FD.addDays(iso, -45)).length : 0;
+        if (v.kind === 'sales' && n >= 4 && m === 0) out.push({ type: 'X_QUESTION', store: x.store, visit: x.id, slots: { storeId: x.store, n, m } });
         // missed on its last two planned visits (one miss is the norm in this data, two in a row is a pattern)
         const prev = st.visits.filter(y => y.store === x.store && y.date < iso && !y.offPlan).sort((a, b) => b.date.localeCompare(a.date));
         if (prev.length >= 2 && prev[0].status === 'MISSED' && prev[1].status === 'MISSED') out.push({ type: 'X_SKIPPED', store: x.store, visit: x.id, slots: { storeId: x.store, date: prev[0].date } });
         for (const p of st.preorders.filter(p => p.store === x.store && p.forDate === iso && p.status !== 'DONE')) out.push({ type: 'X_PREORDER', store: x.store, visit: x.id, preorder: p.id, slots: { storeId: x.store } });
+        const wa = FD.waVisitReply && FD.waVisitReply(st, x.store, iso); if (wa && wa.choice === 'W_R_NOT') out.push({ type: 'X_OWNER_NOT', store: x.store, visit: x.id, slots: { storeId: x.store, reasonCode: wa.sub || 'W_R_NOT' } });
       }
       const due = [];
       if (v.kind === 'sales') for (const s of st.world.stores) if (s.vsr === vanId && !onPlan.has(s.id) && ordDays[s.id] && ordDays[s.id].size >= 2) {
@@ -168,6 +171,9 @@
       due.sort((a, b) => b.over - a.over).slice(0, 5).forEach(x => { delete x.over; out.push(x); });
       if (st.rules.vanFeed && v.kind === 'sales') { const need = {}; for (const r of st.recs) if (r.date === iso && FD.recVsr(r) === vanId && !r.blockedAt && r.outcome === null) need[r.sku] = (need[r.sku] || 0) + (r.qtyModified ?? r.qty);
         for (const [sku, n] of Object.entries(need)) { const m = (st.vanStock[vanId] || {})[sku] || 0; if (n > m) out.push({ type: 'X_SHORT', sku, slots: { skuCode: sku, n, m } }); } }
+      // damaged returns still on the van (van stock snapshot of the extract day): unload before loading
+      const dmg = iso === FD.TODAY ? Object.values((FD.REAL.vanDamaged || {})[vanId] || {}).reduce((a, n) => a + n, 0) : 0;
+      if (dmg > 0 && v.kind === 'sales') out.push({ type: 'X_DAMAGED', slots: { n: dmg } });
       return out;
     });
   };
