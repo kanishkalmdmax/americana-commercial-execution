@@ -148,13 +148,14 @@
       on: { input: e => { const v = e.target.value, pos = e.target.selectionStart; clearTimeout(tm); tm = setTimeout(() => { refocus = { key, pos }; onChange(v); }, 160); } } });
     return h('div', { class: 'search', style }, I('search', 's16'), inp); };
   FD.restoreSearchFocus = () => { if (!refocus) return; const el = document.querySelector('[data-sk="' + refocus.key + '"]'); if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(refocus.pos, refocus.pos); } catch (e) { } } refocus = null; };
+  // the number redraws on every click (a caller that re-renders replaces the whole stepper anyway); min and max only bound the buttons
   FD.stepper = (value, min, max, onChange, label, step = 1) => {
-    const out = h('output', { 'aria-live': 'polite' }, FD.fmt.num(value));
-    const set = v => { onChange(v); };
-    return h('div', { class: 'stepper', role: 'group', 'aria-label': label || '' },
-      h('button', { type: 'button', 'aria-label': '−', disabled: value <= min, on: { click: () => set(Math.max(min, value - step)) } }, I('minus')),
-      out,
-      h('button', { type: 'button', 'aria-label': '+', disabled: value >= max, on: { click: () => set(Math.min(max, value + step)) } }, I('plus')));
+    let cur = value;
+    const out = h('output', { 'aria-live': 'polite' }, FD.fmt.num(cur));
+    const dec = h('button', { type: 'button', 'aria-label': '−', disabled: cur <= min, on: { click: () => set(Math.max(min, cur - step)) } }, I('minus'));
+    const inc = h('button', { type: 'button', 'aria-label': '+', disabled: cur >= max, on: { click: () => set(Math.min(max, cur + step)) } }, I('plus'));
+    const set = v => { cur = v; out.textContent = FD.fmt.num(cur); dec.disabled = cur <= min; inc.disabled = cur >= max; onChange(v); };
+    return h('div', { class: 'stepper', role: 'group', 'aria-label': label || '' }, dec, out, inc);
   };
   FD.toggle = (on, onChange, label) => h('button', { type: 'button', role: 'switch', 'aria-checked': on ? 'true' : 'false', 'aria-label': label || '', class: 'switch' + (on ? ' on' : ''), on: { click: () => onChange(!on) } });
   // The selected button owns its background, including under zoom and RTL.
@@ -493,6 +494,7 @@
       ? `<rect x="4" y="5" width="16" height="15" rx="1.5"/><path d="M4 9h16" /><rect x="4.9" y="5.9" width="14.2" height="2.2" rx=".6" ${acc(c)}/><circle cx="12" cy="14.5" r="3"/><path d="M11 13.8h.01M13 14.2h.01M11.8 15.6h.01" stroke-width="2"/>`
       : `<ellipse cx="12" cy="7" rx="8" ry="2.6" ${acc(c)}/><ellipse cx="12" cy="7" rx="8" ry="2.6"/><path d="M4 7v10c0 1.4 3.6 2.6 8 2.6s8-1.2 8-2.6V7"/><path d="M4 12c0 1.4 3.6 2.6 8 2.6s8-1.2 8-2.6" stroke-opacity=".35"/>`,
     // rusk: stand-up pouch with slice window
+    GRP_NUTS: c => `<path d="M7 4h10l1.5 3.5V19a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V7.5z" ${acc(c)}/><path d="M5.5 7.5h13" stroke-opacity=".45"/><circle cx="10" cy="13" r="1.4"/><circle cx="14" cy="15" r="1.4"/>`,
     GRP_OTHER: c => `<ellipse cx="12" cy="5.5" rx="6.5" ry="2" ${acc(c)}/><path d="M5.5 5.5v13c0 1.1 2.9 2 6.5 2s6.5-.9 6.5-2v-13"/><path d="M5.5 10h13M5.5 15h13" stroke-opacity=".45"/>`,
     GRP_RUSK: c => `<rect x="5.8" y="4.8" width="12.4" height="3.2" rx=".8" ${acc(c)}/><path d="M6 4h12l1.5 3.5V20a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1V7.5z"/><rect x="8.5" y="11" width="7" height="5.5" rx="1.2"/><path d="M10.5 11v5.5M13.5 11v5.5" stroke-opacity=".45"/>`,
   };

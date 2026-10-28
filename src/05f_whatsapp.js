@@ -3,13 +3,13 @@
   // the replies are kept as a list (FD.waReplies) for later suggested alerts and model training.
   const FD = globalThis.FD, E = (en, ar) => ({ en, ar });
   Object.assign(FD.CATALOG, {
-    W_WA: E('WhatsApp', 'واتساب'), W_AMERICANA: E('Americana', 'أمريكانا'), W_SIGN: E('Sign with my name', 'التوقيع باسمي'),
+    W_WA: E('WhatsApp', 'واتساب'), W_AMERICANA: E('Americana', 'أمريكانا'), W_SIGN: E('Sign with name', 'التوقيع باسمي'),
     W_SEND_CARD: E('Send card', 'إرسال بطاقة'), W_AWAITING: E('No reply yet', 'لا رد بعد'), W_OWNER_TAPPED: E('Owner tapped', 'اختار صاحب المحل'),
     W_INTERNAL: E('Internal chat', 'محادثة داخلية'), W_F_VSRS: E('Salesmen', 'المندوبون'),
-    W_NEXT_VISIT: E('Next visit {date} · stop {n}', 'الزيارة القادمة {date} · المحطة {n}'), W_NO_VISIT: E('No visit in the next 7 days', 'لا زيارة خلال 7 أيام'),
+    W_NEXT_VISIT: E('Next visit {date} · stop {n}', 'الزيارة القادمة {date} · رقم {n} في المسار'), W_NO_VISIT: E('No visit in the next 7 days', 'لا زيارة خلال 7 أيام'),
     W_BALANCE: E('Open balance {money}', 'رصيد مستحق {money}'), W_TELL: E('Tell {vsr}', 'أبلغ {vsr}'),
     // cards: what the owner reads
-    W_CARD_VISIT: E('Visit notice', 'إشعار زيارة'), W_C_VISIT: E('Your Americana salesman {vsr} visits on {date}, around {time}. He will carry your usual items.', 'مندوب أمريكانا {vsr} سيزورك يوم {date} حوالي {time}، ومعه منتجاتك المعتادة.'),
+    W_CARD_VISIT: E('Visit notice', 'إشعار زيارة'), W_C_VISIT: E('Your Americana salesman {vsr} visits on {date}, around {time}, with your usual items.', 'مندوب أمريكانا {vsr} سيزورك يوم {date} حوالي {time}، ومعه منتجاتك المعتادة.'),
     W_CARD_NEWPROD: E('New product', 'منتج جديد'), W_C_NEWPROD: E('New from Americana: {sku}. Shops near you sell about {n} a week.', 'جديد من أمريكانا: {sku}. المحلات القريبة منك تبيع حوالي {n} أسبوعياً.'),
     W_CARD_BALANCE: E('Balance reminder', 'تذكير بالرصيد'), W_C_BALANCE: E('Your open balance with Americana is {money}.', 'رصيدك المفتوح لدى أمريكانا {money}.'),
     W_CARD_EXPIRY: E('Expiry check', 'فحص الصلاحية'), W_C_EXPIRY: E('Any of our items close to expiry on your shelf?', 'هل لديك منتجات منا قريبة من انتهاء الصلاحية؟'),
@@ -22,8 +22,8 @@
     W_R_NO: E('No', 'لا'), W_R_YES: E('Yes, some items', 'نعم، بعض المنتجات'),
     W_R_GOOD: E('Good', 'جيدة'), W_R_FAIR: E('OK', 'مقبولة'), W_R_POOR: E('Poor', 'سيئة'),
     // what each reply does (internal; the owner never sees these)
-    W_E_CONFIRM: E('Stop shows "Owner confirmed"', 'تظهر المحطة "أكد صاحب المحل"'), W_E_CHANGE: E('Pre-order added to the visit', 'تمت إضافة طلب مسبق للزيارة'),
-    W_E_NOT: E('Plan check: remove or move the visit', 'فحص الخطة: إزالة الزيارة أو نقلها'), W_E_ADD: E('Stop shows "Owner wants to try it"', 'تظهر المحطة "يريد التجربة"'),
+    W_E_CONFIRM: E('Stop shows "Owner confirmed"', 'تظهر الزيارة "أكد صاحب المحل"'), W_E_CHANGE: E('Pre-order added to the visit', 'تمت إضافة طلب مسبق للزيارة'),
+    W_E_NOT: E('Plan check: remove or move the visit', 'فحص الخطة: إزالة الزيارة أو نقلها'), W_E_ADD: E('Stop shows "Owner wants to try it"', 'تظهر الزيارة "يريد التجربة"'),
     W_E_NOTNOW: E('Recorded, no action', 'تم التسجيل، دون إجراء'), W_E_PAYVISIT: E('Collection task on the next visit', 'مهمة تحصيل في الزيارة القادمة'),
     W_E_PAID: E('Follow-up: check the payment', 'متابعة: التحقق من الدفع'), W_E_NO: E('Recorded, no action', 'تم التسجيل، دون إجراء'),
     W_E_YES: E('Recorded for the supervisor to review', 'تم التسجيل لمراجعة المشرف'), W_E_RATED: E('Added to the salesman\'s visit ratings', 'أضيفت إلى تقييمات زيارات المندوب'),

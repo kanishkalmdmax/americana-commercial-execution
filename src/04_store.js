@@ -1,6 +1,6 @@
 (function () {
   const FD = globalThis.FD;
-  const KEY = 'fielddrive.v6'; // v6: WhatsApp cards and tips in chat (data through 22 Oct, salesbuzz_2026-10-23)
+  const KEY = 'fielddrive.v7'; // v7: audit build (reorder cycles, category windows, similar stores by distance, upsell split); v6 logs are not replayable
   const subs = [];
   let storage = null, chan = null, replaying = false;
 
@@ -45,6 +45,28 @@
     recs.filter(r => !exclude.includes(r.sku)).slice(0, limit ?? st.rules.maxPerStore).forEach(d => st.recs.push(makeRec(st, d, vsr, date)));
   }
   FD.salesVan = (st, id) => { const v = st.world.vsrs.find(x => x.id === id); return !!v && v.kind === 'sales'; };
+  // Route and store changes take effect on their date: s.vsr / s.route switch when the plan for that day is built (past sales stay with the old owner)
+  // Route and store changes take effect on their date: the clock moving forward switches s.vsr / s.route (past sales stay with the old owner).
+  // Planning a day is date-aware without changing anything (vsrAt / routeAt), so looking at another day never moves a store.
+  const ownLast = new WeakMap();
+  FD.applyOwnership = function (st, iso) {
+    const last = ownLast.get(st); if (last && iso <= last) return; ownLast.set(st, iso); let changed = false;
+    for (const s of st.world.stores) if (s.pend && s.pend.from <= iso) { s.vsr = s.pend.vsr; s.route = s.pend.route; s.movedFrom = s.pend.from; s.pend = null; changed = true; }
+    if (st.routeAssign.length) for (const s of st.world.stores) { const o = s.pend ? null : FD.routeOwner(st, s.route, iso); if (o && o !== s.vsr) { s.vsr = o; changed = true; } }
+    if (changed) FD.invalidate(st);
+  };
+  const vsrAt = (st, s, iso) => s.pend && s.pend.from <= iso ? s.pend.vsr : (st.routeAssign.length ? FD.routeOwner(st, s.route, iso) || s.vsr : s.vsr);
+  // stop tier: 1 = due reorder, pre-order or not invoiced this month; 2 = overdue collection or a Shelf Check request; 3 = ordered in the last 7 days (else 2)
+  FD.stopTier = function (st, v) {
+    const iso = v.date, id = v.store, s = storeById(st, id); if (!s) return 2;
+    const due = FD.storeRecs(st, id).some(r => r.date === iso && r.type === 'LAPSED' && !r.blockedAt);
+    const pre = (st.preorders || []).some(p => p.store === id && p.status !== 'DONE' && (p.forDate ? p.forDate === iso : p.at.date === iso));
+    let last = null; for (const o of FD.storeAllOrders(st, id)) if (o.units > 0 && o.date < iso && (!last || o.date > last)) last = o.date;
+    if (due || pre || !last || last < iso.slice(0, 8) + '01') return 1;
+    const sc = FD.scRequest ? FD.scRequest(st, id) : null;
+    if ((iso < FD.TODAY && FD.overdueAt ? FD.overdueAt(id, iso) : (s.overdue || 0)) > 0 || (sc && sc.status === 'OPEN')) return 2;
+    return FD.daysBetween(last, iso) <= 7 ? 3 : 2;
+  };
   FD.ensureDay = function (st, iso) {
     if (st.planned[iso]) return;
     st.planned[iso] = true;
@@ -53,13 +75,14 @@
     if (!st.visits.some(v => v.date === iso)) { // past days already hold the real visits
       let plan = FD.realPlan(iso);
       if (!plan.length) { const dw = FD.dow(iso); plan = []; // beyond the extract: each store's usual weekdays
-        for (const v of st.world.vsrs) st.world.stores.filter(s => s.vsr === v.id && s.days.includes(dw)).forEach((s, i) => plan.push({ van: v.id, store: s.id, seq: i + 1 })); }
-      for (const p of plan) { const s = storeById(st, p.store); if (!s || (st.world.vsrs.find(v => v.id === p.van) || {}).kind === 'inactive') continue; const route = s.movedFrom && s.movedFrom <= iso ? s.route : routeOf(p.van); if (!route) continue;
+        for (const v of st.world.vsrs) st.world.stores.filter(s => vsrAt(st, s, iso) === v.id && s.days.includes(dw)).forEach((s, i) => plan.push({ van: v.id, store: s.id, seq: i + 1, route: s.pend && s.pend.from <= iso ? s.pend.route : s.route })); }
+      for (const p of plan) { const s = storeById(st, p.store); if (!s || (s.closed && s.closed <= iso) || (st.world.vsrs.find(v => v.id === p.van) || {}).kind === 'inactive') continue; const route = p.route || (s.pend && s.pend.from <= iso ? s.pend.route : s.movedFrom && s.movedFrom <= iso ? s.route : routeOf(p.van)); if (!route) continue;
         st.visits.push({ id: nextId(st, 'VI'), store: p.store, vsr: FD.routeOwner(st, route, iso) || p.van, route, date: iso, seq: p.seq, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false }); }
     }
     for (const v of st.visits.filter(x => x.date === iso && !x.offPlan && x.status !== 'SKIPPED'))
       if (FD.salesVan(st, v.vsr) && !recsFor(st, iso, v.store).length) genRecs(st, storeById(st, v.store), iso, v.vsr, FD.openTemps(st, v.store, iso).map(r => r.sku));
     for (const rv of (st.revisitQueue || []).filter(x => x.date === iso)) addRevisit(st, rv);
+    for (const v of st.visits) if (v.date === iso && v.tier == null) v.tier = FD.stopTier(st, v);
     const vr = new Map(st.visits.filter(v => v.date === iso).map(v => [v.store, v.route]));
     for (const c of st.covers.filter(c => c.date === iso)) st.recs.filter(r => r.date === iso && vr.get(r.store) === c.route).forEach(r => { r.coveredBy = c.vsr; });
   };
@@ -75,7 +98,10 @@
     const routes = new Set();
     for (const rt of st.world.routes) if (FD.routeOwner(st, rt.id, iso) === vsrId && !coverFor(st, iso, rt.id)) routes.add(rt.id);
     st.covers.filter(c => c.date === iso && c.vsr === vsrId).forEach(c => routes.add(c.route));
-    const stops = st.visits.filter(v => v.date === iso && routes.has(v.route)).sort((a, b) => a.seq - b.seq);
+    const stops = st.visits.filter(v => v.date === iso && routes.has(v.route));
+    for (const v of stops) if (v.status === 'PLANNED') v.tier = FD.stopTier(st, v); // follows pre-orders and shelf requests that arrive during the day
+    const rank = v => v.moved ? 9 : v.tier || 2; // a stop the supervisor moved to the end stays at the end
+    stops.sort((a, b) => (rank(a) - rank(b)) || a.seq - b.seq); // tier first, then map order
     const ids = new Set(stops.map(s => s.store));
     const recs = st.recs.filter(r => r.date === iso && ids.has(r.store) && !r.blockedAt);
     const carried = [...ids].flatMap(sid => FD.openTemps(st, sid, iso).filter(r => r.date < iso));
@@ -99,6 +125,12 @@
   }
 
   // ---------- orders and grading ----------
+  // a store marked "moved" gets its new location from the next completed visit's arrival point
+  function settleRelocate(st, visit) {
+    const s = storeById(st, visit.store); if (!s || !s.relocate) return; const a = visit.arrival;
+    if (!a) return; // ponytail: no GPS trace in the mockup, so the old pin stays and the store keeps "location to confirm" until a visit has an arrival point
+    s.lat = a.lat; s.lng = a.lng; s.relocate = false; s.relocatedOn = visit.date; FD.invalidate(st);
+  }
   function applyLines(st, visit, lines, date, time, opts = {}) {
     const store = visit.store; const known = knownSkus(st, store, date);
     const recs = recsFor(st, date, store).filter(r => !r.blockedAt && (r.outcome === null || r.outcome === 'WAITING'));
@@ -109,19 +141,19 @@
     for (const r of recs) {
       const g = FD.grade(r, lines, hist);
       r.outcome = g.outcome; r.got = g.got; r.alt = g.alt; r.gradedAt = time; r.gradedVisit = visit.id;
-      r.maturity = FD.SOLD.includes(g.outcome) ? 'PENDING' : null;
+      r.maturity = FD.SOLD.includes(g.outcome) ? 'PENDING' : null; FD.setExtra(r);
       graded.push(r);
     }
     for (const r of temps) {
       const g = FD.grade(r, lines, hist);
-      if (FD.SOLD.includes(g.outcome)) { Object.assign(r, { firstReason: r.reason, outcome: g.outcome, got: g.got, alt: g.alt, revisit: true, soldOn: date, gradedAt: time, gradedVisit: visit.id, maturity: 'PENDING' }); graded.push(r); }
+      if (FD.SOLD.includes(g.outcome)) { Object.assign(r, { firstReason: r.reason, outcome: g.outcome, got: g.got, alt: g.alt, revisit: true, soldOn: date, gradedAt: time, gradedVisit: visit.id, maturity: 'PENDING' }); FD.setExtra(r); graded.push(r); }
       else r.revisitClosed = true; // offered again on the next visit and still not taken
     }
     const recSkus = new Set(recs.concat(temps).map(r => r.sku)), altSkus = new Set(recs.concat(temps).filter(r => r.alt).map(r => r.alt));
     // a miss only means something when the visit had recommendations to compare against
     if (recs.length || temps.length) for (const l of lines) if (FD.recommendable(l.sku) && !known.includes(l.sku) && !FD.orderedElsewhen(store, l.sku, date) && !recSkus.has(l.sku) && !altSkus.has(l.sku)) st.misses.push({ id: nextId(st, 'M'), store, vsr: visit.vsr, date, sku: l.sku, type: 'UNREC', recSku: null, mark: null });
     for (const r of recs.concat(temps.filter(x => x.revisit && x.soldOn === date))) if (r.outcome === 'ALT') st.misses.push({ id: nextId(st, 'M'), store, vsr: visit.vsr, date, sku: r.alt, type: 'ALT', recSku: r.sku, mark: null });
-    visit.status = 'DONE'; visit.leftAt = visit.leftAt || time;
+    visit.status = 'DONE'; visit.leftAt = visit.leftAt || time; settleRelocate(st, visit);
     st.lastOrder = { store, date };
     return graded;
   }
@@ -133,7 +165,7 @@
       let m = mode === 'RANDOM' ? FD.pick(r, ['FULL', 'FULL', 'PARTIAL', 'ALT', 'NOT_SOLD', 'NOT_SOLD']) : mode;
       if (m === 'PARTIAL' && q < 2) m = 'FULL';
       if (m === 'ALT') {
-        const s = FD.sku(rec.sku); const alt = [...s.sisters, s.bigger].filter(Boolean).find(c => !known.includes(c) && !lines.some(l => l.sku === c));
+        const s = FD.sku(rec.sku); const alt = [...FD.sistersOf(s), s.bigger].filter(Boolean).find(c => !known.includes(c) && !lines.some(l => l.sku === c));
         if (alt && (mode !== 'ALT' || i === 0)) { lines.push({ sku: alt, units: 1 }); return; }
         m = mode === 'ALT' && i > 0 ? 'NOT_SOLD' : 'FULL';
       }
@@ -169,7 +201,7 @@
   // Past days: real visits and real order lines; recommendations taken up at the engine's priors are added as UPLIFT lines.
   function simulatePast(st, d) {
     FD.ensureDay(st, d);
-    const r = FD.rng(st.seed * 7919 + FD.daysBetween(FD.BASE_START, d));
+    const r = FD.rng(st.seed * 7919 + FD.daysBetween(FD.HIST_START, d));
     const done = st.visits.filter(v => v.date === d && v.status === 'DONE' && !v.offPlan).sort((a, b) => a.vsr.localeCompare(b.vsr) || a.seq - b.seq);
     for (const v of done) {
       const recs = recsFor(st, d, v.store).filter(x => !x.blockedAt && x.outcome === null && x.vsr === v.vsr);
@@ -184,7 +216,7 @@
         const x = r(), q = rec.qty, s = FD.sku(rec.sku);
         if (x < 0.6 || q < 2) extra.push({ sku: rec.sku, units: q });
         else if (x < 0.85) extra.push({ sku: rec.sku, units: Math.max(1, Math.floor(q / 2)) });
-        else { const alt = [...s.sisters, s.bigger].filter(Boolean).find(c => !known.includes(c) && !lines.concat(extra).some(l => l.sku === c)); extra.push(alt ? { sku: alt, units: 1 } : { sku: rec.sku, units: q }); }
+        else { const alt = [...FD.sistersOf(s), s.bigger].filter(Boolean).find(c => !known.includes(c) && !lines.concat(extra).some(l => l.sku === c)); extra.push(alt ? { sku: alt, units: 1 } : { sku: rec.sku, units: q }); }
       }
       for (const l of extra) st.orders.push({ id: nextId(st, 'O'), store: v.store, vsr: v.vsr, date: d, sku: l.sku, units: l.units, value: +(l.units * FD.sku(l.sku).cost).toFixed(2), time: v.leftAt, src: 'UPLIFT' });
       const graded = applyLines(st, v, lines.concat(extra), d, v.leftAt || '12:00', { push: false });
@@ -207,7 +239,7 @@
       let v = st.visits.find(y => y.date === d && y.store === x.store && (y.route === route || (y.reassigned && y.reassigned.from === x.van)) && y.status !== 'SKIPPED');
       if (v && v.status === 'DONE') continue;
       if (!v) { v = { id: nextId(st, 'VI'), store: x.store, vsr: x.van, route, date: d, seq: Math.max(0, ...st.visits.filter(y => y.date === d && y.route === route).map(y => y.seq)) + 1, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false, offPlan: true }; st.visits.push(v); }
-      v.arrivedAt = v.arrivedAt || x.start; v.nc = x.nc; v.real = true;
+      v.arrivedAt = v.arrivedAt || x.start; v.nc = x.nc; v.real = true; if (x.collected) v.collected = x.collected; // collection-only stop: a completed visit, never a skip
       gradeNotify(st, applyLines(st, v, FD.realLines(d, x.van, x.store), d, x.end), v);
       v.leftAt = x.end;
       for (const rt of FD.realReturns(d).filter(y => y.store === x.store && y.van === x.van)) st.returns.push({ id: nextId(st, 'RT'), store: rt.store, sku: rt.sku, date: d, saleDate: null, units: rt.units, value: rt.value, reason: rt.reason, vsr: rt.van });
@@ -224,7 +256,7 @@
     if (d < FD.TODAY) return simulatePast(st, d);
     if (d === FD.TODAY) { const c = st.clock; st.clock = { date: d, time: '23:59' }; closeToday(st, d); st.clock = c; return; }
     FD.ensureDay(st, d);
-    const r = FD.rng(st.seed * 7919 + FD.daysBetween(FD.BASE_START, d));
+    const r = FD.rng(st.seed * 7919 + FD.daysBetween(FD.HIST_START, d));
     const todays = st.visits.filter(v => v.date === d && (v.status === 'PLANNED' || v.status === 'ARRIVED')).sort((a, b) => a.vsr.localeCompare(b.vsr) || a.seq - b.seq);
     for (const v of todays) {
       const store = storeById(st, v.store); const start = 8 * 60 + (v.seq - 1) * 55;
@@ -247,7 +279,7 @@
         if (rec._m === 'FULL' || (rec._m === 'PARTIAL' && q < 2)) lines.push({ sku: rec.sku, units: q });
         else if (rec._m === 'PARTIAL') lines.push({ sku: rec.sku, units: Math.max(1, Math.floor(q / 2)) });
         else if (rec._m === 'ALT') {
-          const alt = [...s.sisters, s.bigger].filter(Boolean).find(c => !known.includes(c) && !lines.some(l => l.sku === c));
+          const alt = [...FD.sistersOf(s), s.bigger].filter(Boolean).find(c => !known.includes(c) && !lines.some(l => l.sku === c));
           lines.push(alt ? { sku: alt, units: 1 } : { sku: rec.sku, units: q });
         }
         delete rec._m;
@@ -285,13 +317,13 @@
     const from = iso ? FD.addDays(iso, -56) : null; const carried = new Map();
     for (const o of orders) if (o.units > 0 && (!from || (o.date > from && o.date <= iso))) (carried.get(o.store) || carried.set(o.store, new Set()).get(o.store)).add(o.sku);
     const by = pred => { const ss = world.stores.filter(pred); return FD.SKUS.filter(k => ss.length && ss.filter(x => (carried.get(x.id) || new Set()).has(k.code)).length / ss.length >= 0.6).map(k => k.code); };
-    const m = {}; for (const l of FD.LABELS) m[l] = by(s => s.label === l); for (const t of FD.TAGS) m[t] = by(s => s.tags.includes(t)); return m;
+    const m = {}; for (const l of FD.LABELS) m[l] = by(s => s.label === l); for (const t of FD.TAGS) m[t] = by(s => (s.tags || []).includes(t)); return m;
   };
 
   // ---------- fresh state ----------
   function fresh(seed) {
     const world = FD.buildWorld(seed);
-    const hist = FD.buildHistory(world, seed, FD.BASE_START, FD.addDays(FD.TODAY, -1));
+    const hist = FD.buildHistory(world, seed, FD.HIST_START, FD.addDays(FD.TODAY, -1));
     const r = FD.rng(seed + 99); const sales = world.vsrs.filter(v => v.kind === 'sales');
     // van stock from HH_CarStore when available, falling back to each van's weekly store mix with one stocked-out product
     const vanStock = {}; const realVS = (FD.REAL && FD.REAL.vanStock) || {};
@@ -311,11 +343,12 @@
     // watchlist seed: the cake with the highest real return rate
     const sold = {}, ret = {}; for (const o of hist.orders) sold[o.sku] = (sold[o.sku] || 0) + o.units; for (const x of hist.returns) ret[x.sku] = (ret[x.sku] || 0) + x.units;
     const watch = FD.SKUS.filter(k => k.category === 'cake' && (sold[k.code] || 0) > 50).sort((a, b) => (ret[b.code] || 0) / sold[b.code] - (ret[a.code] || 0) / sold[a.code])[0];
-    const planned = {}; for (let d = FD.BASE_START; d < FD.PILOT_START; d = FD.addDays(d, 1)) planned[d] = true;
+    const planned = {}; for (let d = FD.HIST_START; d < FD.PILOT_START; d = FD.addDays(d, 1)) planned[d] = true;
     const st = {
       v: 1, dv: 0, seed, clock: { date: FD.PILOT_START, time: '07:00' }, lang: 'en', digits: 'arab', role: 'sup', vsrId: (sales.find(v => v.id === 'V06') || sales[0]).id, textSize: 'normal', theme: 'auto',
       world, orders: hist.orders, returns: hist.returns, visits: hist.visits, recs: [], misses: [], threads: [], tips: [], notifs: [], corrections: [],
-      rules: { lapsedDays: 14, cooldownDays: 14, maturityDays: 28, maxPerStore: 3, firstFillMax: 1, vanFeed: true, mustStock },
+      rules: { lapsedDays: 14, cooldownDays: 14, maturityDays: 28, /* lapsedDays and maturityDays are retired (engine uses catGap / catWindow); kept only while screens still read them */ catGap: Object.assign({}, FD.CAT_GAP), catWindow: Object.assign({}, FD.CAT_WINDOW), cannedLift: 1.1,
+        maxPerStore: 3, firstFillMax: 3 /* cases: a guard only, the usual first order drives the quantity */, vanFeed: true, mustStock },
       blocks: [], pins: [], watchlist: watch ? [watch.code] : [], watchMeta: watch ? { [watch.code]: { since: FD.PILOT_START, review: FD.addDays(FD.PILOT_START, FD.WATCH_DAYS) } } : {}, watchHistory: [],
       reasonEdit: { custom: {}, hidden: [], names: {} }, vanStock, vanFactor, priceVan: byRate[0] && byRate[0].id, skipVan: byRate[1] && byRate[1].id, cooldownOverrides: [], covers: [],
       followupDone: {}, followupSnooze: {}, tipDone: {}, tourSeen: { sup: false, vsr: false }, dayConfirmed: {}, offline: false, queue: [], log: [], audit: [],
@@ -399,8 +432,8 @@
     if (sstore) postMsg(st, { type: 'store', id: sstore.id }, sv, { text: 'Two expired cake packs to pick up here.', topic: 'R_T_RETURN', at: { date: y, time: '13:20' } });
     const good = sales[sales.length - 1];
     st.tips.push({ id: nextId(st, 'TP'), vsr: good.id, tpl: 'K_GOOD', slots: { pct: 12 }, status: 'SENT', sentAt: { date: FD.addDays(FD.TODAY, -6), time: '09:00' }, read: true, text: null });
-    const gstore = st.world.stores.find(s => s.vsr === good.id && !s.tags.includes('TAG_SCHOOL'));
-    if (gstore) st.corrections.push({ id: nextId(st, 'CR'), vsr: good.id, store: gstore.id, kind: 'CORR_TAG', comment: 'There is a girls school opposite now.', status: 'PENDING', at });
+    const gstore = st.world.stores.find(s => s.vsr === good.id && s.profile !== 'AP_SCHOOL');
+    if (gstore) st.corrections.push({ id: nextId(st, 'CR'), vsr: good.id, store: gstore.id, kind: 'CORR_TAG', value: 'TAG_SCHOOL', comment: 'There is a girls school opposite now.', status: 'PENDING', at });
     for (const r of st.recs.filter(r => r.date === y)) {
       const target = { screen: 'store', store: r.store, rec: r.id };
       if (FD.SOLD.includes(r.outcome)) st.notifs.push({ id: nextId(st, 'N'), vsr: r.vsr, tpl: 'N_SOLD', slots: { skuCode: r.alt || r.sku, storeId: r.store }, target, at: { date: y, time: r.gradedAt || '12:00' }, read: true });
@@ -442,6 +475,7 @@
       if (from <= FD.addDays(target, -1)) FD.simulatePilot(st, from, FD.addDays(target, -1));
     }
     st.clock = { date: target, time: p.time || st.clock.time };
+    FD.applyOwnership(st, target);
     FD.ensureDay(st, target);
     if (target === FD.TODAY) FD.applyRealUntil(st, st.clock.time);
     FD.refreshMaturity(st);
@@ -481,10 +515,10 @@
   R.STOP_SKIP = (st, p) => { const v = visitOf(st, p.store, st.clock.date, p.visitId); if (!v) return; v.status = 'SKIPPED'; v.skipReason = p.reason; v.skipComment = p.comment || null; };
   R.STOP_UNSKIP = (st, p) => { const v = visitOf(st, p.store, st.clock.date, p.visitId, 'SKIPPED'); if (!v) return; v.status = 'PLANNED'; v.skipReason = null; };
   // supervisor reorders today's plan: two stops swap places
-  R.STOP_SWAP = (st, p) => { const a = st.visits.find(v => v.id === p.a), b = st.visits.find(v => v.id === p.b); if (!a || !b) return; [a.seq, b.seq] = [b.seq, a.seq]; if (a.seq === b.seq) b.seq += 0.5; };
-  R.STOP_ORDER = (st, p) => { const vs = p.ids.map(id => st.visits.find(v => v.id === id)).filter(v => v && v.status === 'PLANNED'); const seqs = vs.map(v => v.seq).sort((a, b) => a - b); vs.forEach((v, i) => { v.seq = seqs[i]; }); };
+  R.STOP_SWAP = (st, p) => { const a = st.visits.find(v => v.id === p.a), b = st.visits.find(v => v.id === p.b); if (!a || !b || FD.vanLocked(st, a.vsr, a.date)) return; [a.seq, b.seq] = [b.seq, a.seq]; if (a.seq === b.seq) b.seq += 0.5; };
+  R.STOP_ORDER = (st, p) => { const vs = p.ids.map(id => st.visits.find(v => v.id === id)).filter(v => v && v.status === 'PLANNED' && !FD.vanLocked(st, v.vsr, v.date)); const seqs = vs.map(v => v.seq).sort((a, b) => a - b); vs.forEach((v, i) => { v.seq = seqs[i]; }); };
   R.STOP_MOVE = (st, p) => {
-    const v = visitOf(st, p.store, st.clock.date, p.visitId); if (!v) return;
+    const v = visitOf(st, p.store, st.clock.date, p.visitId); if (!v || FD.vanLocked(st, v.vsr, v.date)) return;
     const max = Math.max(...st.visits.filter(x => x.date === v.date && x.route === v.route).map(x => x.seq));
     v.seq = max + 1; v.moved = true; v.moveReason = p.reason;
   };
@@ -523,7 +557,7 @@
       const after = FD.SKUS.flatMap(s => FD.storeOrders(st, sid, s.code).filter(o => o.date === date && o.units > 0));
       const g = FD.grade(r, after, knownSkus(st, sid, date).map(sku => ({ sku })));
       r.outcome = g.outcome; r.got = g.got; r.alt = g.alt; r.corrected = true; r.prevOutcome = prev;
-      r.maturity = FD.SOLD.includes(g.outcome) ? 'PENDING' : null;
+      r.maturity = FD.SOLD.includes(g.outcome) ? 'PENDING' : null; FD.setExtra(r);
     }
   };
   R.RETURN_ADD = (st, p) => {
@@ -573,6 +607,9 @@
   R.REASON_HIDE = (st, p) => { const e = reE(st); if (e.custom[p.id]) e.custom[p.id].deleted = !!p.hide; else if (p.hide) { if (!e.hidden.includes(p.id)) e.hidden.push(p.id); } else e.hidden = e.hidden.filter(x => x !== p.id); audit(st, p.hide ? 'AU_REASON_HIDE' : 'AU_REASON_SHOW', {}); };
   R.WATCH_KEEP = (st, p) => { const m = st.watchMeta[p.sku]; if (m) m.review = FD.addDays(st.clock.date, FD.WATCH_DAYS); audit(st, 'AU_WATCH_KEEP', { skuCode: p.sku }); };
   R.RULE_SET = REGEN((st, p) => { st.rules[p.rule] = p.value; audit(st, 'AU_RULE', { rule: p.rule, n: p.value }); });
+  // reorder days by category (catGap / catWindow) or product exception (skuGap / skuWindow); value null removes an exception
+  R.RULE_DAYS_SET = REGEN((st, p) => { if (!['catGap', 'catWindow', 'skuGap', 'skuWindow'].includes(p.rule)) return;
+    const m = st.rules[p.rule] = Object.assign({}, st.rules[p.rule]); if (p.value == null) delete m[p.id]; else m[p.id] = p.value; audit(st, 'AU_RULE', { rule: p.rule, n: p.value || 0 }); });
   R.MUSTSTOCK_SET = REGEN((st, p) => {
     const list = st.rules.mustStock[p.group] = st.rules.mustStock[p.group] || [];
     if (p.on && !list.includes(p.sku)) list.push(p.sku);
@@ -594,29 +631,34 @@
   };
   // salesman adds a store that is not on today's plan (tracked as an off-plan visit)
   // ---------- supervisor edits today's plan (the salesman is told; edits stay through regeneration) ----------
+  // a closed van's day is final for the supervisor: plan edits for that van and date do nothing
+  FD.vanLocked = (st, van, date) => !!(st.vanClosed || {})[van + '|' + (date || st.clock.date)];
+  // closed in the app and SalesBuzz has not sent that day yet (it arrives with the 02:00 load); with live data there is nothing to wait for
+  FD.waitingData = (st, van, date) => { const d = date || st.clock.date; return FD.vanLocked(st, van, d) && !(st.rules && st.rules.liveData) && (d === st.clock.date || (d === FD.addDays(st.clock.date, -1) && st.clock.time < '02:00')); };
+  const recLocked = (st, r) => FD.vanLocked(st, FD.recVsr(r), r.date);
   const planNote = (st, vsr, store) => notify(st, vsr, 'N_PLAN_SUP', { supId: 'S1', storeId: store }, { screen: 'store', store });
   const openRec = (st, id) => { const r = rec(st, id); return r && r.date === st.clock.date && r.outcome === null ? r : null; };
-  const supDraft = (st, store, sku, qty) => { const pr = FD.activePromo ? FD.activePromo(st, sku, st.clock.date) : null; const k = FD.sku(sku); return { store, sku, type: 'SUP', qty, reasonId: 'B_SUP', slots: {}, promo: pr ? pr.id : null, pinned: false, ev: +(qty * (k.retail - k.cost)).toFixed(2), value: +(qty * k.cost).toFixed(2) }; };
-  R.SUP_REC_EDIT = (st, p) => { const r = openRec(st, p.recId); if (!r) return;
+  const supDraft = (st, store, sku, qty) => { const pr = FD.activePromo ? FD.activePromo(st, sku, st.clock.date) : null; const k = FD.sku(sku); return { store, sku, type: 'SUP', qty, reasonId: 'B_SUP', slots: {}, promo: pr ? pr.id : null, pinned: false, ev: +(qty * k.cost).toFixed(2), value: +(qty * k.cost).toFixed(2) }; };
+  R.SUP_REC_EDIT = (st, p) => { const r = openRec(st, p.recId); if (!r || recLocked(st, r)) return;
     r.supEdited = { at: now(st), prev: { sku: r.sku, qty: r.qtyModified ?? r.qty } };
     if (p.sku && p.sku !== r.sku) Object.assign(r, supDraft(st, r.store, p.sku, p.qty || r.qty), { qtyModified: null });
     if (p.qty != null) r.qtyModified = p.qty;
     FD.invalidate(st); planNote(st, FD.recVsr(r), r.store); };
-  R.SUP_REC_ADD = (st, p) => { const d = st.clock.date; const v = st.visits.find(x => x.date === d && x.store === p.store && (x.status === 'PLANNED' || x.status === 'ARRIVED')); if (!v) return;
+  R.SUP_REC_ADD = (st, p) => { const d = st.clock.date; const v = st.visits.find(x => x.date === d && x.store === p.store && (x.status === 'PLANNED' || x.status === 'ARRIVED')); if (!v || FD.vanLocked(st, v.vsr, d)) return;
     if (recsFor(st, d, p.store).some(r => r.sku === p.sku && !r.blockedAt)) return;
     const r = makeRec(st, supDraft(st, p.store, p.sku, p.qty), v.vsr, d); r.supEdited = { at: now(st), prev: null }; const c = coverFor(st, d, v.route); if (c) r.coveredBy = c.vsr;
     st.recs.push(r); FD.invalidate(st); planNote(st, FD.recVsr(r), p.store); };
-  R.SUP_REC_REMOVE = (st, p) => { const r = openRec(st, p.recId); if (!r) return; r.blockedAt = now(st); r.supRemoved = true; FD.invalidate(st); notify(st, FD.recVsr(r), 'N_REMOVED', { skuCode: r.sku, storeId: r.store }, { screen: 'store', store: r.store }); };
-  R.SUP_REC_RESTORE = (st, p) => { const r = rec(st, p.recId); if (!r || !r.supRemoved || r.date !== st.clock.date) return; if (recsFor(st, r.date, r.store).some(x => x.id !== r.id && x.sku === r.sku && !x.blockedAt)) return; r.blockedAt = null; r.supRemoved = false; FD.invalidate(st); planNote(st, FD.recVsr(r), r.store); };
-  R.SUP_STOP_REMOVE = (st, p) => { const v = st.visits.find(x => x.date === (p.date || st.clock.date) && x.store === p.store && x.status === 'PLANNED'); if (!v) return;
+  R.SUP_REC_REMOVE = (st, p) => { const r = openRec(st, p.recId); if (!r || recLocked(st, r)) return; r.blockedAt = now(st); r.supRemoved = true; FD.invalidate(st); notify(st, FD.recVsr(r), 'N_REMOVED', { skuCode: r.sku, storeId: r.store }, { screen: 'store', store: r.store }); };
+  R.SUP_REC_RESTORE = (st, p) => { const r = rec(st, p.recId); if (!r || !r.supRemoved || r.date !== st.clock.date || recLocked(st, r)) return; if (recsFor(st, r.date, r.store).some(x => x.id !== r.id && x.sku === r.sku && !x.blockedAt)) return; r.blockedAt = null; r.supRemoved = false; FD.invalidate(st); planNote(st, FD.recVsr(r), r.store); };
+  R.SUP_STOP_REMOVE = (st, p) => { const v = st.visits.find(x => x.date === (p.date || st.clock.date) && x.store === p.store && x.status === 'PLANNED'); if (!v || FD.vanLocked(st, v.vsr, v.date)) return;
     v.status = 'SKIPPED'; v.skipReason = 'SK_SUP'; v.bySup = true; st.planChanges.push({ vsr: v.vsr, store: v.store, date: v.date, reason: 'SK_SUP', at: now(st), bySup: true }); planNote(st, v.vsr, v.store); };
-  R.SUP_STOP_RESTORE = (st, p) => { const v = st.visits.find(x => x.date === (p.date || st.clock.date) && x.store === p.store && x.status === 'SKIPPED' && x.bySup); if (!v) return; if (st.visits.some(x => x !== v && x.date === v.date && x.store === v.store && (x.status === 'PLANNED' || x.status === 'ARRIVED'))) return; v.status = 'PLANNED'; v.skipReason = null; v.bySup = false; planNote(st, v.vsr, v.store); };
+  R.SUP_STOP_RESTORE = (st, p) => { const v = st.visits.find(x => x.date === (p.date || st.clock.date) && x.store === p.store && x.status === 'SKIPPED' && x.bySup); if (!v || FD.vanLocked(st, v.vsr, v.date)) return; if (st.visits.some(x => x !== v && x.date === v.date && x.store === v.store && (x.status === 'PLANNED' || x.status === 'ARRIVED'))) return; v.status = 'PLANNED'; v.skipReason = null; v.bySup = false; planNote(st, v.vsr, v.store); };
   // undo a supervisor-added stop that has not been visited: the plan goes back to how it was
-  R.SUP_STOP_UNADD = (st, p) => { const d = p.date || st.clock.date; const i = st.visits.findIndex(v => v.date === d && v.store === p.store && v.supAdded && v.status === 'PLANNED'); if (i < 0) return;
+  R.SUP_STOP_UNADD = (st, p) => { const d = p.date || st.clock.date; const i = st.visits.findIndex(v => v.date === d && v.store === p.store && v.supAdded && v.status === 'PLANNED'); if (i < 0 || FD.vanLocked(st, st.visits[i].vsr, d)) return;
     const v = st.visits[i]; st.visits.splice(i, 1); st.recs = st.recs.filter(r => !(r.store === p.store && r.date === d && r.outcome == null && r.stage === 'SENT'));
     const c = st.planChanges.findIndex(x => x.store === p.store && x.date === d && x.reason === 'SK_SUP_ADDED'); if (c >= 0) st.planChanges.splice(c, 1); planNote(st, v.vsr, v.store); };
   R.OFFPLAN_ADD = (st, p) => {
-    const d = p.date || st.clock.date; if (!FD.isSellingDay(d)) return; FD.ensureDay(st, d);
+    const d = p.date || st.clock.date; if (!FD.isSellingDay(d) || FD.vanLocked(st, p.vsr, d)) return; FD.ensureDay(st, d);
     if (st.visits.some(v => v.date === d && v.store === p.store && (v.status === 'PLANNED' || v.status === 'ARRIVED'))) return;
     const removed = st.visits.find(v => v.date === d && v.store === p.store && v.status === 'SKIPPED' && v.bySup); if (removed) return R.SUP_STOP_RESTORE(st, { store: p.store, date: d });
     const s = storeById(st, p.store); const route = st.world.routes.find(r => FD.routeOwner(st, r.id, d) === p.vsr) || st.world.routes.find(r => r.id === s.route);
@@ -627,19 +669,25 @@
     st.planChanges.push({ vsr: p.vsr, store: s.id, date: d, reason: p.bySup ? 'SK_SUP_ADDED' : 'SK_OFFPLAN', at: now(st), bySup: !!p.bySup });
     if (p.bySup) planNote(st, p.vsr, s.id);
   };
+  // both changes take effect on the first day they can (tomorrow, or after the days already simulated); s.vsr switches then, past sales stay with the old owner
+  const effective = st => { let from = FD.addDays(st.clock.date, 1); if (st.simulatedThrough && from <= st.simulatedThrough) from = FD.addDays(st.simulatedThrough, 1); return from; };
   R.STORE_ASSIGN = (st, p) => {
-    const s = storeById(st, p.store); const to = st.world.vsrs.find(v => v.id === p.vsr);
-    const route = st.world.routes.find(r => FD.routeOwner(st, r.id, FD.addDays(st.clock.date, 1)) === to.id) || st.world.routes.find(r => r.id === to.route);
-    s.vsr = to.id; s.route = route.id; s.movedFrom = FD.addDays(st.clock.date, 1); FD.invalidate(st); // plans already made (today) keep their stops; new days use the new owner
+    const s = storeById(st, p.store); const to = st.world.vsrs.find(v => v.id === p.vsr); const from = FD.addDays(st.clock.date, 1);
+    const route = st.world.routes.find(r => FD.routeOwner(st, r.id, from) === to.id) || st.world.routes.find(r => r.id === to.route);
+    s.pend = { vsr: to.id, route: route.id, from }; // plans already made keep their stops; the store moves on `from`
     st.sbPending = st.sbPending.filter(x => x.store !== s.id); st.sbPending.push({ kind: 'store', store: s.id, vsr: to.id, at: now(st) }); audit(st, 'AU_ASSIGN', { storeId: s.id, vsrId: to.id });
   };
+  // who takes which route, and from when (swap so every route keeps one owner)
+  FD.routeSwapPreview = (st, route, vsrId) => {
+    const from = effective(st); const prev = FD.routeOwner(st, route, from); if (prev === vsrId) return { from, moves: [] };
+    const moves = [{ vsr: vsrId, route, prevVsr: prev }];
+    const theirs = st.world.routes.find(r => FD.routeOwner(st, r.id, from) === vsrId);
+    if (theirs && prev && theirs.id !== route) moves.push({ vsr: prev, route: theirs.id, prevVsr: vsrId });
+    return { from, moves };
+  };
   R.ROUTE_ASSIGN = (st, p) => {
-    let from = FD.addDays(st.clock.date, 1); if (st.simulatedThrough && from <= st.simulatedThrough) from = FD.addDays(st.simulatedThrough, 1);
-    const prev = FD.routeOwner(st, p.route, from);
-    const theirs = st.world.routes.find(r => FD.routeOwner(st, r.id, from) === p.vsr);
-    st.routeAssign.push({ route: p.route, vsr: p.vsr, from });
-    if (theirs && prev && theirs.id !== p.route) st.routeAssign.push({ route: theirs.id, vsr: prev, from }); // swap so every route keeps one owner
-    for (const s of st.world.stores) s.vsr = FD.routeOwner(st, s.route, from) || s.vsr;
+    const pv = FD.routeSwapPreview(st, p.route, p.vsr); if (!pv.moves.length) return;
+    for (const m of pv.moves) st.routeAssign.push({ route: m.route, vsr: m.vsr, from: pv.from });
     st.sbPending.push({ kind: 'route', route: p.route, vsr: p.vsr, at: now(st) }); audit(st, 'AU_ASSIGN', { vsrId: p.vsr });
   };
   R.ALERT_RESOLVE = (st, p) => { st.alertDone = st.alertDone || {}; for (const k of p.keys) { if (p.undo) delete st.alertDone[k]; else st.alertDone[k] = p.how || 'RESOLVED'; } };
@@ -647,8 +695,25 @@
   R.LIVEDATA_SET = (st, p) => { st.rules.liveData = !!p.on; audit(st, 'AU_DATA_MODE', {}); };
   R.VANFEED_SET = REGEN((st, p) => { st.rules.vanFeed = !!p.on; audit(st, 'AU_VANFEED', {}); });
   R.STORE_EDIT = REGEN((st, p) => { Object.assign(storeById(st, p.store), p.patch); FD.invalidate(st); audit(st, 'AU_STORE', { storeId: p.store }); });
-  R.CORRECTION_ADD = (st, p) => { st.corrections.push({ id: nextId(st, 'CR'), vsr: p.vsr, store: p.store, kind: p.kind, comment: p.comment || '', status: 'PENDING', at: now(st) }); };
-  R.CORRECTION_DECIDE = (st, p) => { const c = st.corrections.find(x => x.id === p.id); c.status = p.accept ? 'ACCEPTED' : 'REJECTED'; c.decidedAt = now(st); c.seen = false; };
+  R.CORRECTION_ADD = (st, p) => { st.corrections.push({ id: nextId(st, 'CR'), vsr: p.vsr, store: p.store, kind: p.kind, value: p.value == null ? null : p.value, comment: p.comment || '', status: 'PENDING', at: now(st) }); };
+  // a store closed for good: out of future plans, recommendations and the active-store count; its history stays
+  function closeStore(st, s) {
+    s.closed = st.clock.date; const today = st.clock.date;
+    st.visits = st.visits.filter(v => !(v.store === s.id && v.date >= today && v.status === 'PLANNED' && !v.real));
+    st.recs = st.recs.filter(r => !(r.store === s.id && r.date >= today && r.outcome === null));
+    st.revisitQueue = (st.revisitQueue || []).filter(x => x.store !== s.id);
+    FD.invalidate(st);
+  }
+  R.CORRECTION_DECIDE = (st, p) => {
+    const c = st.corrections.find(x => x.id === p.id); if (!c) return; const was = c.status; c.status = p.accept ? 'ACCEPTED' : 'REJECTED'; c.decidedAt = now(st); c.seen = false;
+    const s = storeById(st, c.store); if (!p.accept || was !== 'PENDING' || !s) return;
+    if (c.kind === 'CORR_SIZE' && FD.SIZES.includes(c.value)) s.size = c.value;
+    else if (c.kind === 'CORR_SHELF' && ['low', 'med', 'high'].includes(c.value)) s.shelf = c.value;
+    else if (c.kind === 'CORR_PROFILE' && (!FD.PROFILES || FD.PROFILES.includes(c.value))) s.profile = c.value;
+    else if (c.kind === 'CORR_TAG' && FD.TAGS.includes(c.value) && !(s.tags || []).includes(c.value)) s.tags = (s.tags || []).concat(c.value);
+    else if (c.kind === 'CORR_CLOSED') closeStore(st, s);
+    else if (c.kind === 'CORR_MOVED') s.relocate = true;
+  };
   R.CORRECTION_SEEN = (st, p) => { const c = st.corrections.find(x => x.id === p.id); if (c) c.seen = true; };
   R.TIP_SEND = (st, p) => {
     const t = { id: nextId(st, 'TP'), vsr: p.vsr, tpl: p.tpl, slots: p.slots || {}, text: p.text || null, status: 'SENT', sentAt: now(st), read: false, draftKey: p.draftKey || null };
@@ -696,7 +761,9 @@
   R.FOLLOWUP_DONE = (st, p) => { st.followupDone[p.fu] = { at: now(st), how: p.how || 'DONE', snap: p.snap || null }; fuLog(st, p, p.how || 'DONE'); };
   R.FOLLOWUP_DISMISS = (st, p) => { st.followupDone[p.fu] = { at: now(st), how: p.why || 'FU_HANDLED', snap: p.snap || null }; fuLog(st, p, p.why || 'FU_HANDLED'); };
   R.FOLLOWUP_UNDO = (st, p) => { delete st.followupDone[p.fu]; delete st.followupSnooze[p.fu]; fuLog(st, p, 'FU_UNDO'); };
-  R.FOLLOWUP_SNOOZE = (st, p) => { st.followupSnooze[p.fu] = FD.addDays(st.clock.date, 1); fuLog(st, p, 'L_SNOOZE'); };
+  // a snoozed item is not "done": it comes back tomorrow, or when restored from the snoozed list
+  R.FOLLOWUP_SNOOZE = (st, p) => { st.followupSnooze[p.fu] = FD.addDays(st.clock.date, 1); (st.followupSnap = st.followupSnap || {})[p.fu] = p.snap || null; };
+  R.FOLLOWUP_UNSNOOZE = (st, p) => { delete st.followupSnooze[p.key]; if (st.followupSnap) delete st.followupSnap[p.key]; };
   R.FOLLOWUP_NOTE = (st, p) => fuLog(st, p, p.how);
   R.MISS_MARK = (st, p) => { const m = st.misses.find(x => x.id === p.id); if (m) m.mark = p.mark; };
   R.NOTIF_READ = (st, p) => { const n = st.notifs.find(x => x.id === p.id); if (n) n.read = true; };
@@ -733,7 +800,7 @@
   };
   // supervisor moves one of today's stops to another van (not the same as STOP_MOVE, which reorders within a route)
   R.STOP_REASSIGN = (st, p) => {
-    const v = st.visits.find(x => x.id === p.visitId); const to = st.world.vsrs.find(x => x.id === p.toVan); if (!v || !to || v.status !== 'PLANNED' || to.kind === 'inactive') return;
+    const v = st.visits.find(x => x.id === p.visitId); const to = st.world.vsrs.find(x => x.id === p.toVan); if (!v || !to || v.status !== 'PLANNED' || to.kind === 'inactive' || FD.vanLocked(st, v.vsr, v.date) || FD.vanLocked(st, to.id, v.date)) return;
     if (st.visits.some(x => x !== v && x.date === v.date && x.store === v.store && x.vsr === to.id && x.status !== 'SKIPPED')) return; // already on that van's plan
     const from = v.vsr; v.vsr = to.id; v.route = to.route; v.seq = Math.max(0, ...st.visits.filter(x => x.date === v.date && x.route === to.route).map(x => x.seq)) + 1; v.reassigned = { from, at: now(st) };
     st.recs.filter(r => r.date === v.date && r.store === v.store && r.vsr === from && r.outcome === null).forEach(r => { r.vsr = to.id; r.coveredBy = null; });
@@ -811,6 +878,7 @@
   FD.tryPhotoBatch = (payload = {}) => !!FD.pgAssessment(FD.state,payload.id) && tryDurable('PG_PHOTOS_ADD',payload);
   FD.tryCompPhoto = (payload = {}) => tryDurable('COMP_PHOTO_ADD',payload);
   FD.init = function (seed = 7, opts = {}) {
+    if (FD.resetBaseState) FD.resetBaseState(); // the baseline state is rebuilt against the new world
     storage = FD.storageAdapter(opts.storage !== undefined ? opts.storage : (typeof localStorage !== 'undefined' ? localStorage : null));
     let saved = null; try { saved = JSON.parse(storage.get()); } catch (e) { saved = null; }
     FD.state = fresh(seed);

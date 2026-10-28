@@ -12,10 +12,11 @@
  // Shelf Check lives in the store Overview: a short card there, the full check in place of the Overview until Back.
  S.pgOpen=(store,id)=>{L['store:tab']='overview';L['store:sc:'+store]=id||'latest';S.storeDrawer(store);};
  const refresh=()=>{FD.drawer.refresh(false);FD.render();};
- // the latest request and what happened to it, in one line plus the button when nothing is pending
- S.scRequestLine=store=>{const r=FD.scRequest(st(),store),ask=FD.btn(t('SC_REQ_ASK'),()=>{FD.dx('SC_REQUEST',{store});FD.toast('S_SENT',{vsrId:storeOf(store).vsr});refresh();},'secondary sm','camera');
-  if(!r||r.status!=='OPEN'&&r.at.date<FD.addDays(st().clock.date,-14))return ask;
-  return h('div',{class:'row wrap sc-req'},r.status==='OPEN'?FD.chip(t('SC_REQ_OPEN',{date:FD.fmt.date(r.at.date)}),'info'):r.status==='DONE'?FD.chip(t('SC_REQ_DONE',{date:FD.fmt.date(r.doneAt.date)}),'good'):FD.chip(t('SC_REQ_BLOCKED',{reason:t('SC_REQ_'+r.reason)}),'warn'),r.status==='OPEN'?null:ask);};
+ // the latest request and what happened to it, in one line plus the buttons: ask, and take the photo yourself
+ S.scRequestLine=store=>{const r=FD.scRequest(st(),store),ask=FD.btn(t('SC_REQ_ASK'),()=>{FD.dx('SC_REQUEST',{store});FD.toast('S_SENT',{vsrId:storeOf(store).vsr});refresh();},'secondary sm','camera'),
+  snap=FD.btn(t('PG_TAKE_PHOTOS'),()=>FD.pgCaptureSheet({store,phase:'BEFORE',by:'SUP'}),'secondary sm','camera');
+  if(!r||r.status!=='OPEN'&&r.at.date<FD.addDays(st().clock.date,-14))return h('div',{class:'row wrap sc-req'},ask,snap);
+  return h('div',{class:'row wrap sc-req'},r.status==='OPEN'?FD.chip(t('SC_REQ_OPEN',{date:FD.fmt.date(r.at.date)}),'info'):r.status==='DONE'?FD.chip(t('SC_REQ_DONE',{date:FD.fmt.date(r.doneAt.date)}),'good'):FD.chip(t('SC_REQ_BLOCKED',{reason:t('SC_REQ_'+r.reason)}),'warn'),r.photoReceived?FD.chip(t('SC_REQ_PHOTO'),'warn'):null,r.status==='OPEN'?null:ask,snap);};
  const storeOf=id=>st().world.stores.find(s=>s.id===id);
  S.scCard=store=>{const a=analysed(store)[0],s=a&&FD.scSummary(st(),a.id);
   if(!s||!s.analysed||!s.current)return h('section',{class:'card sc-card'},h('div',{class:'row between wrap'},h('h3',null,t('SC_TITLE')),S.scRequestLine(store)),h('p',{class:'small muted'},t('SC_REQ_NONE')));

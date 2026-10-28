@@ -9,13 +9,13 @@ const get = () => shared || (shared = boot());
 test('pilot display uses the approved primary KPI and four supporting KPIs verbatim', () => {
   const FD = require('./load')();
   assert.deepStrictEqual(FD.PILOT_METRICS.map(m => FD.CATALOG[m.label].en), [
-    'Net Sales per Salesman per Selling Day', 'Visits', 'Visits with a Sale (%)', 'Average Sale Value', 'Returns (% of Sales)'
+    'Net Sales per Salesman per Selling Day', 'Visits', 'Visits with a Sale (%)', 'Average Sale Value', 'Damage & expiry (% of sales)'
   ]);
   assert.deepStrictEqual(FD.PILOT_METRICS.slice(1).map(m => FD.CATALOG[m.info].en), [
     'Completed store visits per salesman per selling day.',
     'Share of completed visits that end in a posted order.',
-    'Sales value per visit with a sale, including refills and extra lines.',
-    'Returns deducted as a share of sales.'
+    'Sales value per visit with a sale, including reorders and upsells.',
+    'Damaged and expired returns as a share of gross sales.'
   ]);
   assert.deepStrictEqual(FD.PILOT_ADOPTION.map(m => [FD.CATALOG[m.label].en, FD.CATALOG[m.target].en]), [
     ['Morning queue action rate', '100% of alerts'], ['Low-usage route follow-up', 'Same-day call'],
@@ -26,7 +26,7 @@ test('pilot display uses the approved primary KPI and four supporting KPIs verba
 
 test('primary KPI equals the four-factor formula for pooled data and repeated store visits', () => {
   const FD = boot(), s = FD.state, ids = s.world.vsrs.filter(v => v.kind === 'sales').map(v => v.id);
-  const verify = m => assert.ok(Math.abs(m.perDay - m.visits * m.withSale / 100 * m.avgSale * (1 - m.returns / 100)) < 1e-7);
+  const verify = m => assert.ok(Math.abs(m.perDay - m.visits * m.withSale / 100 * m.avgSale * (1 - m.resale / 100)) < 1e-7); // net deducts resaleable returns only
   verify(FD.teamLevers(s, ids, FD.PILOT_START, FD.TODAY));
   const v = s.visits.find(v => ids.includes(v.vsr) && v.status === 'DONE' && v.date >= FD.PILOT_START && v.date <= FD.TODAY && s.world.stores.find(x => x.id === v.store).credit !== 'BLOCKED');
   s.visits.push({...v,id:'contract-repeat-visit'}); s.dv++;
@@ -92,7 +92,7 @@ test('follow-ups fire from seeded behaviour, are ordered, and respect done/snooz
 test('every follow-up and coaching template renders without empty slots in both languages', () => {
   const FD = get();
   const drafts = FD.coachDrafts(FD.state);
-  assert.ok(drafts.some(k => k.tpl === 'K_PRICE' && k.vsr === FD.state.priceVan));
+  assert.ok(drafts.some(k => k.vsr === FD.state.priceVan)); // 27 Oct: with the new upsell split, return/promo tips outrank K_PRICE in the top-2 cap
   for (const lang of ['en', 'ar']) {
     FD.lang = lang;
     for (const f of FD.followUps(FD.state)) for (const id of [f.tpl, f.tpl + '_C']) assert.doesNotMatch(FD.t(id, FD.slotText(f.slots)), /\{|\s{2}|\(\s*\)|undefined|NaN/, id);

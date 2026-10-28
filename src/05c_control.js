@@ -121,9 +121,9 @@
         // salesmen do not follow the plan order, so a stop is only missed once the van's day is over (closed, or past its usual end)
         const over = stage === 'CLOSED' || iso < st.clock.date || mins(st.clock.time) >= mins(v.last);
         for (const x of vs) {
-          if (!x.offPlan && (x.status === 'PLANNED' || x.status === 'MISSED') && !doneAny.has(x.store) && over)
+          if (!x.offPlan && (x.status === 'PLANNED' || x.status === 'MISSED') && !doneAny.has(x.store) && over && !((st.world.stores.find(s => s.id === x.store) || {}).closed))
             out.push({ type: 'A_MISSED', van: v.id, store: x.store, visit: x.id, slots: { storeId: x.store } });
-          if (x.offPlan && x.status === 'DONE') out.push({ type: 'A_OFFPLAN', van: v.id, store: x.store, visit: x.id, at: x.arrivedAt, slots: { vsrId: v.id, storeId: x.store } });
+          if (x.offPlan && x.status === 'DONE' && !FD.onMonthPlan(st, v.id, x.store, iso)) out.push({ type: 'A_OFFPLAN', van: v.id, store: x.store, visit: x.id, at: x.arrivedAt, slots: { vsrId: v.id, storeId: x.store } });
         }
         if (stage === 'LIVE' && v.kind === 'sales' && iso === st.clock.date) {
           const a = mins(v.first), b = Math.max(mins(v.last), a + 60); const share = Math.max(0, Math.min(1, (mins(st.clock.time) - a) / (b - a)));
@@ -164,7 +164,7 @@
         const wa = FD.waVisitReply && FD.waVisitReply(st, x.store, iso); if (wa && wa.choice === 'W_R_NOT') out.push({ type: 'X_OWNER_NOT', store: x.store, visit: x.id, slots: { storeId: x.store, reasonCode: wa.sub || 'W_R_NOT' } });
       }
       const due = [];
-      if (v.kind === 'sales') for (const s of st.world.stores) if (s.vsr === vanId && !onPlan.has(s.id) && ordDays[s.id] && ordDays[s.id].size >= 2) {
+      if (v.kind === 'sales') for (const s of st.world.stores) if (s.vsr === vanId && !s.closed && !onPlan.has(s.id) && ordDays[s.id] && ordDays[s.id].size >= 2) {
         const d = [...ordDays[s.id]].sort(); const gap = Math.round(FD.daysBetween(d[0], d[d.length - 1]) / (d.length - 1)); const since = FD.daysBetween(d[d.length - 1], iso);
         if (gap >= 3 && since >= gap) due.push({ type: 'X_DUE', store: s.id, slots: { storeId: s.id, n: gap, days: since }, over: since - gap });
       }

@@ -208,7 +208,7 @@ test('R2-Q1: reassign a store to another salesman from the next day, marked pend
   const FD = loadAll(); const s = FD.state.world.stores.find(x => x.vsr === fx.V1 && x.days.includes(FD.dow(fx.D('2026-11-19'))));
   const todayStops = FD.planFor(FD.state, fx.V1, FD.TODAY).stops.map(x => x.store).join();
   FD.dispatch('STORE_ASSIGN', { key: 'a', store: s.id, vsr: fx.V3 });
-  assert.strictEqual(FD.state.world.stores.find(x => x.id === s.id).vsr, fx.V3); assert.ok(FD.state.sbPending.some(p => p.store === s.id));
+  assert.strictEqual(FD.state.world.stores.find(x => x.id === s.id).vsr, fx.V1); assert.ok(FD.state.sbPending.some(p => p.store === s.id)); // owner changes on the start date, not at Save (27 Oct decision)
   assert.strictEqual(FD.planFor(FD.state, fx.V1, FD.TODAY).stops.map(x => x.store).join(), todayStops, 'today unchanged');
   FD.dispatch('CLOCK_SET', { key: 'c', date: fx.D('2026-11-19'), time: '07:00' });
   assert.ok(FD.planFor(FD.state, fx.V3, fx.D('2026-11-19')).stops.some(x => x.store === s.id));

@@ -18,8 +18,11 @@
   FD.dow = iso => { let v = DOW_MEMO.get(iso); if (v === undefined) DOW_MEMO.set(iso, v = new Date(parseIso(iso)).getUTCDay()); return v; };
   FD.isSellingDay = iso => FD.dow(iso) !== 5;
   FD.daysBetween = (a, b) => Math.round((parseIso(b) - parseIso(a)) / 864e5);
-  FD.BASE_START = '2026-09-15'; FD.PILOT_START = '2026-09-22'; // PILOT_START: recommendations live from here (one week of before-data)
-  FD.TODAY = '2026-10-22'; FD.PILOT_END = '2026-10-31';
+  // HIST_START: first day of the simulated history in the app state. PILOT_START: recommendations live from here.
+  // The pilot runs PILOT_DAYS; it is compared with the PILOT_DAYS before it (data load: FD.REAL.baseline).
+  FD.HIST_START = '2026-09-15'; FD.PILOT_START = '2026-09-22'; FD.PILOT_DAYS = 90;
+  FD.PILOT_END = FD.addDays(FD.PILOT_START, FD.PILOT_DAYS - 1); FD.BASE_FROM = FD.addDays(FD.PILOT_START, -FD.PILOT_DAYS);
+  FD.TODAY = '2026-10-22';
   FD.lang = 'en'; FD.digits = 'arab';
   const subs = {};
   FD.bus = {

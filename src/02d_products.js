@@ -2,9 +2,9 @@
   const FD = globalThis.FD;
   const E = (en, ar) => ({ en, ar });
   const labels = {
-    cake:E('Cakes','الكيك'), biscuit:E('Cookies','البسكويت'), rusk:E('Rusks','الشابورة'), other:E('Grocery','مواد غذائية'),
-    soft:E('Soft cookies','كوكيز طرية'), butter:E('Butter cookies','بسكويت الزبدة'), choco:E('Choco cookies','كوكيز الشوكولاتة'), hershey:E("Hershey’s cookies",'كوكيز هيرشيز'), peanut:E('Peanut butter cookies','كوكيز زبدة الفول السوداني'),
-    swiss:E('Rolls','الرولات'), cupcake:E('Cupcakes','الكب كيك'), cakebar:E('Cake bars','أصابع الكيك'), slice:E('Slice cakes','شرائح الكيك'), pound:E('Pound cakes','الباوند كيك'), rusks:E('Fresh rusks','الشابورة'),
+    cake:E('Cakes','الكيك'), biscuit:E('Cookies','البسكويت'), rusk:E('Rusks','الشابورة'), other:E('Canned','المعلبات'), // nuts: family label below doubles as the category label
+    soft:E('Soft cookies','كوكيز طرية'), butter:E('Butter cookies','بسكويت الزبدة'), choco:E('Choco cookies','كوكيز الشوكولاتة'), hershey:E("Hershey's cookies",'كوكيز هيرشيز'), peanut:E('Peanut butter cookies','كوكيز زبدة الفول السوداني'),
+    swiss:E('Rolls','الرولات'), cupcake:E('Cupcakes','الكب كيك'), cakebar:E('Cake bars','كيك بار'), slice:E('Slice cakes','كيك شرائح'), pound:E('Pound cakes','الباوند كيك'), rusks:E('Fresh rusks','الشابورة'),
     tuna:E('Tuna','التونة'), beans:E('Beans','الفول والفاصوليا'), chickpeas:E('Chickpeas','الحمص'), corn:E('Sweet corn','الذرة الحلوة'), nuts:E('Nuts','المكسرات'),
     unspecified:E('Not specified','غير محدد'), vanilla:E('Vanilla','فانيلا'), chocolate:E('Chocolate','شوكولاتة'), strawberry:E('Strawberry','فراولة'), marble:E('Marble','رخامي'), fruit:E('Fruit','فواكه'), original:E('Original','أصلي'), raspberry:E('Raspberry','توت'),
     cocoa_vanilla:E('Cocoa & vanilla','كاكاو وفانيلا'), vanilla_strawberry:E('Vanilla & strawberry','فانيلا وفراولة'), chocolate_vanilla:E('Chocolate & vanilla','شوكولاتة وفانيلا'), chocolate_chips:E('Chocolate chips','رقائق الشوكولاتة'),
@@ -20,7 +20,7 @@
     const n = k.name.toLowerCase(); let family;
     if (k.category === 'biscuit') family = n.includes('hershey') ? 'hershey' : n.includes('peanut butter') ? 'peanut' : /soft|brookie/.test(n) ? 'soft' : n.includes('choco cookies') ? 'choco' : 'butter';
     else if (k.category === 'other') family = n.includes('tuna') ? 'tuna' : n.includes('chickpea') ? 'chickpeas' : n.includes('corn') ? 'corn' : n.includes('nuts') ? 'nuts' : 'beans';
-    else family = ({GRP_SWISS:'swiss',GRP_CUPBOX:'cupcake',GRP_SINGLES:'cupcake',GRP_CAKEBAR:'cakebar',GRP_SLICE:'slice',GRP_POUND:'pound',GRP_RUSK:'rusks'})[k.group] || 'unspecified';
+    else family = ({GRP_SWISS:'swiss',GRP_CUPBOX:'cupcake',GRP_SINGLES:'cupcake',GRP_CAKEBAR:'cakebar',GRP_SLICE:'slice',GRP_POUND:'pound',GRP_RUSK:'rusks',GRP_NUTS:'nuts'})[k.group] || 'unspecified';
     const flavours = ['chocolate chips','cocoa vanilla','vanilla strawberry','chocolate vanilla','himalayan salt','sour cream','sweet chili','vegetable oil','sunflower oil','vanilla','chocolate','strawberry','marble','fruit','original','peanut','raspberry','diet','brown','red','cheese'];
     const flavour = (flavours.find(f => n.includes(f)) || 'unspecified').replace(/ /g,'_');
     // A carton alias does not establish the mass of the selling unit. Leave it unknown.
@@ -56,7 +56,7 @@
     }
     return [...options.values()].sort((a,b)=>FD.t(a.labelId).localeCompare(FD.t(b.labelId),FD.lang));
   });
-  FD.productPrice = code => { const k=FD.sku(code), m=FD.productMeta(code); if (!k||!m) return null; return {...m,packCost:k.cost,basis:'acquisition',per100g:m.netGrams>0&&k.cost>0?k.cost/m.netGrams*100:null,comparable:!!m.netGrams}; };
+  FD.productPrice = code => { const k=FD.sku(code), m=FD.productMeta(code); if (!k||!m) return null; const c=FD.withVat?FD.withVat(k.cost):k.cost; return {...m,packCost:c,basis:'acquisition',per100g:m.netGrams>0&&c>0?c/m.netGrams*100:null,comparable:!!m.netGrams}; };
   FD.packValueComparison = (from,to) => {
     const a=typeof from==='string'?FD.productPrice(from):from, b=typeof to==='string'?FD.productPrice(to):to;
     if (!a||!b||a.basis!==b.basis||a.category!==b.category||a.family!==b.family||a.flavour!==b.flavour||!(a.netGrams>0)||!(b.netGrams>a.netGrams)||!(a.packCost>0)||!(b.packCost>0)) return null;

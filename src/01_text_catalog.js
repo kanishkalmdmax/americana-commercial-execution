@@ -23,8 +23,8 @@
   "ar": "اعتراض على السعر أو الهامش"
  },
  "R_CREDIT": {
-  "en": "Credit or payment issue",
-  "ar": "مشكلة ائتمان أو سداد"
+  "en": "Overdue or payment issue",
+  "ar": "متأخرات أو مشكلة سداد"
  },
  "R_COMPETITOR": {
   "en": "Competitor deal",
@@ -109,10 +109,6 @@
  "L_KPI_NET": {
   "en": "Net sales",
   "ar": "صافي المبيعات"
- },
- "L_KPI_VS_BASE": {
-  "en": "vs before pilot",
-  "ar": "مقارنة بما قبل التجربة"
  },
  "L_KPI_CONV": {
   "en": "Upsell conversion",
@@ -262,10 +258,6 @@
   "en": "Shelf view",
   "ar": "عرض الرف"
  },
- "L_EST_MARGIN": {
-  "en": "Est. store margin",
-  "ar": "هامش المحل التقديري"
- },
  "L_MSG_SUP": {
   "en": "Message supervisor",
   "ar": "راسل المشرف"
@@ -327,12 +319,8 @@
   "ar": "مع العرض، ربح المحل {earn} ريال"
  },
  "C_QTY": {
-  "en": "Suggested: {qty} {unit} ({pcs} pcs)",
-  "ar": "الكمية المقترحة: {qty} {unit} ({pcs} قطعة)"
- },
- "C_FIRST_FILL": {
-  "en": "First order. Start with one {unit}",
-  "ar": "أول طلب، ابدأ بـ {unit} واحدة"
+  "en": "Recommended: {qty} {unit}",
+  "ar": "موصى به: {qty} {unit}"
  },
  "D_ON_VAN": {
   "en": "On van: {qty} {unit}",
@@ -559,28 +547,24 @@
   "ar": "{pct}٪ من المحلات المشابهة توفّره"
  },
  "F_VSR_BELOW": {
-  "en": "{vsr} is below their usual level",
-  "ar": "{vsr} أقل من مستواه المعتاد"
+  "en": "{vsr} is below their level before recommendations",
+  "ar": "{vsr} أقل من مستواه قبل التوصيات"
  },
  "F_VSR_BELOW_C": {
-  "en": "{pct}% under own baseline · 2 weeks",
-  "ar": "أقل بـ {pct}٪ من مستواه · أسبوعان"
+  "en": "{pct}% below their level before recommendations · 2 weeks",
+  "ar": "أقل بـ {pct}٪ من مستواه قبل التوصيات · أسبوعان"
  },
  "F_NOT_OFFERED": {
-  "en": "{vsr} skips many recommendations",
-  "ar": "{vsr} يتجاوز كثيراً من التوصيات"
+  "en": "{vsr} does not offer many recommendations",
+  "ar": "{vsr} لا يعرض كثيراً من التوصيات"
  },
  "F_NOT_OFFERED_C": {
   "en": "{pct}% not offered this week",
   "ar": "{pct}٪ لم تُعرض هذا الأسبوع"
  },
  "F_CREDIT": {
-  "en": "{store} credit is now {status}",
-  "ar": "ائتمان {store} أصبح {status}"
- },
- "F_CREDIT_C": {
-  "en": "Recommendations paused",
-  "ar": "التوصيات متوقفة"
+  "en": "{store} is now: {status}",
+  "ar": "{store} أصبح: {status}"
  },
  "F_CORRECTION": {
   "en": "{vsr} suggests a change for {store}",
@@ -623,8 +607,8 @@
   "ar": "{n} محلات · إضافته للقواعد؟"
  },
  "F_WATCHLIST": {
-  "en": "{sku} returns are high",
-  "ar": "مرتجعات {sku} مرتفعة"
+  "en": "{sku}: high damage & expiry",
+  "ar": "{sku}: تالف ومنتهٍ مرتفع"
  },
  "F_WATCHLIST_C": {
   "en": "{pct}% returned · 28 days",
@@ -655,12 +639,12 @@
   "ar": "{route}"
  },
  "K_PRICE_T": {
-  "en": "Lead with the cash-at-register pitch",
-  "ar": "ابدأ بربح المحل النقدي"
+  "en": "Answer price with the store price",
+  "ar": "رد على السعر بسعر المحل"
  },
  "K_PRICE": {
-  "en": "For {sku}: the store pays {cost} SAR and takes {rev} SAR selling singles at {price} SAR. Say the SAR amount, not the percentage.",
-  "ar": "لمنتج {sku}: يدفع المحل {cost} ريال ويحصل على {rev} ريال ببيع القطعة بـ {price} ريال. اذكر المبلغ بالريال لا النسبة."
+  "en": "For {sku}: the store pays {cost} SAR a piece including VAT. Say the SAR amount and how often it sells here, not a percentage.",
+  "ar": "لمنتج {sku}: يدفع المحل {cost} ريال للقطعة شاملة الضريبة. اذكر المبلغ بالريال ومدى بيعه هنا، لا النسبة."
  },
  "K_ENOUGH_T": {
   "en": "Check the shelf before offering",
@@ -679,20 +663,20 @@
   "ar": "الكيك بار والكب كيك تأتي في علب عرض. اقترح وضع واحدة بجانب الكاشير."
  },
  "K_BUYER_NO_T": {
-  "en": "Start with one box",
-  "ar": "ابدأ بعلبة واحدة"
+  "en": "Start with one case",
+  "ar": "ابدأ بكرتون واحد"
  },
  "K_BUYER_NO": {
-  "en": "Ask for a single box as a trial. If it sells, the next order is easier.",
-  "ar": "اطلب علبة واحدة للتجربة. إذا بيعت، يصبح الطلب التالي أسهل."
+  "en": "Ask for a single case as a trial. If it sells, the next order is easier.",
+  "ar": "اطلب كرتوناً واحداً للتجربة. إذا بيع، يصبح الطلب التالي أسهل."
  },
  "K_COMPETITOR_T": {
   "en": "Answer the {brand} offer",
   "ar": "الرد على عرض {brand}"
  },
  "K_COMPETITOR": {
-  "en": "Compare on cash per box: {sku} earns the store {earn} SAR. Mention our current promo if one applies.",
-  "ar": "قارن بالربح لكل علبة: {sku} يحقق للمحل {earn} ريال. اذكر عرضنا الحالي إن وُجد."
+  "en": "Answer with how well {sku} sells in nearby stores. Mention our current promo if one applies.",
+  "ar": "رد بمدى مبيعات {sku} في المحلات القريبة. اذكر عرضنا الحالي إن وُجد."
  },
  "K_BUYER_ABSENT_T": {
   "en": "Visit {store} when the buyer is in",
@@ -723,8 +707,8 @@
   "ar": "اجعل الطلب الأول صغيراً"
  },
  "K_RETURN": {
-  "en": "Start new products with one {unit}. Check sell-through before the second order.",
-  "ar": "ابدأ المنتج الجديد بـ {unit} واحدة. تأكد من البيع قبل الطلب الثاني."
+  "en": "Start new products below the store's usual order. Check sell-through before the next one.",
+  "ar": "ابدأ المنتج الجديد بأقل من طلب المحل المعتاد. تأكد من البيع قبل الطلب التالي."
  },
  "K_PROMO_T": {
   "en": "Use the promo",
@@ -838,18 +822,6 @@
   "en": "If something doesn't sell, tell us why in two taps.",
   "ar": "إذا لم يُبَع منتج، وضّح السبب بضغطتين."
  },
- "O_S1": {
-  "en": "Follow-ups show what needs you now. Each has one action.",
-  "ar": "المتابعات تعرض ما يحتاجك الآن، ولكل منها إجراء واحد."
- },
- "O_S2": {
-  "en": "Click any number or row to see the breakdown and act on it.",
-  "ar": "اضغط على أي رقم أو صف لعرض التفاصيل واتخاذ الإجراء."
- },
- "O_S3": {
-  "en": "Rules control what the system recommends. Nothing needs your approval.",
-  "ar": "القواعد تتحكم فيما يوصي به النظام. لا شيء يحتاج موافقتك."
- },
  "O_NEXT": {
   "en": "Next",
   "ar": "التالي"
@@ -877,10 +849,6 @@
  "S_SB_DATA": {
   "en": "Data updated {time}",
   "ar": "تم تحديث البيانات الساعة {time}"
- },
- "S_SB_OPENING": {
-  "en": "Opening orders… Place the order as usual. It will update here automatically.",
-  "ar": "جارٍ فتح الطلبات… سجّل الطلب كالمعتاد وسيُحدّث هنا تلقائياً."
  },
  "S_MAP_OFFLINE": {
   "en": "Map needs internet. Showing list",
@@ -963,8 +931,8 @@
   "ar": "الطلبات أصغر من المعتاد. جرّب العبوة الأكبر حيث يُباع المنتج بانتظام."
  },
  "Q_CUE_XSELL": {
-  "en": "Upsells are being returned. Keep first orders to one {unit}.",
-  "ar": "هناك مرتجعات في البيع الإضافي. اجعل الطلب الأول {unit} واحدة."
+  "en": "Upsells are being returned. Keep first orders below the store's usual order.",
+  "ar": "هناك مرتجعات في البيع الإضافي. اجعل الطلب الأول أقل من طلب المحل المعتاد."
  },
  "Q_CUE_ACTION": {
   "en": "{n} recommendations have no reason yet. They take 5 seconds each.",
@@ -1019,12 +987,8 @@
   "ar": "ما زالت مفتوحة، اعرضها في الزيارة القادمة"
  },
  "E_NOT_FOLLOWED": {
-  "en": "Not followed",
-  "ar": "لم يُتّبع"
- },
- "L_COL_CHECK2": {
-  "en": "Confirmed after 28 days",
-  "ar": "التأكيد بعد ٢٨ يوماً"
+  "en": "Not offered",
+  "ar": "لم يُعرض"
  },
  "K_CUSTOM": {
   "en": "{tip}",

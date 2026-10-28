@@ -13,11 +13,11 @@
   PG_TIPS:E('Use the normal lens. Tap to focus, hold still and check glare. Match the angle for the after photo.','استخدم العدسة العادية، واضغط للتركيز وثبّت الهاتف وتجنب الانعكاس. استخدم الزاوية نفسها للصورة التالية.'),
   PG_SAVED:E('Photos saved','تم حفظ الصور'),PG_SAVING:E('Saving photos…','جارٍ حفظ الصور…'),PG_FAILED:E('{n} photos could not be saved. You can try them again.','تعذّر حفظ {n} صور. يمكنك المحاولة مرة أخرى.'),
   PG_PHOTO_LABEL:E('Open shelf photo','فتح صورة الرف'),PG_CAPTURED:E('Photos from {date}','صور بتاريخ {date}'),PG_PREVIOUS:E('Previous photos','الصور السابقة'),
-  PG_COACH:E('Send coaching tip','إرسال نصيحة'),PG_REQUEST:E('Request a check','طلب التحقق'),
-  PG_ASSORTMENT:E('Store assortment','تشكيلة المحل'),PG_PURCHASED:E('Products purchased','المنتجات المشتراة'),PG_RECURRING:E('Recurring products','المنتجات المتكررة'),PG_GAPS:E('Suggested additions','إضافات مقترحة'),PG_HISTORY_SOURCE:E('From order history, not a shelf stock count','من سجل الطلبات، وليس تعداداً لمخزون الرف'),
+  PG_COACH:E('Send coaching tip','إرسال نصيحة'),PG_REQUEST:E('Request a check','طلب فحص'),
+  PG_ASSORTMENT:E('Store assortment','تشكيلة المحل'),PG_PURCHASED:E('Products purchased','المنتجات المشتراة'),PG_RECURRING:E('Recurring products','المنتجات المتكررة'),PG_GAPS:E('Recommended additions','إضافات موصى بها'),PG_HISTORY_SOURCE:E('From order history, not a shelf stock count','من سجل الطلبات، وليس تعداداً لمخزون الرف'),
 
   F_PLANOGRAM:E('Shelf Check at {store}','فحص الرف في {store}'),F_PLANOGRAM_C:E('{n} items: not in van, help needed or a damaged pack','{n} بنود: غير متوفر في السيارة أو يحتاج مساعدة أو عبوة تالفة'),ACT_PLANOGRAM:E('Open Shelf Check','فتح فحص الرف'),
-  PG_VALUE:E('Compare pack value','مقارنة قيمة العبوات'),PG_VALUE_CHEAPER:E('{n}% lower cost per 100g','تكلفة أقل بنسبة {n}% لكل ١٠٠ غ'),PG_PACK_COST:E('Store pays / pack','تكلفة المحل / عبوة'),PG_100G:E('Store pays / 100g','تكلفة المحل / ١٠٠ غ'),PG_PRICE_BASIS:E('Historical order price, including VAT. Compare the same selling unit.','سعر طلب سابق شامل الضريبة. قارن وحدة البيع نفسها.'),
+  PG_VALUE:E('Compare pack value','مقارنة قيمة العبوات'),PG_VALUE_CHEAPER:E('{n}% lower cost per 100g','تكلفة أقل بنسبة {n}% لكل ١٠٠ غ'),PG_PACK_COST:E('Store pays / piece','يدفع المحل / قطعة'),PG_100G:E('Store pays / 100g','يدفع المحل / ١٠٠ غ'),PG_PRICE_BASIS:E('Price per piece from past orders, plus 15% VAT as on the store invoice. Compare the same selling unit.','سعر القطعة من الطلبات السابقة مع ضريبة ١٥٪ كما في فاتورة المحل. قارن وحدة البيع نفسها.'),
   PG_COLUMNS:E('Columns','الأعمدة'),PG_SEARCH_PRODUCTS:E('Search products','بحث المنتجات'),PG_BROWSE:E('Browse assortment','تصفح التشكيلة'),PG_ALL_PRODUCTS:E('All products','كل المنتجات'),PG_RESET:E('Clear filters','مسح المرشحات'),PG_PRODUCT_COUNT:E('{n} products','{n} منتجات'),PG_STORE_COUNT:E('Stores · {n}','المحلات · {n}'),PG_SHOWING:E('Showing {n} of {m} stores','عرض {n} من {m} محلاً'),PG_SORT:E('Sort by','ترتيب حسب'),PG_SORT_SALES:E('Highest sales','الأعلى مبيعاً'),PG_SORT_NAME:E('Product name','اسم المنتج'),PG_SORT_RETURNS:E('Highest returns','الأعلى مرتجعات'),PG_SORT_COST:E('Lowest cost per 100g','أقل تكلفة لكل ١٠٠ غ'),
   PG_BASE:E('Before recommendations','قبل التوصيات'),PG_PREVIOUS_PERIOD:E('Previous period','الفترة السابقة'),PG_VIEW:E('View store intelligence','عرض معلومات المحل'),
   // Shelf Check: fixed wording only. Analysis returns IDs; these strings are all a person ever reads.
@@ -43,14 +43,14 @@
   SC_COMPETITION:E('Competition seen','المنافسون في الصورة'),
   SC_COMP_NEXT:E('Competitor products next to ours','منتجات منافسة بجانب منتجاتنا'),SC_COMP_TRAY:E('Competitor uses a branded display','المنافس يستخدم عرضاً بعلامته'),SC_COMP_OFFER:E('Competitor offer sign visible','لافتة عرض للمنافس ظاهرة'),SC_COMP_NO_AMERICANA:E('Competitor products here, none of ours','منتجات منافسة هنا ولا يوجد من منتجاتنا'),SC_COMP_NONE:E('No competitor in these photos','لا يوجد منافس في هذه الصور'),
   SC_SEEN:E('Our products seen','منتجاتنا الظاهرة'),SC_NO_OURS:E('None of our products in this photo','لا توجد منتجاتنا في هذه الصورة'),SC_NOT_IN_PHOTO:E('Not in photo','غير ظاهرة في الصورة'),SC_PENDING_SHORT:E('Pending','معلّقة'),
-  SC_FAM_CUPCAKE:E('Cupcakes','كب كيك'),SC_FAM_SWISS_ROLL:E('Swiss rolls','سويس رول'),SC_FAM_CAKE_BAR:E('Cake bars','كيك بار'),SC_FAM_SLICE_CAKE:E('Slice cakes','كيك شرائح'),SC_FAM_POUND_CAKE:E('Pound cakes','باوند كيك'),SC_FAM_BUTTER_COOKIES:E('Butter cookies','بسكويت الزبدة'),SC_FAM_CHOCO_COOKIES:E('Choco cookies','بسكويت الشوكولاتة'),SC_FAM_RUSK:E('Rusks','شابورة'),SC_FAM_OTHER_AMERICANA:E('Other Americana products','منتجات أمريكانا أخرى'),
-  BR_SEVEN_DAYS:E('7Days','سفن دايز'),BR_SWITZ:E('Switz','سويتز'),BR_ALMARAI:E('Almarai','المراعي'),BR_SUNBULAH:E('Sunbulah','السنبلة'),BR_AL_KABEER:E('Al Kabeer','الكبير'),BR_UNKNOWN:E('Brand not readable','العلامة غير واضحة'),
+  SC_FAM_CUPCAKE:E('Cupcakes','كب كيك'),SC_FAM_SWISS_ROLL:E('Swiss rolls','سويس رول'),SC_FAM_CAKE_BAR:E('Cake bars','كيك بار'),SC_FAM_SLICE_CAKE:E('Slice cakes','كيك شرائح'),SC_FAM_POUND_CAKE:E('Pound cakes','باوند كيك'),SC_FAM_BUTTER_COOKIES:E('Butter cookies','بسكويت الزبدة'),SC_FAM_CHOCO_COOKIES:E('Choco cookies','كوكيز الشوكولاتة'),SC_FAM_RUSK:E('Rusks','شابورة'),SC_FAM_OTHER_AMERICANA:E('Other Americana products','منتجات أمريكانا أخرى'),
+  BR_SWITZ:E('Switz','سويتز'),BR_ALMARAI:E('Almarai','المراعي'),BR_SUNBULAH:E('Sunbulah','السنبلة'),BR_AL_KABEER:E('Al Kabeer','الكبير'),BR_UNKNOWN:E('Brand not readable','العلامة غير واضحة'),
   SC_NOT_CORRECT:E('Not correct','غير صحيح'),SC_REQ_NONE:E('No shelf photos yet','لا توجد صور للرف بعد'),SC_REQ_ASK:E('Request a check','طلب فحص'),SC_REQ_OPEN:E('Check requested {date} · waiting for the next visit','طُلب الفحص {date} · بانتظار الزيارة القادمة'),SC_REQ_DONE:E('Requested check done {date}','تم الفحص المطلوب {date}'),SC_REQ_BLOCKED:E("Couldn't check: {reason}",'تعذّر الفحص: {reason}'),
-  SC_REQ_CLOSED:E('Store closed','المحل مغلق'),SC_REQ_OWNER_NO:E('Owner said no','رفض صاحب المحل'),SC_REQ_NO_ACCESS:E("Couldn't reach the shelf",'تعذّر الوصول إلى الرف'),
-  SC_REQ_VSR:E('Your supervisor asked for a shelf check','طلب مشرفك فحص الرف'),SC_REQ_TAKE:E('Take before photo','التقاط صورة قبل'),SC_TODO_REQ:E('Shelf check at {store}','فحص الرف في {store}'),SC_TODO_FIX:E('Check fixes from the last visit at {store}','تحقق من إصلاحات الزيارة السابقة في {store}'),
+  SC_REQ_PHOTO:E('Photo received, check not done','تم استلام صورة، ولم يتم الفحص'),SC_REQ_CLOSED:E('Store closed','المحل مغلق'),SC_REQ_OWNER_NO:E('Owner said no','رفض صاحب المحل'),SC_REQ_NO_ACCESS:E("Couldn't reach the shelf",'تعذّر الوصول إلى الرف'),
+  SC_REQ_VSR:E('Your supervisor asked for a shelf check','طلب مشرفك فحص الرف'),SC_REQ_TAKE:E('Take before photo','التقاط صورة قبل الترتيب'),SC_TODO_REQ:E('Shelf check at {store}','فحص الرف في {store}'),SC_TODO_FIX:E('Check fixes from the last visit at {store}','تحقق من إصلاحات الزيارة السابقة في {store}'),
   SC_TODO_H:E('Shelf checks','فحوصات الرف'),SC_NO_CHANGE:E('No changes needed','لا حاجة لتغييرات'),SC_NO_CHANGE_D:E('Shelf left as it was','بقي الرف كما هو'),SC_NO_CHANGE_UNDO:E('Undo','تراجع'),SC_SWAP:E('Swap Before and After','تبديل قبل وبعد'),SC_NEXT_VISIT:E('Checked on the next visit, {date}','تم التحقق في الزيارة التالية، {date}'),SC_FROM_LAST:E('From the last visit','من الزيارة السابقة'),SC_NEXT_LABEL:E('Next visit','الزيارة التالية'),SC_NO_AFTER:E('No After photo yet','لا توجد صورة بعد حتى الآن'),
   SC_NO_AFTER_VSR:E('Take the After photo of the same shelf when you finish.','التقط صورة بعد للرف نفسه عند الانتهاء.'),SC_NO_AFTER_SUP:E('The next photo of this shelf will appear here.','ستظهر هنا الصورة التالية لهذا الرف.'),
-  SC_NEXT_CLOSED:E('Closed','مغلقة'),SC_NEXT_THIS:E('To do on this visit','مطلوبة في هذه الزيارة'),SC_NEXT_VERIFY:E('Next: the After photo or the next visit confirms it','التالي: صورة بعد أو الزيارة القادمة تؤكدها'),
+  SC_NEXT_CLOSED:E('Closed','مغلقة'),SC_NEXT_THIS:E('To do on this visit','المطلوب في هذه الزيارة'),SC_NEXT_VERIFY:E('Next: the After photo or the next visit confirms it','التالي: صورة بعد أو الزيارة القادمة تؤكدها'),
   SC_NEXT_OPEN:E('Stays open: next visit to-do and the store card','تبقى مفتوحة: مهمة الزيارة القادمة وبطاقة المحل'),SC_NEXT_TODAY:E('Also on Today for the supervisor','تظهر أيضاً في صفحة اليوم للمشرف'),
   SC_NEXT_OWNER:E('Stays on the store for a talk with the owner','تبقى على المحل للحديث مع صاحبه'),SC_NEXT_NEW:E('New issue: added to the next visit','مشكلة جديدة: أضيفت للزيارة القادمة'),
   SC_NONE:E('No Shelf Check yet. Take a Before photo at the next visit.','لا يوجد فحص للرف بعد. التقط صورة قبل في الزيارة القادمة.'),SC_HISTORY:E('Shelf Check history','سجل فحص الرف'),
@@ -70,7 +70,10 @@
  FD.scClass=c=>c==='FIND_WRONG_AREA'?'ASK':'FIX';
  FD.SC_OUTCOMES={FIX:['DONE','PARTLY_DONE','NOT_IN_VAN','OWNER_NO','NEED_HELP'],ASK:['OWNER_YES','OWNER_NO','OWNER_AWAY']};
  const BLOCKERS=['NOT_IN_VAN','OWNER_NO','NEED_HELP','OWNER_AWAY'];
- FD.scRequest=(st,store)=>((st.planogram||{}).requests||[]).filter(r=>r.store===store).slice(-1)[0]||null;
+ // A request stays OPEN until a photo that could be analysed arrives; photoReceived says a photo came in that gave no check yet.
+ FD.scRequest=(st,store)=>{const r=((st.planogram||{}).requests||[]).filter(r=>r.store===store).slice(-1)[0];if(!r)return null;
+  const from=r.at?r.at.date+r.at.time:'';
+  return {...r,photoReceived:r.status==='OPEN'&&(st.photos||[]).some(p=>p.store===store&&p.assessmentId&&!p.kind&&(p.date+p.time)>=from)};};
  FD.scWeights=st=>Object.assign({},FD.SC_DEFAULT_WEIGHTS,st.rules.shelfWeights||{});
  FD.scResult=ref=>(ref!=null&&FD.SHELF_RESULTS&&FD.SHELF_RESULTS.photos[ref]||{}).result||null;
  FD.scLookup=name=>{const ps=(FD.SHELF_RESULTS||{}).photos||{};const k=Object.keys(ps).find(k=>ps[k].file===name);return k==null?null:+k;};
@@ -123,7 +126,7 @@
  const avg=xs=>xs.reduce((s,x)=>s+x,0)/xs.length;
  // One row per salesman: the latest analysed check at each store they visited in the period. No rank.
  FD.scTeam=(st,from,to,ids)=>ids.map(vsr=>{
-  const latest=new Map();for(const a of pg(st).assessments.filter(a=>a.vsr===vsr&&a.date>=from&&a.date<=to)){const s=FD.scSummary(st,a.id);if(!s||!s.analysed||!s.current)continue;const o=latest.get(a.store);if(!o||o.a.date+o.a.time<a.date+a.time)latest.set(a.store,{a,s});}
+  const latest=new Map();for(const a of pg(st).assessments.filter(a=>a.vsr===vsr&&a.by!=='SUP'&&a.date>=from&&a.date<=to)){const s=FD.scSummary(st,a.id);if(!s||!s.analysed||!s.current)continue;const o=latest.get(a.store);if(!o||o.a.date+o.a.time<a.date+a.time)latest.set(a.store,{a,s});}
   const sums=[...latest.values()].map(x=>x.s),finals=sums.filter(s=>s.current.final),paired=sums.filter(s=>s.change!=null),shots=sums.flatMap(s=>s.photos.filter(x=>['OK','PARTLY','RETAKE'].includes(x.status)));
   const n=k=>sums.reduce((t,s)=>t+s.fixes[k],0);
   return {vsr,stores:sums.length,finalStores:finals.length,score:finals.length?avg(finals.map(s=>s.current.score)):null,change:paired.length?avg(paired.map(s=>s.change)):null,paired:paired.length,
@@ -134,10 +137,16 @@
   const gaps=FD.recommend(st,store,date).recs.filter(x=>x.type==='GAP'||x.type==='UPGRADE');
   return {purchased,recurring,gaps};
  };
- // Supervisor work from yesterday and today: blockers the salesman cannot clear alone, and damaged packs.
- FD.pgFollowUps=st=>pg(st).assessments.filter(a=>a.date<=st.clock.date&&a.date>=FD.addDays(st.clock.date,-1)).map(a=>{
-  const s=FD.scSummary(st,a.id);if(!s||!s.analysed)return null;const need=s.blockers.filter(f=>['NEED_HELP','NOT_IN_VAN'].includes(f.outcome)),n=need.length+(s.urgent&&!need.some(f=>f.urgent)?1:0);if(!n)return null; // owner refusals stay on the store, not in the morning queue
-  return {key:'F_PLANOGRAM|'+a.id,tpl:'F_PLANOGRAM',pri:2,at:a.date,slots:{storeId:a.store,vsrId:a.vsr,n},action:{kind:'planogram',type:'PLANOGRAM_REVIEW',label:'ACT_PLANOGRAM',store:a.store,assessmentId:a.id}};}).filter(Boolean);
+ // Supervisor work still open from any earlier visit: blockers the salesman cannot clear alone, and damaged packs.
+ // An item is closed once a later check at the same store shows it fixed or gone.
+ FD.pgFollowUps=st=>{const by=new Map(),out=[];
+  for(const a of pg(st).assessments)if(a.date<=st.clock.date){if(!by.has(a.store))by.set(a.store,[]);by.get(a.store).push(a);}
+  for(const list of by.values()){list.sort((x,y)=>(y.date+y.time).localeCompare(x.date+x.time));const sums=list.map(a=>FD.scSummary(st,a.id));
+   list.forEach((a,i)=>{const s=sums[i];if(!s||!s.analysed)return;
+    const L=sums.slice(0,i).find(x=>x&&x.analysed&&x.current), still=c=>!L||L.findings.concat(L.fresh).some(f=>f.check===c&&f.status!=='FIXED');
+    const need=s.blockers.filter(f=>['NEED_HELP','NOT_IN_VAN'].includes(f.outcome)&&still(f.check)),n=need.length+(s.urgent&&still('COND_DAMAGED_PACK')&&!need.some(f=>f.urgent)?1:0);if(!n)return; // owner refusals stay on the store, not in the morning queue
+    out.push({key:'F_PLANOGRAM|'+a.id,tpl:'F_PLANOGRAM',pri:2,at:a.date,slots:{storeId:a.store,vsrId:a.vsr,n},action:{kind:'planogram',type:'PLANOGRAM_REVIEW',label:'ACT_PLANOGRAM',store:a.store,assessmentId:a.id}});});}
+  return out;};
  // Seed: field photos already placed at stores become that visit's Before check; same-display groups supply real After photos.
  FD.scSeed=st=>{
   if(!FD.SHELF_RESULTS)return;const P=st.planogram||(st.planogram={assessments:[],columnPrefs:{}}),by=new Map();

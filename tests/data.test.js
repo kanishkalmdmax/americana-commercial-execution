@@ -11,7 +11,7 @@ test('world from real data', () => {
   for (const p of w.promos) assert.ok(FD.CATALOG[p.promoId], p.promoId);
 });
 test('history uses real orders before today', () => {
-  const FD = load(L); const w = FD.buildWorld(7); const h = FD.buildHistory(w, 7, FD.BASE_START, FD.addDays(FD.TODAY, -1));
+  const FD = load(L); const w = FD.buildWorld(7); const h = FD.buildHistory(w, 7, FD.HIST_START, FD.addDays(FD.TODAY, -1));
   assert.ok(h.orders.length > 5000, 'orders ' + h.orders.length);
   assert.ok(h.orders.every(o => o.date < FD.TODAY));
   assert.ok(h.visits.some(v => v.offPlan));

@@ -67,6 +67,7 @@
   const passes = (m, F) => { if (!F) return true; const x = m.store && storeOf(m.store);
     if (F.store && m.store !== F.store) return false;
     if (F.label && (!x || x.label !== F.label)) return false;
+    if (F.profile && (!x || x.profile !== F.profile)) return false;
     if (F.tag && (!x || !x.tags.includes(F.tag))) return false;
     if (F.topic && m.topic !== F.topic) return false;
     if (F.files && !hasFiles(m)) return false; return true; };
@@ -108,10 +109,11 @@
     const panel = mode === 'full' && C.showF[key] ? h('div', { class: 'chat-fpanel' },
       FD.select([{ id: '', label: t('L_ALL_STORES_F') }].concat(usedStores.map(x => ({ id: x.id, label: FD.nameOf(x) }))), F.store || '', v => setF('store', v)),
       FD.select([{ id: '', label: t('L_ALL_LABELS') }].concat(FD.LABELS.map(x => ({ id: x, label: t('LBL_' + x) }))), F.label || '', v => setF('label', v)),
+      who === 'SUP' ? FD.select([{ id: '', label: t('L_ALL_PROFILES') }].concat(FD.PROFILES.map(x => ({ id: x, label: t('PROFN_' + x) }))), F.profile || '', v => setF('profile', v)) : null, // area type: supervisor only, as on Stores
       FD.select([{ id: '', label: t('L_ALL_TAGS') }].concat(FD.TAGS.map(x => ({ id: x, label: t('TAGN_' + x.slice(4)) }))), F.tag || '', v => setF('tag', v)),
       FD.select([{ id: '', label: t('L_ALL_TOPICS') }].concat(['R_T_RETURN', 'R_T_REQUEST', 'R_T_PRICE', 'R_T_ACCESS', 'R_T_OTHER'].map(x => ({ id: x, label: t(x) }))), F.topic || '', v => setF('topic', v)),
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!F.files, on: { change: e => setF('files', e.target.checked) } }), t('L_HAS_FILES'))) : null;
-    const chipOf = k => ({ store: () => FD.nameOf(storeOf(F.store)), label: () => t('LBL_' + F.label), tag: () => t('TAGN_' + F.tag.slice(4)), topic: () => t(F.topic), files: () => t('L_HAS_FILES') })[k]();
+    const chipOf = k => ({ store: () => FD.nameOf(storeOf(F.store)), label: () => t('LBL_' + F.label), profile: () => t('PROFN_' + F.profile), tag: () => t('TAGN_' + F.tag.slice(4)), topic: () => t(F.topic), files: () => t('L_HAS_FILES') })[k]();
     const chips = nF ? h('div', { class: 'chat-fchips' }, h('span', { class: 'small muted' }, t('L_SHOWING')), activeF(F).map(k => h('button', { type: 'button', class: 'chip info chip-btn', on: { click: () => setF(k, null) } }, chipOf(k), I('x', 's14'))),
       nF > 1 ? h('button', { type: 'button', class: 'btn ghost sm', on: { click: () => { C.f[key] = {}; rerender(); } } }, t('L_CLEAR_ALL')) : null) : null;
 

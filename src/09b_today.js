@@ -1,5 +1,6 @@
 (function () {
   const FD = globalThis.FD;
+  const E = (en, ar) => ({ en, ar });
   if (typeof document === 'undefined') return;
   // Supervisor control room (R7): Today, the van day tab, Pre-orders, Data status, journey plan review.
   const h = FD.h, I = FD.icon, t = (...a) => FD.t(...a), tx = FD.tx;
@@ -9,23 +10,29 @@
   const vsrOf = id => st().world.vsrs.find(v => v.id === id);
   const STAGE = { PLAN_READY: ['ST_PLAN_READY', 'info'], DISPATCHED: ['ST_DISPATCHED', 'info'], LIVE: ['ST_LIVE', 'good'], CLOSED: ['ST_CLOSED', ''], NO_ACTIVITY: ['ST_NO_ACTIVITY', ''] };
   const gid = (id, n) => n === 1 && FD.has(id + '1') ? id + '1' : id; // singular wording for one
-  const stageChip = sg => FD.chip(t(STAGE[sg][0]), STAGE[sg][1]);
+  // a van the supervisor closed reads "Reviewed"; until SalesBuzz sends that day, say so
+  const stageChip = (sg, van) => FD.chip(t(sg === 'CLOSED' && van && FD.vanLocked(st(), van, today()) ? 'VAN_REVIEWED' : STAGE[sg][0]), STAGE[sg][1]);
+  const waitLine = van => van && FD.waitingData(st(), van, today()) ? h('div', { class: 'small muted' }, t('VAN_WAITING')) : null;
+  // stores closed on or before that day are not missed
+  const closedOn = (id, iso) => { const so = storeOf(id); return !!(so && so.closed && so.closed <= iso); };
+  const collectedAt = (id, iso) => st().visits.some(v => v.store === id && v.date === iso && v.status === 'DONE' && v.collected);
   const ALERT_IC = { A_MISSED: 'alert', A_OFFPLAN: 'map-pin', A_PACE: 'clock', A_PREORDER: 'inbox' };
   const X_IC = { X_OWNER_NOT: 'message', X_CARRY: 'repeat', X_QUESTION: 'help', X_DUE: 'calendar', X_SKIPPED: 'alert', X_SHORT: 'truck', X_DAMAGED: 'package', X_PREORDER: 'inbox' };
   S.vans = () => st().world.vsrs.filter(v => (!S.f.sup || v.sup === S.f.sup) && (!S.f.route || v.route === S.f.route));
   S.updatedLine = () => h('span', { class: 'small muted row', style: { gap: '6px' } }, I('refresh', 's14'), FD.liveData(st()) ? t('L_UPDATED', { time: FD.fmt.time(st().clock.time.slice(0, 3) + '00') }) : tx('L_DATA_UPTO', { date: FD.dataDay(st()) }));
   // what the supervisor can act on: SalesBuzz alerts from the latest data day, WhatsApp pre-orders live
-  S.alertGroupsNow = () => FD.supervisorAlertGroups(st(),S.vans().map(v=>v.id));
+  S.alertGroupsNow = () => FD.supervisorAlertGroups(st(),S.vans().map(v=>v.id)).map(g => { if (g.type !== 'A_MISSED') return g; const items = g.items.filter(a => !closedOn(a.store, g.day || today())); return Object.assign({}, g, { items, count: items.length }); }).filter(g => g.count);
 
   // ---------- van tile ----------
   const SQ = { sale: 'L_SQ_SALE', nosale: 'L_SQ_NOSALE', now: 'L_SQ_NOW', missed: 'L_SQ_MISSED', todo: 'L_SQ_TODO' };
   function vanStat(v) {
     const s = st(); const d = today(); const live = FD.liveData(s); const sg = FD.stageFor(s, v.id, d); const pd = live ? d : FD.dataDay(s); const p = FD.vanProgress(s, v.id, pd);
-    return { v, sg, p, day: pd === d ? null : pd, alerts: S.alertGroupsNow().filter(g => g.van === v.id).reduce((n, g) => n + g.count, 0) };
+    p.date = pd; return { v, sg, p, day: pd === d ? null : pd, alerts: S.alertGroupsNow().filter(g => g.van === v.id).reduce((n, g) => n + g.count, 0) };
   }
   // plan adherence: a square per planned stop in route order, coloured by outcome; hover says what happened
   const stopSq = p => h('div', { class: 'stop-sq', role: 'img', 'aria-label': t('L_PLAN_ADHERENCE') + ' · ' + tx('L_STOPS_DONE', { n: p.done, m: p.planned }) },
-    p.stops.map(x => h('i', { class: x.kind + (x.col ? ' ' + x.col : ''), title: [FD.nameOf(storeOf(x.store)), t(SQ[x.kind]), x.at ? FD.fmt.time(x.at) : '', colText(x)].filter(Boolean).join(' · ') })));
+    p.stops.map(x => { const shut = x.kind !== 'sale' && x.kind !== 'nosale' && closedOn(x.store, p.date || today()), coll = x.kind === 'nosale' && collectedAt(x.store, p.date || today());
+      return h('i', { class: (shut ? 'todo' : x.kind) + (x.col ? ' ' + x.col : ''), title: [FD.nameOf(storeOf(x.store)), shut ? t('L_STORE_CLOSED') : t(coll ? 'L_SQ_COLLECTED' : SQ[x.kind]), x.at ? FD.fmt.time(x.at) : '', colText(x)].filter(Boolean).join(' · ') }); }));
   // collection outcome, next to the order outcome
   const colText = x => x.col === 'paid' ? tx('L_SQ_PAID', { money: FD.fmt.money0(x.paid) }) : x.col === 'due' ? t('L_SQ_DUE') : '';
   function vanTile(v) {
@@ -37,7 +44,7 @@
       // the salesman is the heading; route code is secondary; the badge says what it counts
       h('div', { class: 'row van-head' }, h('b', { class: 'ellipsis grow' }, FD.nameOf(v)), alerts ? h('span', { class: 'badge', title: t('L_ALERTS') + ' · ' + FD.fmt.num(alerts), 'aria-label': t('L_ALERTS') + ' · ' + FD.fmt.num(alerts) }, FD.fmt.num(alerts)) : null),
       h('div', { class: 'small muted ellipsis' }, FD.routeArea(st().world.routes.find(r => r.id === v.route))),
-      h('div', { class: 'row', style: { gap: '6px', flexWrap: 'wrap' } }, stageChip(sg)),
+      h('div', { class: 'row', style: { gap: '6px', flexWrap: 'wrap' } }, stageChip(sg, v.id)), waitLine(v.id),
       sg === 'NO_ACTIVITY' && !p.planned ? null : h('div', { class: 'stack', style: { gap: '4px' } },
         stopSq(p),
         h('div', { class: 'small nowrap' }, day ? h('b', null, FD.fmt.date(day) + ' · ') : null, tx('L_STOPS_DONE', { n: p.done, m: p.planned })), p.offPlan ? h('div', { class: 'small muted nowrap' }, '+' + FD.fmt.num(p.offPlan) + ' ' + t('L_OFF_PLAN')) : null,
@@ -47,7 +54,7 @@
     const rows = vans.map(vanStat), day = rows.length && rows[0].day, dl = lb => day ? lb + ' · ' + FD.fmt.date(day) : lb;
     return FD.table({ id: 'vanList', rows, onRow: r => S.vsrDrawer(r.v.id, false, 'day'), columns: [
       { key: 'n', label: t('L_COL_VSR'), render: r => h('div', { style: { minWidth: 0 } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, FD.nameOf(r.v)), h('span', { class: 'small muted ellipsis', style: { display: 'block' } }, FD.routeArea(st().world.routes.find(x => x.id === r.v.route)))) },
-      { key: 'sg', label: t('L_COL_STATUS'), render: r => stageChip(r.sg) },
+      { key: 'sg', label: t('L_COL_STATUS'), render: r => h('div', null, stageChip(r.sg, r.v.id), waitLine(r.v.id)) },
       { key: 'sq', label: t('L_PLAN_ADHERENCE'), nosort: true, render: r => r.p.planned ? stopSq(r.p) : null },
       { key: 'st', label: dl(t('L_COL_STOPS')), num: true, sort: (a, b) => a.p.done / (a.p.planned || 1) - b.p.done / (b.p.planned || 1), render: r => r.p.planned ? tx('L_STOPS_DONE', { n: r.p.done, m: r.p.planned }) : '—' },
       { key: 'off', label: t('L_OFF_PLAN'), num: true, sort: (a, b) => a.p.offPlan - b.p.offPlan, render: r => r.p.offPlan ? '+' + FD.fmt.num(r.p.offPlan) : '—' },
@@ -132,7 +139,7 @@
       pts = all;
       legend = h('div', { class: 'map-legend' }, key('VAN', t('ST_LIVE')), key('VAN-DONE', t('ST_CLOSED')), key('VAN-DEPOT', t('L_AT_DEPOT')), key('VAN-SEL', t('L_SELECTED')));
     } else {
-      const missed = new Set(FD.alerts(s, d).filter(a => a.type === 'A_MISSED').map(a => a.visit));
+      const missed = new Set(FD.alerts(s, d).filter(a => a.type === 'A_MISSED' && !closedOn(a.store, d)).map(a => a.visit));
       FD.ensureDay(s, d);
       pts = s.visits.filter(x => x.date === d && ids.has(x.vsr) && x.status !== 'SKIPPED' && (live || !x.offPlan)).map(x => { const so = storeOf(x.store); const v = vsrOf(x.vsr);
         const stt = !live ? 'PLANNED' : x.status === 'DONE' ? 'DONE' : missed.has(x.id) ? 'MISSED' : 'PLANNED';
@@ -166,7 +173,7 @@
         h('div', { class: 'row wrap small muted', style: { gap: '2px 8px' } }, v && who === 'SUP' ? h('span', null, FD.nameOf(v)) : null, // the salesman does not need his own name
           h('span', null, nv ? tx('W_NEXT_VISIT', { date: nv.date, n: nv.n }) : t('W_NO_VISIT')), bal > 0 ? FD.chip(tx('W_BALANCE', { money: FD.fmt.money0(bal) }), 'warn') : null)),
       who === 'SUP' ? h('div', { class: 'row wrap wa-head-act', style: { gap: '6px' } },
-        !onToday && FD.isSellingDay(today()) && v ? FD.btn(t('L_ADD_VISIT_TODAY'), () => { FD.dx('OFFPLAN_ADD', { vsr: v.id, store: storeId, bySup: true }); FD.toast('S_SAVED'); }, 'secondary sm', 'plus') : null,
+        !onToday && FD.isSellingDay(today()) && v && !FD.vanLocked(s, v.id, today()) ? FD.btn(t('L_ADD_VISIT_TODAY'), () => { FD.dx('OFFPLAN_ADD', { vsr: v.id, store: storeId, bySup: true }); FD.toast('S_SAVED'); }, 'secondary sm', 'plus') : null,
         v ? FD.btn(tx('W_TELL', { vsrId: v.id }), () => FD.chatPopup({ type: 'store', id: storeId }, 'SUP'), 'secondary sm', 'message') : null) : null); };
   // default slots for a card sent from the composer; null when the card does not apply to this store
   const cardSlots = (card, storeId) => { const s = st(), store = storeOf(storeId), nv = S.nextVisit(storeId);
@@ -264,7 +271,8 @@
       h('span', { class: 'grow', style: { minWidth: 0 } }, h('b', null, tx(gid('L_TOMORROW_BAR', nT), { n: nT, date: tm })), h('span', { class: 'small muted ellipsis', style: { display: 'block' } }, t('L_TOMORROW_SUB'))),
       h('span', { class: 'btn secondary sm' }, t('L_REVIEW')));
     // control screen: vans and what needs acting on (left), map (right); mirrors in Arabic
-    return { title: t('L_NAV_TODAY'), body: [closeCard(vans), fuBar, tomBar, ctlSplit(h('div', { class: 'ctl-left stack s16' }, strip), h('div', { class: 'ctl-right' }, mapCard(vans)))] };
+    const pay = FD.paydayNote(d); // one small line, only around payday
+    return { title: t('L_NAV_TODAY'), body: [closeCard(vans), pay ? h('p', { class: 'small muted payday-note' }, t(pay)) : null, fuBar, tomBar, ctlSplit(h('div', { class: 'ctl-left stack s16' }, strip), h('div', { class: 'ctl-right' }, mapCard(vans)))] };
   });
   FD.registerView('sup', 'home', r => FD.views.sup.today(r)); // old links land on Today
 
@@ -277,12 +285,13 @@
   S.vanDay = function (vsrId,date) {
     if(date&&date!==today()){
       // planned stops in route order, then visits that were not on the plan; each says whether it ended in an order
-      const vs=st().visits.filter(v=>v.vsr===vsrId&&v.date===date),p=FD.vanProgress(st(),vsrId,date);
+      const vs=st().visits.filter(v=>v.vsr===vsrId&&v.date===date),p=FD.vanProgress(st(),vsrId,date);p.date=date;
       const visits=vs.filter(v=>!v.offPlan).sort((a,b)=>(a.seq||0)-(b.seq||0)).concat(vs.filter(v=>v.offPlan).sort((a,b)=>String(a.arrivedAt).localeCompare(String(b.arrivedAt))));
       const sold=new Set(st().orders.filter(o=>o.date===date&&o.vsr===vsrId).map(o=>o.store)),col={};for(const x of p.stops)col[x.store]=x;
-      const outcome=v=>v.status==='DONE'?(sold.has(v.store)?FD.chip(t('L_SQ_SALE'),'good'):FD.chip(t('L_SQ_NOSALE'),'warn')):FD.chip(t('L_STATUS_'+v.status),v.offPlan?'':'bad');
+      const shut=v=>v.status!=='DONE'&&closedOn(v.store,date); // a closed store is not a missed stop
+      const outcome=v=>v.status==='DONE'?(sold.has(v.store)?FD.chip(t('L_SQ_SALE'),'good'):v.collected?FD.chip(t('L_COLLECTED'),'good'):FD.chip(t('L_SQ_NOSALE'),'warn')):shut(v)?FD.chip(t('L_STORE_CLOSED'),''):FD.chip(t('L_STATUS_'+v.status),v.offPlan?'':'bad');
       return h('div',{class:'stack s16'},p.planned?h('div',{class:'stack',style:{gap:'6px'}},stopSq(p),h('div',{class:'small'},tx('L_STOPS_DONE',{n:p.done,m:p.planned}),p.offPlan?h('span',{class:'muted'},' · +'+FD.fmt.num(p.offPlan)+' '+t('L_OFF_PLAN')):null)):null,
-        h('div',{class:'card'},visits.map(v=>{const miss=v.status!=='DONE'&&!v.offPlan,out=miss?FD.missOutcome(st(),vsrId,v.store,date):null,key=['A_MISSED',vsrId,v.store,date].join('|');
+        h('div',{class:'card'},visits.map(v=>{const miss=v.status!=='DONE'&&!v.offPlan&&!shut(v),out=miss?FD.missOutcome(st(),vsrId,v.store,date):null,key=['A_MISSED',vsrId,v.store,date].join('|');
         const carry=()=>{FD.dx('OFFPLAN_ADD',{vsr:vsrId,store:v.store,date:FD.nextSellingDay(today()),bySup:true});FD.dx('ALERT_RESOLVE',{keys:[key],how:'REPLANNED'});FD.drawer.refresh();};
         const handled=()=>{FD.dx('ALERT_RESOLVE',{keys:[key]});FD.drawer.refresh();};
         return h('div',{class:'day-row',dataset:{store:v.store}},h('button',{type:'button',class:'link day-name',on:{click:()=>S.storeDrawer(v.store)}},FD.nameOf(storeOf(v.store))),
@@ -291,18 +300,20 @@
           miss&&!out?h('div',{class:'row wrap',style:{gap:'6px'}},FD.btn(t('L_ADD_NEXT_PLAN'),carry,'secondary sm','plus'),FD.btn(t('L_RESOLVE'),handled,'ghost sm','check')):null);})),FD.btn(t('L_NAV_TODAY'),()=>S.vsrDrawer(vsrId,false,'day'),'secondary'));
     }
     const s = st(); const d = today(); const v = vsrOf(vsrId); const sg = FD.stageFor(s, vsrId, d); const live = FD.liveData(s); const pd = live ? d : FD.dataDay(s); const p = FD.vanProgress(s, vsrId, pd);
-    const missed = new Set(live ? FD.alerts(s, d).filter(a => a.type === 'A_MISSED' && a.van === vsrId).map(a => a.visit) : []);
+    const missed = new Set(live ? FD.alerts(s, d).filter(a => a.type === 'A_MISSED' && a.van === vsrId && !closedOn(a.store, d)).map(a => a.visit) : []);
+    const locked = FD.vanLocked(s, vsrId, d); // reviewed by the supervisor: today's plan is final until reopened
+    p.date = pd;
     // today's plan or tomorrow's, with the changes suggested for tomorrow
     const day = v.kind === 'sales' ? (L['vd:day'] || 'TODAY') : 'TODAY';
     const daySeg = v.kind === 'sales' ? FD.seg([{ id: 'TODAY', label: t('L_NAV_TODAY') }, { id: 'TOM', label: tx('L_TOMORROW_D', { date: FD.nextSellingDay(d) }) }], day, x => { L['vd:day'] = x; FD.drawer.refresh(); FD.render(); }) : null;
     if (day === 'TOM') { const tm = FD.nextSellingDay(d); const list = FD.planSuggestions(s, vsrId, tm);
       return h('div', { class: 'stack s16' }, daySeg, h('div', { class: 'small muted' }, t('L_TOMORROW_HELP')),
         list.length ? h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, t('L_SUGGESTED_CHANGES'))), list.map(x => S.sugRow(vsrId, x, tm))) : null,
-        S.planEditor(vsrId, { date: tm })); }
+        FD.vanLocked(s, vsrId, tm) ? h('div', { class: 'small muted' }, t('VAN_LOCK_NOTE')) : S.planEditor(vsrId, { date: tm })); }
     const actions = h('div', { class: 'row wrap' },
       sg === 'PLAN_READY' ? FD.btn(t('ACT_RELEASE'), () => FD.dx('VAN_RELEASE', { van: vsrId }), 'primary sm', 'check') : null,
       sg === 'LIVE' || sg === 'DISPATCHED' || sg === 'PLAN_READY' ? FD.btn(t('ACT_CLOSE_VAN'), () => S.confirm(t('ACT_CLOSE_VAN') + ' · ' + FD.nameOf(v), () => FD.dx('VAN_CLOSE', { van: vsrId })), 'secondary sm', 'lock') : null,
-      sg === 'CLOSED' && s.vanClosed[vsrId + '|' + d] && !FD.dayClosed(s, d) ? FD.btn(t('ACT_REOPEN_VAN'), () => FD.dx('VAN_REOPEN', { van: vsrId }), 'ghost sm', 'undo') : null);
+      sg === 'CLOSED' && locked && !FD.dayClosed(s, d) ? FD.btn(t('ACT_REOPEN_VAN'), () => FD.dx('VAN_REOPEN', { van: vsrId }), 'ghost sm', 'undo') : null);
     const resultsHead = live ? null : h('div', { class: 'small muted' }, tx('L_RESULTS_OF', { date: pd }));
     const metric = (label, val) => h('div', { class: 'card', style: { padding: '10px 12px' } }, h('div', { class: 'small muted' }, label), h('b', { class: 'tabular' }, val));
     const metrics = h('div', { class: 'grid-3 metric-grid' },
@@ -318,15 +329,16 @@
           return h('div', { class: 'alert-g' }, h('div', { class: 'list-row' }, h('button', { type: 'button', class: 'row-toggle', 'aria-expanded': String(!!open), on: { click: () => { L['xg:' + vsrId + type] = !open; FD.drawer.refresh(); } } },
             h('span', { class: 'fu-ic' }, I(X_IC[type], 's16')), h('span', { class: 'grow fu-t' }, tx(gid(type + '_G', list.length), { n: list.length })), I(open ? 'chevron-up' : 'chevron-down', 's16'))),
             open ? h('div', { class: 'alert-items' }, list.map(x => h('div', { class: 'list-row' },
-              h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500 } }, x.store ? FD.nameOf(storeOf(x.store)) : FD.skuLabel(x.sku)), h('div', { class: 'small muted' }, tx(type, x.slots))),
+              h('div', { class: 'grow', style: { minWidth: 0 } }, h('div', { class: 'ellipsis', style: { fontWeight: 500 } }, x.store ? FD.nameOf(storeOf(x.store)) : x.sku ? FD.skuLabel(x.sku) : tx(type, x.slots)), x.store || x.sku ? h('div', { class: 'small muted' }, tx(type, x.slots)) : null), // van-level lines (damaged stock) have no store or product
               type === 'X_DUE' ? S.planBtn(vsrId, x, d, () => FD.drawer.refresh()) : null,
               x.store ? FD.iconBtn('chevron-right', t('L_OPEN'), () => S.storeDrawer(x.store, null, true)) : null))) : null); })
           : h('div', { class: 'card-b' }, FD.empty('E_NO_EXCEPTIONS', null, 'check')));
     }
-    return h('div', { class: 'stack s16' }, daySeg, h('div', { class: 'row between', style: { flexWrap: 'wrap', gap: '8px' } }, h('div', { class: 'row', style: { gap: '8px' } }, stageChip(sg), S.updatedLine()), actions),
+    return h('div', { class: 'stack s16' }, daySeg, h('div', { class: 'row between', style: { flexWrap: 'wrap', gap: '8px' } }, h('div', { class: 'row', style: { gap: '8px' } }, stageChip(sg, vsrId), S.updatedLine()), actions),
+      locked ? h('div', { class: 'small muted' }, [FD.waitingData(s, vsrId, d) ? t('VAN_WAITING') : null, t('VAN_LOCK_NOTE')].filter(Boolean).join(' · ')) : null,
       checks, // what to fix before release comes first; yesterday's results are context
       sg === 'NO_ACTIVITY' && !p.planned ? h('div', { class: 'card' }, FD.empty('ST_NO_ACTIVITY', null, 'truck')) : h('div', { class: 'stack s8' }, resultsHead, metrics),
-      S.planEditor(vsrId, { missed }));
+      locked ? null : S.planEditor(vsrId, { missed }));
   };
 
   // ================= PLAN TOMORROW =================
@@ -334,7 +346,7 @@
   S.tomorrowSugs = () => { const s = st(); const tm = FD.nextSellingDay(today()); return S.vans().filter(v => v.kind === 'sales').map(v => ({ v, list: FD.planSuggestions(s, v.id, tm) })).filter(x => x.list.length); };
   // add/remove buttons show their result and undo on a second tap; the state comes from the plan itself
   S.planBtn = (vsrId, x, tm, after) => { const s = st(), done = () => { (after || FD.drawer.refresh)(); };
-    if (x.type === 'X_PREORDER') return null;
+    if (x.type === 'X_PREORDER' || FD.vanLocked(s, vsrId, tm)) return null;
     if (x.type === 'X_QUESTION' || x.type === 'X_OWNER_NOT') { const removed = s.visits.some(v => v.date === tm && v.store === x.store && v.status === 'SKIPPED' && v.bySup);
       return removed ? FD.btn(t('L_REMOVED'), () => { FD.dx('SUP_STOP_RESTORE', { store: x.store, date: tm }); done(); }, 'secondary sm is-done', 'check')
         : FD.btn(t('ACT_REMOVE_FROM_PLAN'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: tm }); S.planActed(tm, vsrId, x); done(); }, 'ghost sm', 'trash'); }
@@ -379,7 +391,7 @@
           p.status === 'DONE' ? null : h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '8px' } },
             p.status === 'NEW' && p.forDate ? FD.btn(tx('L_ATTACH_VISIT', { date: p.forDate }), () => { FD.dx('PREORDER_STATUS', { id: p.id, status: 'ATTACHED' }); re(); }, 'primary sm', 'calendar') : null,
             // the store's own salesman visits it today (covers follow the route owner); moving it to another van stays in the van's Today tab
-            p.forDate !== d && FD.isSellingDay(d) ? FD.btn(t('L_VISIT_TODAY_DEV'), () => { FD.dx('OFFPLAN_ADD', { vsr: FD.routeOwner(s, so.route, d) || so.vsr, store: p.store, bySup: true }); FD.dx('PREORDER_STATUS', { id: p.id, status: 'ATTACHED', forDate: d }); FD.toast('S_SAVED'); re(); }, 'secondary sm', 'plus') : null,
+            p.forDate !== d && FD.isSellingDay(d) && !FD.vanLocked(s, FD.routeOwner(s, so.route, d) || so.vsr, d) ? FD.btn(t('L_VISIT_TODAY_DEV'), () => { FD.dx('OFFPLAN_ADD', { vsr: FD.routeOwner(s, so.route, d) || so.vsr, store: p.store, bySup: true }); FD.dx('PREORDER_STATUS', { id: p.id, status: 'ATTACHED', forDate: d }); FD.toast('S_SAVED'); re(); }, 'secondary sm', 'plus') : null,
             FD.btn(t('L_OPEN_CHAT'), () => { L['store:tab'] = 'whatsapp'; S.storeDrawer(p.store); }, 'secondary sm', 'message'),
             FD.btn(t('ACT_MARK_DONE'), () => { FD.dx('PREORDER_STATUS', { id: p.id, status: 'DONE' }); re(); }, 'ghost sm')))); };
     return h('div', { class: 'card' }, list.length ? list.map(row) : FD.empty('E_NO_PREORDERS', null, 'inbox'));

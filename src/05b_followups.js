@@ -2,13 +2,16 @@
   const FD = globalThis.FD;
   const E = (en, ar) => ({ en, ar });
   Object.assign(FD.CATALOG, {
+    F_CREDIT_C: E('Overdue invoices: offers as cash sale', 'فواتير متأخرة: العروض كبيع نقدي'),
+    TYPE_LAPSED: E('Reorder', 'إعادة طلب'), TYPE_GAP: E('New product', 'منتج جديد'), TYPE_UPGRADE: E('Upsell', 'بيع إضافي'), TYPE_PROMO: E('Promotion', 'عرض ترويجي'),
     ACT_REVIEW_STORE: E('Review store', 'مراجعة المحل'), ACT_REMIND: E('Send reminder', 'إرسال تذكير'), ACT_TIP: E('Send coaching tip', 'إرسال نصيحة'),
     ACT_VIEW_STORES: E('View stores', 'عرض المحلات'), ACT_PIN_STORES: E('Pin for these stores', 'تثبيت لهذه المحلات'), ACT_OPEN_VSR: E('Open salesman', 'فتح المندوب'),
     ACT_DECIDE: E('Accept / Reject', 'قبول / رفض'), ACT_REPLY: E('Reply', 'رد'), ACT_VIEW: E('View', 'عرض'), ACT_LEARN: E('Open learning', 'فتح التعلّم'),
     ACT_REVIEW_SKU: E('Review product', 'مراجعة المنتج'), ACT_PIN_PROMO: E('Pin promo', 'تثبيت العرض'), ACT_OPEN_ROUTE: E('Open route', 'فتح المسار'),
-    TYPE_SUP: E('Supervisor pick', 'اختيار المشرف'), TYPE_LAPSED: E('Lapsed', 'انقطع الطلب'), TYPE_GAP: E('New for store', 'جديد للمحل'), TYPE_UPGRADE: E('Upgrade', 'ترقية'), TYPE_PROMO: E('Promo', 'عرض'),
+    TYPE_SUP: E('Supervisor pick', 'اختيار المشرف'), 
     CREDIT_OK: E('OK', 'سليم'), CREDIT_WATCH: E('on watch', 'تحت المراقبة'), CREDIT_BLOCKED: E('blocked', 'موقوف'),
-    CORR_TAG: E('Tag is wrong', 'التصنيف غير صحيح'), CORR_LABEL: E('Label is wrong', 'الفئة غير صحيحة'), CORR_CLOSED: E('Store closed permanently', 'المحل مغلق نهائياً'), CORR_MOVED: E('Store moved', 'المحل انتقل'),
+    CORR_TAG: E('Something nearby is missing', 'مكان قريب غير مذكور'), CORR_LABEL: E('Store class is wrong', 'فئة المحل غير صحيحة'), CORR_CLOSED: E('Store closed permanently', 'المحل مغلق نهائياً'), CORR_MOVED: E('Store moved', 'المحل انتقل'),
+    CORR_SIZE: E('Store size is wrong', 'حجم المحل غير صحيح'), CORR_SHELF: E('Shelf space is wrong', 'مساحة الرف غير صحيحة'), CORR_PROFILE: E('Area type is wrong', 'نوع المنطقة غير صحيح'),
     FU_HANDLED: E('Already handled', 'تمت معالجته'), FU_IRRELEVANT: E('Not relevant', 'غير مهم'),
     MSG_REMIND: E('Please add the missing reasons today.', 'الرجاء إضافة الأسباب الناقصة اليوم.'),
     ST_ACCEPTED: E('accepted', 'قبول'), ST_REJECTED: E('rejected', 'رفض'),
@@ -118,7 +121,7 @@
     ['F_GAP_CLUSTER', 2, st => {
       const out = [];
       for (const tag of FD.TAGS) {
-        const ss = st.world.stores.filter(s => s.tags.includes(tag) && s.credit !== 'BLOCKED'); if (ss.length < 8) continue;
+        const ss = st.world.stores.filter(s => (s.tags || []).includes(tag) && s.credit !== 'BLOCKED'); if (ss.length < 8) continue; // nearby-place groups with at least 8 stores
         for (const sku of FD.SKUS) {
           const missing = ss.filter(s => !FD.carries(st, s.id, sku.code, st.clock.date));
           const carry = pct(ss.length - missing.length, ss.length);
@@ -178,15 +181,19 @@
     ['F_COVER', 4, st => st.covers.filter(c => c.date === st.clock.date).map(c => ({ key: 'F_COVER|' + c.date + '|' + c.route, at: c.date,
       slots: { vsr2Id: c.vsr, vsrId: st.world.vsrs.find(v => v.route === c.route).id, routeId: c.route }, action: { label: 'ACT_OPEN_ROUTE', kind: 'vsr', vsr: c.vsr } }))],
   ];
-  FD.followUps = st => FD.cached('fu', st, '', () => FU_RULES.flatMap(([tpl, pri, run]) => run(st).filter(Boolean).map(x => Object.assign(x, { tpl: x.tpl || tpl, pri }))).concat(FD.pgFollowUps ? FD.pgFollowUps(st) : []).concat(FD.waFollowUps ? FD.waFollowUps(st) : [])
-    .filter(f => !st.followupDone[f.key] && !(st.followupSnooze[f.key] > st.clock.date))
+  const allFollowUps = st => FD.cached('fuAll', st, '', () => FU_RULES.flatMap(([tpl, pri, run]) => run(st).filter(Boolean).map(x => Object.assign(x, { tpl: x.tpl || tpl, pri }))).concat(FD.pgFollowUps ? FD.pgFollowUps(st) : []).concat(FD.waFollowUps ? FD.waFollowUps(st) : [])
+    .filter(f => !st.followupDone[f.key])
     .sort((a, b) => a.pri - b.pri || ((b.slots.n || 0) - (a.slots.n || 0)) || String(b.at).localeCompare(String(a.at))));
+  FD.followUps = st => FD.cached('fu', st, '', () => allFollowUps(st).filter(f => !(st.followupSnooze[f.key] > st.clock.date)));
+  // items put off until a later day: kept out of the list and out of Done until they come back or are restored (FOLLOWUP_UNSNOOZE {key})
+  FD.snoozedFollowUps = st => Object.keys(st.followupSnooze || {}).filter(k => st.followupSnooze[k] > st.clock.date && !st.followupDone[k]).map(k => {
+    const live = allFollowUps(st).find(f => f.key === k); return { key: k, until: st.followupSnooze[k], item: live || (st.followupSnap || {})[k] || null }; }).sort((a, b) => (a.until < b.until ? -1 : 1));
 
   // ---------- coaching drafts (spec §14.K) ----------
   FD.K_BY_REASON = { R_PRICE: 'K_PRICE', R_ENOUGH: 'K_ENOUGH', R_NO_SHELF: 'K_NO_SHELF', R_BUYER_NO: 'K_BUYER_NO', R_COMPETITOR: 'K_COMPETITOR', R_BUYER_ABSENT: 'K_BUYER_ABSENT' };
   FD.tipSlots = (sku, extra = {}) => {
     const s = sku ? FD.sku(sku) : null;
-    return Object.assign(s ? { skuCode: s.code, cost: s.cost, rev: s.retail, price: s.street, earn: s.retail - s.cost, unitOf: s.code } : {}, extra);
+    return Object.assign(s ? { skuCode: s.code, cost: FD.withVat(s.cost), rev: s.retail, price: s.street, earn: s.retail - FD.withVat(s.cost), unitOf: s.code } : {}, extra);
   };
   // at most two suggested tips per salesman, the ones that cost him most first (fixed order), so the list stays short
   const TIP_RANK = { K_RETURN: 9, K_NOT_OFFERED: 8, K_PROMO: 7, K_PRICE: 6, K_COMPETITOR: 5, K_NO_SHELF: 4, K_ENOUGH: 4, K_BUYER_NO: 4, K_REASONS: 3, K_BUYER_ABSENT: 2, K_GOOD: 1 };
@@ -232,8 +239,8 @@
     const avg = (ss, g) => ss.reduce((a, s) => a + ((pcs.get(s.id) || {})[g] || 0), 0) / (ss.length || 1) / 8;
     const cands = [];
     for (const tag of FD.TAGS) {
-      const ss = all.filter(s => s.tags.includes(tag)); if (ss.length < 8) continue;
-      const rest = all.filter(s => !s.tags.includes(tag));
+      const ss = all.filter(s => (s.tags || []).includes(tag)); if (ss.length < 8) continue;
+      const rest = all.filter(s => !(s.tags || []).includes(tag));
       for (const g of GROUPS) {
         const a = avg(ss, g), b = avg(rest, g); if (!b) continue; const ratio = a / b;
         const chart = { labels: ['TAGN_' + tag.slice(4), 'INS_OTHERS'], values: [a, b] };
@@ -264,7 +271,7 @@
 
   // ---------- breakdowns ----------
   FD.recsIn = (st, f = {}) => st.recs.filter(r => r.outcome && r.outcome !== 'CARRIED' && r.date <= st.clock.date && (!f.from || r.date >= f.from) && (!f.to || r.date <= f.to)
-    && (!f.route || store(st, r.store).route === f.route) && (!f.vsr || FD.recVsr(r) === f.vsr) && (!f.sku || r.sku === f.sku) && (!f.store || r.store === f.store));
+    && (!f.route || store(st, r.store).route === f.route) && (!f.vsr || FD.recVsr(r) === f.vsr) && (!f.vans || f.vans.includes(FD.recVsr(r))) && (!f.sku || r.sku === f.sku) && (!f.store || r.store === f.store));
   FD.reasonBreakdown = (st, f = {}) => FD.cached('rb', st, JSON.stringify(f), () => {
     const rs = FD.recsIn(st, f).filter(r => (f.kind ? r.outcome === f.kind : NEEDS.includes(r.outcome)) && !r.exempted);
     const groups = f.kind === 'NOT_OFFERED' ? FD.NF.map(c => ({ group: c, codes: [{ code: c, count: rs.filter(r => r.reason === c).length }] }))
@@ -279,17 +286,17 @@
     let sales = 0; for (const x of st.world.stores) for (const o of FD.storeOrders(st, x.id, s.code)) if (o.date >= from && o.date <= to) sales += o.value;
     const rs = FD.recsIn(st, { from, to, sku: s.code }).filter(r => SOLD.includes(r.outcome) || r.outcome === 'NOT_SOLD');
     const sold = rs.filter(r => SOLD.includes(r.outcome));
-    const ret = st.returns.filter(x => x.sku === s.code && x.date >= from && x.date <= to).reduce((a, x) => a + x.value, 0);
+    const ret = st.returns.filter(x => x.sku === s.code && x.date >= from && x.date <= to && !FD.goodReturn(x)).reduce((a, x) => a + x.value, 0); // damage / expiry
     const promo = st.world.promos.find(p => p.skus.includes(s.code) && p.start <= to && p.end >= to);
     let promoUptake = null;
     if (promo) { const car = st.world.stores.filter(x => FD.carries(st, x.id, s.code, to, 56)); promoUptake = pct(car.filter(x => FD.storeOrders(st, x.id, s.code).some(o => o.date >= promo.start && o.units > 0)).length, car.length); }
     return { code: s.code, carrying, carryingPct: pct(carrying, st.world.stores.length), sales, attempts: rs.length, sold: sold.length, conv: pct(sold.length, rs.length),
-      sustainedPct: pct(sold.filter(r => r.maturity === 'SUSTAINED').length, sold.length), returnRate: pct(ret, sales), promo: promo ? promo.id : null, promoUptake, watch: st.watchlist.includes(s.code) };
+      sustainedPct: pct(sold.filter(r => r.maturity === 'SUSTAINED').length, sold.filter(r => FD.CLOSED.includes(r.maturity)).length), returnRate: pct(ret, sales), promo: promo ? promo.id : null, promoUptake, watch: st.watchlist.includes(s.code) };
   }));
   FD.opportunities = (st, f = {}) => FD.cached('op', st, JSON.stringify(f), () => {
     const out = [];
     for (const s of st.world.stores) {
-      if (!FD.salesVan(st, s.vsr) || (f.route && s.route !== f.route) || (f.vsr && s.vsr !== f.vsr) || (f.label && s.label !== f.label) || (f.tag && !s.tags.includes(f.tag))) continue;
+      if (!FD.salesVan(st, s.vsr) || (f.route && s.route !== f.route) || (f.vsr && s.vsr !== f.vsr) || (f.vans && !f.vans.includes(s.vsr)) || (f.label && s.label !== f.label) || (f.tag && !(s.tags || []).includes(f.tag))) continue;
       for (const r of FD.recommend(st, s.id, st.clock.date).recs) if (!f.cat || FD.sku(r.sku).category === f.cat)
         out.push({ store: s.id, sku: r.sku, type: r.type, ev: r.ev, value: r.value, qty: r.qty, reasonId: r.reasonId, slots: r.slots });
     }

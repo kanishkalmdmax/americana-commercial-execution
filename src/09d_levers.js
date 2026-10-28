@@ -43,12 +43,12 @@
 
   // The same primary KPI and four supporting KPIs as the approved deck.
   S.leverStrip = ({ ids, from, to, prev, onOpen }) => {
-    const s = st(); const now = FD.teamLevers(s, ids, from, to); const was = prev ? FD.teamLevers(s, ids, prev.from, prev.to) : null;
+    const s = st(); const now = FD.teamLevers(s, ids, from, to); const was = prev ? FD.periodLevers(s, ids, prev) : null;
     const open = k => onOpen ? onOpen(k) : S.metricDrawer(k, { ids, from, to, prev });
     const tile = (k, label, val, foot, cls, info) => h('button', { type: 'button', class: 'card kpi ' + (cls || ''), title: info, 'aria-label': label, on: { click: () => open(k) } },
       h('span', { class: 'lbl' }, k === 'net' ? I('chart', 's16') : I(meta(k).icon, 's16'), label), h('span', { class: 'val' }, val), h('span', { class: 'foot' }, foot));
     return h('div', { class: 'kpis levers pilot-kpis' },
-      FD.PILOT_METRICS.map(m => tile(m.k, t(m.label), FD.metricText(m.k, now[m.k]), was && was.days ? [S.leverDelta(m.k, now[m.k], was[m.k]), ' ', t('L_COL_CHANGE')] : (m.lowerBetter ? t('L_LOWER_BETTER') : ''), m.k === 'primary' ? 'hero' : '', t(m.info))));
+      FD.PILOT_METRICS.map(m => tile(m.k, t(m.label), FD.metricText(m.k, now[m.k]), [was && was.days ? [S.leverDelta(m.k, now[m.k], was[m.k]), ' ', t('L_COL_CHANGE')] : (m.lowerBetter ? t('L_LOWER_BETTER') : ''), m.k === 'withSale' && now.collected ? h('span', { class: 'collected-n' }, ' · ' + t('L_COLLECTED_N', { n: FD.fmt.num(now.collected) })) : null], m.k === 'primary' ? 'hero' : '', t(m.info))));
   };
 
   // open items that move one metric: today's alerts and checks, and follow-ups
@@ -94,15 +94,15 @@
         i.vsr ? FD.avatar(vsrOf(i.vsr)) : null, h('span', { class: 'grow' }, i.label || FD.nameOf(vsrOf(i.vsr))), i.n > 1 ? h('span', { class: 'small muted tabular' }, FD.fmt.num(i.n)) : null, I('chevron-right', 's16')))) : null); }));
   S.metricDrawer = (k, ctx) => FD.drawer.open({ title: t(k === 'net' ? 'L_NET_RESULT' : meta(k).label), render: () => {
     const s = st(); const ids = ctx.ids; const lk = k === 'net' || k === 'primary' ? null : k;
-    const now = FD.teamLevers(s, ids, ctx.from, ctx.to); const was = ctx.prev ? FD.teamLevers(s, ids, ctx.prev.from, ctx.prev.to) : null;
+    const now = FD.teamLevers(s, ids, ctx.from, ctx.to); const was = ctx.prev ? FD.periodLevers(s, ids, ctx.prev) : null;
     const fmt = v => k === 'net' ? FD.fmt.money0(v) : FD.metricText(k, v);
-    const days = []; for (let d = FD.addDays(ctx.to, -20); d <= ctx.to; d = FD.addDays(d, 1)) if (FD.isSellingDay(d) && d >= FD.BASE_START) days.push(d);
+    const days = []; for (let d = FD.addDays(ctx.to, -20); d <= ctx.to; d = FD.addDays(d, 1)) if (FD.isSellingDay(d) && d >= FD.HIST_START) days.push(d);
     const series = days.map(d => { const x = FD.teamLevers(s, ids, d, d); return x.days ? x[k] : null; });
     const rows = ids.map(id => { const m = FD.vsrMetrics(s, id, ctx.from, ctx.to); const v = k === 'net' ? m.net : m.lev[k]; return { id, v, base: k === 'net' ? null : m.base[k] }; }).filter(x => x.v != null);
     const acts = lk ? S.leverActions(lk, ctx) : [];
     return h('div', { class: 'stack s16' },
       h('div', { class: 'card', style: { padding: '14px' } },
-        h('div', { class: 'row between wrap' }, h('div', null, h('div', { class: 'row', style: { gap: '6px' } }, h('div', { class: 'kpi-big' }, fmt(now[k])), S.info(t(k === 'net' ? 'L_NET_RESULT_D' : meta(k).info) + (k !== 'net' && meta(k).formula ? ' ' + t(meta(k).formula) : ''))), was ? h('div', { class: 'small muted row', style: { gap: '6px' } }, S.leverDelta(lk || 'avgSale', now[k], was[k]), t('PG_PREVIOUS_PERIOD'), ': ', fmt(was[k])) : null),
+        h('div', { class: 'row between wrap' }, h('div', null, h('div', { class: 'row', style: { gap: '6px' } }, h('div', { class: 'kpi-big' }, fmt(now[k])), S.info(t(k === 'net' ? 'L_NET_RESULT_D' : meta(k).info) + (k !== 'net' && meta(k).formula ? ' ' + t(meta(k).formula) : ''))), was ? h('div', { class: 'small muted row', style: { gap: '6px' } }, S.leverDelta(lk || 'avgSale', now[k], was[k]), ctx.prev.base ? t('L_COL_VS_BASE') : t('PG_PREVIOUS_PERIOD'), ': ', fmt(was[k])) : null),
           h('div', { class: 'row wrap', style: { gap: '8px' } }, lk && meta(lk).lowerBetter ? FD.chip(t('L_LOWER_BETTER'), 'outline') : null,
             FD.btn(t('L_PLAYBOOK'), () => S.playbookSheet(k === 'primary' || k === 'net' ? 'primary' : lk, t(k === 'net' ? 'L_NET_RESULT' : meta(k).label)), 'secondary sm', 'bulb'))),
         null), // definition and formula live in the (i) beside the value

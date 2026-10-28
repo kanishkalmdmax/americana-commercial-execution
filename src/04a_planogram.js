@@ -7,7 +7,8 @@
   FD.registerReducer('PG_START',(st,p)=>{
     const pg=state(st),so=st.world.stores.find(s=>s.id===p.store); if(!p.id||!so||pg.assessments.some(a=>a.id===p.id))return;
     const visit=p.visitId&&st.visits.find(v=>v.id===p.visitId); if(visit&&(visit.store!==p.store||visit.date!==st.clock.date))return;
-    pg.assessments.push({id:p.id,store:p.store,vsr:visit?.vsr||p.vsr||so.vsr,visitId:p.visitId||null,date:st.clock.date,time:st.clock.time,photoIds:[],weights:null,actions:{},dismissed:{}});
+    const bySup=p.by==='SUP'; // a supervisor's photo belongs to the store's salesman for follow-up, but is not his own Shelf Check
+    pg.assessments.push({id:p.id,store:p.store,vsr:bySup?(FD.routeOwner?FD.routeOwner(st,so.route,st.clock.date)||so.vsr:so.vsr):visit?.vsr||p.vsr||so.vsr,visitId:bySup?null:p.visitId||null,date:st.clock.date,time:st.clock.time,photoIds:[],weights:null,actions:{},dismissed:{},...(bySup?{by:'SUP'}:{})});
   });
   // `ref` links a photo to its analysis result; weights freeze on the first analysed photo so later setting changes never rewrite this check.
   FD.registerReducer('PG_PHOTOS_ADD',(st,p)=>{
@@ -17,8 +18,8 @@
       const ref=FD.scResult&&FD.scResult(ph.ref)?ph.ref:null;
       st.photos.push({id:ph.id,src:ph.src,store:a.store,vsr:a.vsr,date:st.clock.date,time:st.clock.time,assessmentId:a.id,phase:ph.phase,ref});a.photoIds.push(ph.id);
       if(ref!=null&&!a.weights)a.weights=FD.scWeights(st);
-      // a Before photo answers the supervisor's open request for this store
-      if(ph.phase==='BEFORE')for(const r of state(st).requests.filter(r=>r.store===a.store&&r.status==='OPEN'))Object.assign(r,{status:'DONE',assessmentId:a.id,doneAt:{date:st.clock.date,time:st.clock.time}});
+      // only a Before photo that could be analysed answers the supervisor's open request; any other photo leaves it open (see FD.scRequest photoReceived)
+      if(ph.phase==='BEFORE'&&FD.scUsable(FD.scResult(ref)))for(const r of state(st).requests.filter(r=>r.store===a.store&&r.status==='OPEN'))Object.assign(r,{status:'DONE',assessmentId:a.id,doneAt:{date:st.clock.date,time:st.clock.time},...(a.by==='SUP'?{by:'SUP'}:{})});
     }
   });
   FD.registerReducer('SC_ACTION_SET',(st,p)=>{

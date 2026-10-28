@@ -12,9 +12,9 @@ test('end-user copy avoids technical shelf-planning terminology',()=>{
     assert.ok(!/planogram|تنظيم الأرفف|بلانوغرام/i.test(entry.en+' '+entry.ar),id+' exposes the rejected term');
   }
 });
-test('end-user copy uses data and order wording without source-system branding',()=>{
-  const FD=load(L);
-  for(const [id,entry] of Object.entries(FD.CATALOG))assert.ok(!/salesbuzz|سيلز\s*باز/i.test(entry.en+' '+entry.ar),id+' exposes the source-system name');
+test('SalesBuzz is named only where the salesman acts in it',()=>{
+  const FD=load(L), ACT_IN_SB=['S_SB_OPENING','L_OUT_ROUTE_OVER'];
+  for(const [id,entry] of Object.entries(FD.CATALOG))if(!ACT_IN_SB.includes(id))assert.ok(!/salesbuzz|سيلز\s*باز/i.test(entry.en+' '+entry.ar),id+' exposes the source-system name');
 });
 
 test('new planogram labels retain readable Arabic characters', () => {

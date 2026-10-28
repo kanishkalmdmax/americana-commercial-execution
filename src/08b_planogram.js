@@ -4,9 +4,9 @@
  FD.pgReadPhotos=async files=>{const savedInputs=[],failed=[];for(const file of Array.from(files||[])){try{if(!file.type.startsWith('image/'))throw Error('image');savedInputs.push({id:'pg-photo-'+FD.key(),name:file.name,src:await FD.readPhoto(file)});}catch(e){failed.push(file.name);}}return {savedInputs,failed};};
  if(typeof document==='undefined')return;
  const h=FD.h,t=(...a)=>FD.t(...a),st=()=>FD.state;
- const current=(store,visitId)=>FD.pgAssessments(st(),store).find(a=>a.date===st().clock.date&&a.visitId===(visitId||null));
+ const current=(store,visitId,by)=>FD.pgAssessments(st(),store).find(a=>a.date===st().clock.date&&a.visitId===(visitId||null)&&(by==='SUP')===(a.by==='SUP'));
  const TONE={FIXED:'good',PARTLY_FIXED:'warn',STILL:'bad',NEW:'bad',WAIT:'info',OPEN:'',CANT_CHECK:''};
- const BRAND={LUSINE:'BR_LUSINE',SEVEN_DAYS:'BR_SEVEN_DAYS',SWITZ:'BR_SWITZ',SABAHOO:'BR_SABAHOO',ALMARAI:'BR_ALMARAI',SUNBULAH:'BR_SUNBULAH',AL_KABEER:'BR_AL_KABEER',OTHER:'BR_OTHER'};
+ const BRAND={LUSINE:'BR_LUSINE',SEVEN_DAYS:'BR_7DAYS',SWITZ:'BR_SWITZ',SABAHOO:'BR_SABAHOO',ALMARAI:'BR_ALMARAI',SUNBULAH:'BR_SUNBULAH',AL_KABEER:'BR_AL_KABEER',OTHER:'BR_OTHER'};
  const pts=v=>t('SC_OF_100',{n:FD.fmt.num(Math.round(v))});
  const signed=v=>(v>0?'+':v<0?'−':'')+FD.fmt.num(Math.round(Math.abs(v)));
  const boxStyle=b=>({top:b[0]/10+'%',left:b[1]/10+'%',width:(b[3]-b[1])/10+'%',height:(b[2]-b[0])/10+'%'});
@@ -79,15 +79,15 @@
    S.seen.length?h('p',{class:'small'},h('b',null,t('SC_SEEN')),' ',S.seen.map(x=>t('SC_FAM_'+x)).join(FD.lang==='ar'?'، ':', ')):null,
    comp);
  };
- FD.pgCaptureSheet=({store,visitId,assessmentId,phase='BEFORE'})=>{
-  let id=assessmentId||current(store,visitId)?.id,busy=false,status='',failures=[];
+ FD.pgCaptureSheet=({store,visitId,assessmentId,phase='BEFORE',by})=>{ // by:'SUP' = the supervisor took it: same check, not the salesman's own
+  let id=assessmentId||current(store,visitId,by)?.id,busy=false,status='',failures=[];
   const save=async files=>{
    if(busy)return;const capturedPhase=phase;busy=true;status=t('PG_SAVING');FD.sheet.redraw();
    const result=await FD.pgReadPhotos(files);failures=result.failed.slice();
    // Known field photos carry their analysis by file name, so the result appears as soon as the photo is saved.
    const pending=result.savedInputs.map(p=>({id:p.id,src:p.src,phase:capturedPhase,ref:FD.scLookup(p.name),name:p.name}));
    if(pending.length){
-    if(!id){id='pg-'+FD.key();FD.dx('PG_START',{id,store,visitId,vsr:st().vsrId});}
+    if(!id){id='pg-'+FD.key();FD.dx('PG_START',by==='SUP'?{id,store,by}:{id,store,visitId,vsr:st().vsrId});}
     const saved=FD.tryPhotoBatch({key:FD.key(),id,photos:pending.map(({name,...p})=>p)});
     status=saved?t('PG_SAVED'):t('PG_NOT_SAVED');if(!saved)failures.push(...pending.map(p=>p.name));
    }else status='';
@@ -106,8 +106,8 @@
     (ps=>ps.length?h('div',{class:'photo-strip'},ps.map(p=>h('button',{type:'button',class:'photo-thumb','aria-label':t('PG_'+phase),on:{click:()=>FD.lightbox(p.src)}},h('img',{src:p.src,alt:''})))):null)(photos.filter(p=>p.phase===phase)),
     input,h('button',{class:'btn primary block',type:'button',disabled:busy,on:{click:()=>input.click()}},FD.icon('camera','s16'),t(photos.some(p=>p.phase===phase)?'PG_ADD_MORE':'PG_ADD')),
     h('div',{role:'status','aria-live':'polite',class:'small'},status,failures.length?h('ul',null,failures.map(name=>h('li',null,name))):null),
-    id?FD.scPanel(id,{role:'VSR',editable,redraw:()=>FD.sheet.redraw()}):null);
-  },footer:()=>[FD.btn(t('L_DONE'),()=>{FD.sheet.close();FD.render();},'secondary block')]});
+    id?FD.scPanel(id,{role:by==='SUP'?'SUP':'VSR',editable:editable&&by!=='SUP',redraw:()=>FD.sheet.redraw()}):null);
+  },footer:()=>[FD.btn(t('L_DONE'),()=>{FD.sheet.close();if(by==='SUP'&&FD.drawer&&FD.drawer.refresh)FD.drawer.refresh(false);FD.render();},'secondary block')]});
  };
  // App-bar camera: Before or After from one button; a phase that already has photos shows a tick and stays usable.
  FD.scCameraButton=({store,visitId})=>{
@@ -149,9 +149,9 @@
  FD.scSheet=id=>{const a=FD.pgAssessment(st(),id);if(!a)return;
   FD.sheet.open({title:t('SC_TITLE')+' · '+FD.fmt.date(a.date),render:()=>FD.scPanel(id,{role:'VSR',editable:a.date===st().clock.date,redraw:()=>FD.sheet.redraw()}),
    footer:()=>[FD.btn(t('L_DONE'),()=>{FD.sheet.close();FD.render();},'secondary block')]});};
- // A supervisor request shows on the store until a Before photo answers it, or the salesman says why he couldn't.
+ // A supervisor request shows on the store until a Before photo that can be checked answers it, or the salesman says why he couldn't. Never blocks him.
  FD.scRequestCard=({store,visitId})=>{const r=FD.scRequest(st(),store);if(!r||r.status!=='OPEN')return null;
-  return h('div',{class:'v-card sc-request'},h('div',{class:'row'},FD.icon('camera'),h('b',{class:'grow'},t('SC_REQ_VSR'))),h('div',{class:'small muted'},FD.fmt.date(r.at.date)),
+  return h('div',{class:'v-card sc-request'},h('div',{class:'row'},FD.icon('camera'),h('b',{class:'grow'},t('SC_REQ_VSR'))),h('div',{class:'small muted'},FD.fmt.date(r.at.date)),r.photoReceived?h('div',{class:'small'},t('SC_REQ_PHOTO')):null,
    h('div',{class:'row wrap'},FD.btn(t('SC_REQ_TAKE'),()=>FD.pgCaptureSheet({store,visitId,phase:'BEFORE'}),'primary sm','camera'),
     h('button',{type:'button',class:'btn secondary sm','aria-haspopup':'menu',on:{click:e=>FD.menu(e.currentTarget,['CLOSED','OWNER_NO','NO_ACCESS'].map(k=>({label:t('SC_REQ_'+k),onClick:()=>{FD.dx('SC_REQUEST_BLOCK',{id:r.id,reason:k});FD.render();}})))}},t('SC_OUT_CANT'),FD.icon('chevron-down','s14'))));};
  // Offer tab: this visit's check in one line, with the first thing to do.

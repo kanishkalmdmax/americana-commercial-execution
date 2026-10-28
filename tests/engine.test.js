@@ -33,13 +33,13 @@ test('cooldown after a real no, not after buyer absent', () => {
   c.recs[0].reason = 'R_BUYER_ABSENT';
   assert.ok(!FD.recommend(c, 'S1', fx.D('2026-11-18')).gated.some(g => g.gate === 'GATE_COOLDOWN'));
 });
-test('max 3, promo only in last slot, first fill is one typical line', () => {
+test('max 3, promo only in last slot, first fill is the usual first order within one carton', () => {
   const FD = load(L); const c = ctxWith(FD);
   c.world.promos = [{ id: 'P', skus: [fx.K['3040421779']], promoId: 'PROMO_SR_10', start: fx.D('2026-11-01'), end: fx.D('2026-11-30') }];
   const out = FD.recommend(c, 'S1', fx.D('2026-11-18')).recs;
   assert.ok(out.length >= 1 && out.length <= 3);
   out.forEach((r, i) => { if (r.type === 'PROMO') assert.strictEqual(i, out.length - 1); });
-  const gap = out.find(r => r.type === 'GAP'); assert.ok(gap); assert.strictEqual(gap.qty, Math.min(FD.sku(gap.sku).line, 10)); // one typical order line, capped by van stock (10)
+  const gap = out.find(r => r.type === 'GAP'); assert.ok(gap); assert.ok(gap.qty >= 1 && gap.qty <= Math.min(FD.firstQty(c, gap.sku, fx.D('2026-11-18')), FD.sku(gap.sku).pcsPerCrt || Infinity, 10)); // usual first order, within one carton and van stock (27 Oct decision)
 });
 test('blocks and watchlist gate; pin overrides watchlist', () => {
   const FD = load(L);

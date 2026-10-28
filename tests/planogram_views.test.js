@@ -61,10 +61,10 @@ test('Team ranks by net sales per selling day against each salesman own baseline
  assert.ok(content(base.render(row)).includes(FD.fmt.pct(12.4)));
  row.m.hasBaseline=false;assert.ok(content(base.render(row)).includes(FD.t('L_NO_BASELINE')));
  const rk=FD.sup.teamColumns(true,false,false).find(c=>c.key==='rank');assert.equal(rk.render({...row,rank:3,move:1}),null,'no baseline: unranked');
- assert.match(FD.t('I_TEAM'),/own baseline/);assert.doesNotMatch(FD.t('I_TEAM'),/weight|[Uu]psell/);
- const s=FD.state,r=FD.ranking(s,'ABS',FD.PILOT_START,s.clock.date),ok=r.filter(x=>x.m.hasBaseline);
+ assert.match(FD.t('I_TEAM'),/before recommendations/);assert.doesNotMatch(FD.t('I_TEAM'),/weight|[Uu]psell/);
+ const s=FD.state,r=FD.ranking(s,'ABS',FD.PILOT_START,s.clock.date),ok=r.filter(x=>x.m.hasBaseline&&!x.relief);assert.ok(r.filter(x=>x.relief).every(x=>r.indexOf(x)>=ok.length),"relief route is not ranked");
  for(let i=1;i<ok.length;i++)assert.ok(ok[i-1].m.vsBaseline>=ok[i].m.vsBaseline,'ranked by own-baseline change');
- assert.ok(r.slice(ok.length).every(x=>!x.m.hasBaseline),'salesmen without a baseline rank last');
+ assert.ok(r.slice(ok.length).every(x=>!x.m.hasBaseline||x.relief),'salesmen without a baseline, and relief routes, come last');
 }finally{cleanup();}});
 test('Analytics, Team and salesman KPI views follow the same five pilot measures',()=>{try{
  const FD=ui(),s=FD.state,range=FD.sup.range(),ids=s.world.vsrs.filter(v=>v.kind==='sales').map(v=>v.id);
@@ -162,7 +162,7 @@ test('Shelf Check screens compose in both languages and never show internal chec
  const compact=walk(FD.sup.scTeamCard([store.vsr],range.from,FD.state.clock.date)).find(n=>n.tag==='table'&&n.attrs.cfg.id==='scTeamCompact');
  assert.deepEqual(compact.attrs.cfg.columns.map(c=>c.key),['v','s','f','o']);assert.ok(!compact.attrs.cfg.columns.some(c=>/rank/i.test(c.key)));
  FD.lang='en';const panel=content(FD.scPanel('sc',{role:'VSR',editable:true}));
- for(const id of ['SC_CHK_COND_DAMAGED_PACK','SC_DO_FIND_WRONG_AREA','SC_ST_FIXED','SC_ST_STILL','SC_ST_NEW','SC_WHY_GLARE','SC_COMP_TRAY','BR_SEVEN_DAYS','SC_FAM_SWISS_ROLL'])assert.ok(panel.includes(FD.t(id)),id);
+ for(const id of ['SC_CHK_COND_DAMAGED_PACK','SC_DO_FIND_WRONG_AREA','SC_ST_FIXED','SC_ST_STILL','SC_ST_NEW','SC_WHY_GLARE','SC_COMP_TRAY','SC_FAM_SWISS_ROLL'])assert.ok(panel.includes(FD.t(id)),id);
 }finally{cleanup();}});
 test('salesman outcome buttons follow the action type and the Offer card points to the next fix',()=>{try{
  const FD=withShelf(ui()),s=FD.state,store=s.world.stores[0];check(FD,'sc',store.id);

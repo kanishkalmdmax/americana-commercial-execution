@@ -10,7 +10,7 @@ test('five metrics: team values are pooled, and each salesman has value, baselin
   assert.ok(Math.abs(t.visits - visits / days) < 1e-9, 'visits per selling day is total visits / total selling days');
   assert.ok(t.withSale > 0 && t.withSale < 100 && t.avgSale > 0 && t.returns >= 0 && t.upsell > 0);
   for (const m of ms) for (const k of FD.METRIC_KEYS) assert.ok(Number.isFinite(m.lev[k]) && Number.isFinite(m.score[k]), k);
-  assert.deepStrictEqual(FD.METRICS.map(m => FD.CATALOG[m.label].en), ['Visits', 'Visits with a Sale (%)', 'Average Sale Value', 'Upsell Sales at Existing Stores', 'Returns (% of Sales)']);
+  assert.deepStrictEqual(FD.METRICS.map(m => FD.CATALOG[m.label].en), ['Visits', 'Visits with a Sale (%)', 'Average Sale Value', 'Upsell Sales at Existing Stores', 'Damage & expiry (% of sales)']);
 });
 
 test('returns: lower is better in the score', () => {

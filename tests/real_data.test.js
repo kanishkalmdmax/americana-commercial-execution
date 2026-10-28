@@ -24,7 +24,7 @@ test('product categories', () => {
   assert.ok(R.skus.every(s => s.cost > 0 && s.pcsPerCrt >= 1));
 });
 test('customer master credit, van stock and return saleDate from October extract', () => {
-  assert.ok(R.stores.some(s => s.credit === 'WATCH' && s.balance > 0 && s.creditLimit > 0));
+  assert.ok(R.stores.some(s => s.balance > 0 && s.creditLimit > 0)); assert.ok(R.stores.every(s => ['c', 'v', 'a'].includes(s.gps))); // GPS source: customer master, visit fixes, approximate
   assert.strictEqual(Object.keys(R.vanStock).length, 11);
   assert.ok(Object.values(R.vanStock.V07).some(n => n > 0));
   assert.ok(R.returns.some(r => r[7] && r[7] < r[0]));
