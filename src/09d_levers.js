@@ -16,7 +16,7 @@
       Math.abs(d) >= 1000 ? h('span', { class: 'delta-value' }, I(d > 0 ? 'arrow-up' : 'arrow-down', 's14'), text) : [flat ? null : I(d > 0 ? 'arrow-up' : 'arrow-down', 's14'), text],
       Math.abs(d) >= 1000 ? h('span', { class: 'delta-baseline' }, context) : null);
   };
-  S.leverDelta = (k, now, before) => S.comparisonDelta(now, before, value => {
+  S.leverDelta = (k, now, before) => k === 'returns' && FD.returnsPending() ? null : S.comparisonDelta(now, before, value => {
     if (value !== 0 && Math.abs(value) < 1) {
       if (k === 'upsell' || k === 'avgSale') return FD.fmt.money(value);
       if (k === 'withSale' || k === 'returns') return FD.fmt.num(value, 2) + (FD.lang === 'ar' ? '٪' : '%');

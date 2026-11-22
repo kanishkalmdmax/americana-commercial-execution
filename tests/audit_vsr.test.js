@@ -2,7 +2,7 @@
 const test = require('node:test'), assert = require('node:assert/strict'), load = require('./load'), path = require('node:path');
 const node = (tag, attrs, ...children) => ({ tag, attrs: attrs || {}, children: children.flat(Infinity).filter(x => x != null && x !== false), querySelector() { return node('img'); }, appendChild(c) { this.children.push(c); }, addEventListener() {}, style: { setProperty() {} }, setAttribute() {}, replaceChildren(...items) { this.children = items; } });
 function ui() {
-  const FD = load(); FD.init(7, { storage: null }); global.document = {}; global.requestAnimationFrame = () => {};
+  const FD = load(); FD.SALESMAN_ENTRY = true; FD.SHELF_AI = true; FD.NEARBY_DATA = true; FD.init(7, { storage: null }); global.document = {}; global.requestAnimationFrame = () => {};
   let seq = 0; FD.key = () => String(++seq); FD.ui = { local: {} }; FD.h = node; FD.icon = k => node('icon', { k }); FD.registerView = (role, name, fn) => { FD.views[role][name] = fn; }; FD.views = { sup: {}, vsr: {} };
   FD.btn = (text, fn, cls) => node('button', { on: { click: fn }, class: cls }, text); FD.iconBtn = (icon, text, fn) => FD.btn(text, fn); FD.select = (options, value, change) => node('select', { options, value, change }); FD.seg = (options, value, change) => node('group', { options, value, change });
   FD.skuLabel = (code, sub) => node('span', null, FD.nameOf(FD.sku(code)) + (sub ? ' ' + sub : '')); FD.skuTile = () => null; FD.skuIcon = () => null; FD.chip = x => node('span', { class: 'chip' }, x); FD.typeChip = x => node('span', null, FD.t('TYPE_' + x)); FD.productPickBar = () => node('div'); FD.searchBox = () => node('input'); FD.empty = () => null;
@@ -52,7 +52,7 @@ test('a store with no recommendations shows its usual refills and always offers 
     assert.ok(view.cta, 'Place order is there'); assert.ok(content(view.cta).includes(FD.t('L_OPEN_SB')));
     const text = content(view.body); const first = V.usualRefills(stop.store)[0];
     assert.ok(text.includes(FD.t('L_REFILLS_H')) && text.includes(FD.nameOf(FD.sku(first.code))), 'usual products listed');
-    assert.ok(text.includes('×' + FD.fmt.num(first.q)), 'with the usual quantity');
+    assert.ok(text.includes(FD.pcs(first.code, first.q)), 'with the usual quantity in words, never ×');
   }
   const rows = V.usualRefills(stop.store); assert.ok(rows.every(x => x.q >= 1));
   assert.ok(rows.findIndex(x => !x.due) === -1 || rows.slice(rows.findIndex(x => !x.due)).every(x => !x.due), 'due reorders first');
@@ -119,11 +119,10 @@ test('My upsells leave out plain reorders, count reorders apart, and use the fou
     assert.ok(text.includes(FD.t('ME_REORDERS_SOLD') + ': ' + FD.fmt.num(2)), 'reorders sold: both reorder lines');
     assert.ok(text.includes(FD.tx('ME_UPS_DAYS_LEFT', { n: FD.catWindow(code) - FD.daysBetween(y, s.clock.date) })), 'days left from the category window');
     const value = FD.upsellValue(above) + FD.upsellValue(gap) + FD.upsellValue(wait);
-    assert.ok(text.includes(FD.fmt.money0(value)) && FD.upsellValue(plain) === 0);
+    assert.ok(!text.includes(FD.fmt.money0(value)) && !text.includes(lang === 'ar' ? 'ريال' : 'SAR') && FD.upsellValue(plain) === 0, 'salesman sees no SAR sales');
   }
-  // Me landing: the same split
-  FD.lang = 'en'; const me = content(FD.views.vsr.me({}, vsr).body);
-  assert.ok(me.includes(FD.t('ME_REORDERS_SOLD')));
+  // Me landing stays short: the split is on My upsells
+  FD.lang = 'en'; assert.ok(!content(FD.views.vsr.me({}, vsr).body).includes(FD.t('ME_REORDERS_SOLD')));
   assert.ok(win > 0 && months);
 } finally { cleanup(); } });
 

@@ -19,7 +19,7 @@
       st.photos.push({id:ph.id,src:ph.src,store:a.store,vsr:a.vsr,date:st.clock.date,time:st.clock.time,assessmentId:a.id,phase:ph.phase,ref});a.photoIds.push(ph.id);
       if(ref!=null&&!a.weights)a.weights=FD.scWeights(st);
       // only a Before photo that could be analysed answers the supervisor's open request; any other photo leaves it open (see FD.scRequest photoReceived)
-      if(ph.phase==='BEFORE'&&FD.scUsable(FD.scResult(ref)))for(const r of state(st).requests.filter(r=>r.store===a.store&&r.status==='OPEN'))Object.assign(r,{status:'DONE',assessmentId:a.id,doneAt:{date:st.clock.date,time:st.clock.time},...(a.by==='SUP'?{by:'SUP'}:{})});
+      if(ph.phase==='BEFORE'&&(!FD.SHELF_AI||FD.scUsable(FD.scResult(ref))))for(const r of state(st).requests.filter(r=>r.store===a.store&&r.status==='OPEN'))Object.assign(r,{status:'DONE',assessmentId:a.id,doneAt:{date:st.clock.date,time:st.clock.time},...(a.by==='SUP'?{by:'SUP'}:{})});
     }
   });
   FD.registerReducer('SC_ACTION_SET',(st,p)=>{

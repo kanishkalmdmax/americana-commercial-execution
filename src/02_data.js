@@ -5,12 +5,12 @@
   Object.assign(FD.CATALOG, {
     CAT_OTHER: E('Canned', 'معلبات'), CAT_NUTS: E('Nuts', 'المكسرات'), PROMO_CB_51: E('5 cases + 1 free', '٥ كراتين + ١ مجاناً'), PROMO_BC_1OFF: E('1 SAR off per piece', 'خصم ١ ريال لكل قطعة'), PROMO_SR_10: E('10% off', 'خصم ١٠٪'),
     LBL_PERFECT: E('Perfect Store', 'متجر مثالي'), LBL_A: E('Class A', 'فئة أ'), LBL_B: E('Class B', 'فئة ب'), LBL_C: E('Class C', 'فئة ج'), LBL_PRESALES: E('Pre-Sales', 'ما قبل البيع'),
-    SIZE_SMALL: E('Small baqala', 'بقالة صغيرة'), SIZE_LARGE: E('Large baqala', 'بقالة كبيرة'), SIZE_MINI: E('Mini-market', 'ميني ماركت'),
+    SIZE_SMALL: E('Small', 'صغير'), SIZE_LARGE: E('Mid', 'متوسط'), SIZE_MINI: E('Big', 'كبير'),
     CAT_CAKE: E('Cakes', 'الكيك'), CAT_BISCUIT: E('Cookies', 'البسكويت'), CAT_RUSK: E('Rusks', 'الشابورة'), 
     // area profiles (name of the kind of area around a store)
-    PROFN_AP_SCHOOL: E('School & youth belt', 'حزام المدارس والشباب'), PROFN_AP_EXPAT: E('Expat bachelor & market', 'عزاب الوافدين والأسواق'),
-    PROFN_AP_FAMILY: E('Saudi family residential', 'سكني عائلي سعودي'), PROFN_AP_HIGHINC: E('High-income & compound', 'دخل مرتفع ومجمعات سكنية'),
-    PROFN_AP_MEDICAL: E('Hospital & shift workers', 'مستشفيات وعمال النوبات'), PROFN_AP_HIGHWAY: E('Highway, fuel & industrial', 'طرق سريعة ووقود وصناعي'),
+    PROFN_AP_SCHOOL: E('Settled residential', 'سكني مستقر'), PROFN_AP_EXPAT: E('Dense inner city', 'وسط المدينة الكثيف'),
+    PROFN_AP_FAMILY: E('Outer suburbs', 'الضواحي الخارجية'), PROFN_AP_HIGHINC: E('Commercial corridor', 'ممر تجاري'),
+    PROFN_AP_MEDICAL: E('Outskirts / edge', 'الأطراف'), PROFN_AP_HIGHWAY: E('Highway, fuel & industrial', 'طرق سريعة ووقود وصناعي'),
     PROFN_AP_GENERAL: E('General', 'عام'),
   });
 
@@ -39,7 +39,7 @@
 
   // ponytail: profiles are placeholders (seeded from the store id) until the data team's area profiles arrive.
   // Area type = one profile per store; nearby places (tags) = the map points behind it, shown to the supervisor only.
-  FD.PROFILES = ['AP_SCHOOL', 'AP_EXPAT', 'AP_FAMILY', 'AP_HIGHINC', 'AP_MEDICAL', 'AP_HIGHWAY', 'AP_GENERAL'];
+  FD.PROFILES = ['AP_SCHOOL', 'AP_EXPAT', 'AP_FAMILY', 'AP_HIGHINC', 'AP_MEDICAL'];
   // anchors within 300 m (school, mosque, hospital, petrol station, university, market), then neighbourhood types (geospatial plan section 4)
   FD.TAGS = ['TAG_SCHOOL', 'TAG_MOSQUE', 'TAG_HOSPITAL', 'TAG_PETROL', 'TAG_UNI', 'TAG_MARKET', 'TAG_DENSE', 'TAG_VILLA', 'TAG_WORKERS', 'TAG_OFFICE'];
   const PROFILE_TAG = { AP_SCHOOL: 'TAG_SCHOOL', AP_EXPAT: 'TAG_WORKERS', AP_FAMILY: 'TAG_MOSQUE', AP_HIGHINC: 'TAG_VILLA', AP_MEDICAL: 'TAG_HOSPITAL', AP_HIGHWAY: 'TAG_PETROL' };

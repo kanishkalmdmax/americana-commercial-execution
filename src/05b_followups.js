@@ -181,7 +181,9 @@
     ['F_COVER', 4, st => st.covers.filter(c => c.date === st.clock.date).map(c => ({ key: 'F_COVER|' + c.date + '|' + c.route, at: c.date,
       slots: { vsr2Id: c.vsr, vsrId: st.world.vsrs.find(v => v.route === c.route).id, routeId: c.route }, action: { label: 'ACT_OPEN_ROUTE', kind: 'vsr', vsr: c.vsr } }))],
   ];
-  const allFollowUps = st => FD.cached('fuAll', st, '', () => FU_RULES.flatMap(([tpl, pri, run]) => run(st).filter(Boolean).map(x => Object.assign(x, { tpl: x.tpl || tpl, pri }))).concat(FD.pgFollowUps ? FD.pgFollowUps(st) : []).concat(FD.waFollowUps ? FD.waFollowUps(st) : [])
+  // these only exist when salesmen enter things in the app, which starts after Phase 1
+  const NEEDS_ENTRY = ['F_MISSING_REASONS', 'F_NOT_OFFERED', 'F_REPEAT_DECLINE', 'F_PLAN_CHANGE', 'F_SKIPPED', 'F_CORRECTION'];
+  const allFollowUps = st => FD.cached('fuAll', st, '', () => FU_RULES.filter(([tpl]) => FD.SALESMAN_ENTRY || !NEEDS_ENTRY.includes(tpl)).flatMap(([tpl, pri, run]) => run(st).filter(Boolean).map(x => Object.assign(x, { tpl: x.tpl || tpl, pri }))).concat(FD.pgFollowUps ? FD.pgFollowUps(st) : []).concat(FD.waFollowUps ? FD.waFollowUps(st) : [])
     .filter(f => !st.followupDone[f.key])
     .sort((a, b) => a.pri - b.pri || ((b.slots.n || 0) - (a.slots.n || 0)) || String(b.at).localeCompare(String(a.at))));
   FD.followUps = st => FD.cached('fu', st, '', () => allFollowUps(st).filter(f => !(st.followupSnooze[f.key] > st.clock.date)));
@@ -210,8 +212,8 @@
       const absent = {}; mine.filter(r => r.reason === 'R_BUYER_ABSENT').forEach(r => { absent[r.store] = (absent[r.store] || 0) + 1; });
       Object.entries(absent).filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).slice(0, 2).forEach(([s, n]) => add('K_BUYER_ABSENT', s, { storeId: s, n })); // the two strongest stores, not a wall of drafts
       const decided = mine.filter(r => r.outcome && r.outcome !== 'CARRIED');
-      if (decided.length >= 10 && pct(decided.filter(r => r.outcome === 'NOT_OFFERED').length, decided.length) >= 40) add('K_NOT_OFFERED', '', {});
-      if (st.recs.filter(r => FD.recVsr(r) === v.id && NEEDS.includes(r.outcome) && !r.reason && !r.exempted && r.date < st.clock.date).length >= 3) add('K_REASONS', '', {});
+      if (FD.SALESMAN_ENTRY && decided.length >= 10 && pct(decided.filter(r => r.outcome === 'NOT_OFFERED').length, decided.length) >= 40) add('K_NOT_OFFERED', '', {});
+      if (FD.SALESMAN_ENTRY && st.recs.filter(r => FD.recVsr(r) === v.id && NEEDS.includes(r.outcome) && !r.reason && !r.exempted && r.date < st.clock.date).length >= 3) add('K_REASONS', '', {});
       const ret = st.recs.find(r => r.vsr === v.id && r.maturity === 'RETURNED' && inLast(st, r.date, 28));
       if (ret) add('K_RETURN', ret.id, { unitOf: ret.alt || ret.sku, qty: 1 });
       const promoSkip = mine.find(r => r.type === 'PROMO' && r.outcome === 'NOT_OFFERED');

@@ -21,7 +21,7 @@
   const statusOf=p=>{const r=FD.scResult(p.ref);return {status:r?r.photo.status:'NONE',reasons:r&&r.photo.status!=='OK'?r.photo.reasons||[]:[]};};
   const fig=p=>{const x=statusOf(p);return h('figure',{class:'sc-figure'},
    h('div',{class:'sc-photo'},FD.photoButton({src:p.src,label:t('PG_PHOTO_LABEL')}),marksOn(p.id).map(f=>h('span',{class:'sc-mark'+(f.urgent?' urgent':''),style:boxStyle(f.box),'aria-hidden':'true'},h('b',null,FD.fmt.num(f.n))))),
-   h('figcaption',{class:'small muted'},t('SC_PHOTO_'+x.status)),x.reasons.length?h('p',{class:'small muted'},x.reasons.map(r=>t('SC_WHY_'+r)).join(' ')):null);};
+   FD.SHELF_AI?h('figcaption',{class:'small muted'},t('SC_PHOTO_'+x.status)):null,FD.SHELF_AI&&x.reasons.length?h('p',{class:'small muted'},x.reasons.map(r=>t('SC_WHY_'+r)).join(' ')):null);};
   // Before | After side by side, each labelled with when and its score; an empty After says what happens next
   const head2=(label,ps,sc)=>h('div',{class:'sc-col-h'},h('div',null,h('b',null,label),ps[0]?h('div',{class:'small muted'},FD.fmt.date(ps[0].date)+' · '+FD.fmt.time(ps[0].time)):null),S.analysed&&sc?FD.scChip(sc):null);
   const bPs=S.analysed?S.cmp.before:S.photos.filter(x=>x.p.phase==='BEFORE').map(x=>x.p),aPs=S.analysed?S.cmp.after:S.photos.filter(x=>x.p.phase==='AFTER').map(x=>x.p);

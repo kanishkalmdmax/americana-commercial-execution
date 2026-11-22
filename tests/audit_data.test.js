@@ -28,7 +28,7 @@ test('collected total never exceeds the payments recorded', () => {
 });
 test('stores carry an area profile, nearby places that agree with it, and the new flags', () => {
   const PT = { AP_SCHOOL: 'TAG_SCHOOL', AP_EXPAT: 'TAG_WORKERS', AP_FAMILY: 'TAG_MOSQUE', AP_HIGHINC: 'TAG_VILLA', AP_MEDICAL: 'TAG_HOSPITAL', AP_HIGHWAY: 'TAG_PETROL' };
-  assert.strictEqual(FD.PROFILES.length, 7);
+  assert.strictEqual(FD.PROFILES.length, 5);
   for (const p of FD.PROFILES) { const c = FD.CATALOG['PROFN_' + p]; assert.ok(c && c.en && /[؀-ۿ]/.test(c.ar), p); }
   for (const s of world.stores) { assert.ok(FD.PROFILES.includes(s.profile), s.id); assert.ok(s.tags.length >= 1 && s.tags.every(t => FD.TAGS.includes(t)) && (!PT[s.profile] || s.tags[0] === PT[s.profile]), s.id); assert.strictEqual(s.closed, null); assert.strictEqual(s.relocate, FD.REAL.stores.find(x => x.id === s.id).gps === 'a'); } // relocate: no known position -> confirm on the next visit
   assert.ok(new Set(world.stores.map(s => s.profile)).size >= 5);

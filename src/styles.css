@@ -576,6 +576,7 @@ td .nowrap, .nowrap { white-space: nowrap; }
 .me-stat { display: grid; justify-items: center; gap: 2px; padding: 8px 4px 10px; min-height: 64px; border-radius: 12px; color: inherit; font: inherit; }
 .me-stat:hover { background: var(--hover); }
 .me-stat b { font-size: 24px; } .me-stat span { font-size: 12.5px; color: var(--ink-3); }
+.me-lost .me-stats { grid-template-columns: repeat(2, auto); justify-content: start; column-gap: 32px; } .me-lost .me-stat { justify-items: start; padding-inline: 0; }
 .bad-ink { color: var(--bad); } .up-ink { color: var(--good); }
 .me-k { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 12px 14px; border-top: 1px solid var(--line); }
 .me-k:first-child { border-top: 0; } .me-k > b { text-align: end; } .me-k > span:not(:first-child) { grid-column: 2; text-align: end; }
@@ -1406,3 +1407,10 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
 .store-chips .chip .size-ic { width: 14px; height: 14px; }
 /* salesman WhatsApp thread fills the screen like the supervisor pane */
 .v-body.chat-body > .wa-pane { flex: 1; min-height: 0; }
+/* production's notifications panel */
+.notif-panel { position: fixed; z-index: 60; width: 340px; max-width: calc(100vw - 32px); max-height: 420px; overflow: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg, var(--shadow)); }
+.notif-panel h3 { margin: 0; padding: 12px 14px; font-size: 14px; font-weight: 600; border-bottom: 1px solid var(--line); }
+.notif-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; background: none; border: 0; border-bottom: 1px solid var(--line); color: inherit; font: inherit; cursor: pointer; }
+.notif-row:last-child { border-bottom: 0; }
+.notif-row:hover { background: var(--hover); }
+.notif-empty { padding: 20px; text-align: center; font-size: 13px; color: var(--muted); }

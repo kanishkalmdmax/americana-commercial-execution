@@ -241,7 +241,7 @@ test('RC1: a same-day revisit does not double the store day in net sales or visi
   FD.dispatch('REVISIT_ADD', { key: 'v', vsr: fx.V2, store, when: 'today' }); FD.dispatch('SB_ORDER', { key: 'o2', vsr: fx.V2, store, mode: 'FULL' });
   const after = FD.vsrMetrics(FD.state, fx.V2, FD.TODAY, FD.TODAY);
   const dayValue = FD.SKUS.reduce((a, k) => a + FD.storeOrders(FD.state, store, k.code).filter(o => o.date === FD.TODAY && o.units > 0).reduce((b, o) => b + o.value, 0), 0);
-  assert.ok(Math.abs(after.net + after.returnsValue - dayValue) < 0.01, (after.net + after.returnsValue) + ' vs ' + dayValue); assert.strictEqual(after.genuine, before.genuine);
+  assert.ok(Math.abs(after.net + after.goodReturns + after.returnsValue - dayValue) < 0.01, (after.net + after.goodReturns + after.returnsValue) + ' vs ' + dayValue); assert.strictEqual(after.genuine, before.genuine);
 });
 test('RC2: next-day revisit sale starts its 28-day check on the sale day', () => {
   const FD = loadAll(); const { store, rec } = tempNotSold(FD, fx.V2, 'R_CREDIT');

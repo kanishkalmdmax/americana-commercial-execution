@@ -25,6 +25,10 @@ test('the baseline runs through the same measures as the pilot', () => {
   assert.ok(Math.abs(lfl.pct - 100 * (a.perDay - b.perDay) / b.perDay) < 1e-6, 'vs baseline = paired pilot per day against paired baseline per day');
   // a period that starts at the pilot is compared with the paired baseline days
   const cp = FD.comparePeriod(FD.PILOT_START, FD.TODAY); assert.ok(cp.base && cp.from === P.from && cp.to === P.to);
-  // net = gross - resaleable returns on the baseline too
-  const goodRet = FD.baseState().returns.filter(FD.goodReturn).length; assert.ok(goodRet > 0);
+  // net = gross - returns of deliveries inside the baseline; KPI 4 uses the same returns
+  const allRet = b.goodReturns + b.returnsValue, g = b.net + allRet;
+  assert.ok(allRet > 0 && Math.abs(b.lev.returns - 100 * allRet / g) < 1e-6);
+  // when baseline days run out, pairing restarts from baseline day 1
+  const sell = (x, y) => { const o = []; for (let d = x; d <= y; d = FD.addDays(d, 1)) if (FD.isSellingDay(d)) o.push(d); return o; };
+  const bd = sell(FD.BASE_FROM, FD.addDays(FD.PILOT_START, -1)); assert.strictEqual(FD.baseDayOf(sell(FD.PILOT_START, FD.PILOT_END)[bd.length]), bd[0]);
 });

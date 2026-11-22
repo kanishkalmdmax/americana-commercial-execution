@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),load=require('./load'),path=require('node:path');
 const node=(tag,attrs,...children)=>({tag,attrs:attrs||{},children:children.flat(Infinity).filter(x=>x!=null&&x!==false),querySelector(){return node('img');},appendChild(child){this.children.push(child);},addEventListener(){},style:{setProperty(){}},setAttribute(){},replaceChildren(...items){assert.ok(items.every(x=>x!=null&&!Array.isArray(x)),'native replaceChildren requires individual nodes');this.children=items;}});
 function ui(){
- const FD=load();FD.init(7,{storage:null});global.document={};global.requestAnimationFrame=()=>{};
+ const FD=load();FD.SHELF_AI=true;FD.init(7,{storage:null});global.document={};global.requestAnimationFrame=()=>{};
  let seq=0;FD.key=()=>String(++seq);FD.ui={local:{}};FD.h=node;FD.icon=k=>node('icon',{k});FD.registerView=(role,name,fn)=>{FD.views[role][name]=fn;};FD.views={sup:{},vsr:{}};
  FD.btn=(text,fn,cls)=>node('button',{on:{click:fn},class:cls},text);FD.iconBtn=(icon,text,fn)=>FD.btn(text,fn);FD.select=(options,value,change)=>node('select',{options,value,change});FD.seg=(options,value,change)=>node('group',{options,value,change});
  FD.skuLabel=code=>node('span',null,FD.nameOf(FD.sku(code)));FD.skuTile=()=>null;FD.skuIcon=()=>null;FD.chip=x=>node('span',null,x);FD.typeChip=x=>node('span',null,FD.t('TYPE_'+x));FD.productPickBar=()=>node('div');FD.searchBox=()=>node('input');FD.empty=()=>null;FD.table=cfg=>node('table',{cfg},cfg.rows.map(r=>cfg.columns.map(c=>c.render?.(r))));FD.photoButton=p=>node('button',{'aria-label':p.label},node('img',{src:p.src}));FD.sizeIcon=()=>null;FD.creditChip=()=>null;FD.avatar=()=>null;FD.ring=()=>null;FD.delta=()=>null;FD.line=()=>null;FD.spark=()=>null;FD.bars=()=>null;FD.drawer={refresh(){},open(cfg){return cfg.render();}};FD.sheet={open(cfg){FD._sheet=cfg;return cfg.render();},redraw(){},close(){}};FD.dx=FD.dispatch;
@@ -43,7 +43,7 @@ test('extreme relative changes show their precise small baseline without adding 
  assert.ok(!walk(normal).some(n=>n.attrs.class==='delta-baseline'));
 }finally{cleanup();}});
 test('salesman and supervisor comparisons use percent changes, with previous-value context',()=>{try{
- const FD=ui();
+ const FD=ui();FD.returnsPending=()=>false;
  for(const lang of ['en','ar']){FD.lang=lang;
   const sale=FD.sup.leverDelta('withSale',59,51.1),returns=FD.sup.leverDelta('returns',7,9.9);
   assert.ok(content(sale).includes(FD.fmt.pct(15.45988258)));assert.match(sale.attrs.class,/up/);

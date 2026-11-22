@@ -78,7 +78,7 @@ test('canned: offered as new only where the store fits; flavour logic applies', 
   // a canned reorder follows the same cycle rule (category gap 38)
   const c = ctxWith(FD); ord(c, 'S1', A.code, 37); assert.ok(!FD.candidates(c, 'S1', ISO).some(x => x.type === 'LAPSED' && x.sku === A.code));
   const c2 = ctxWith(FD); ord(c2, 'S1', A.code, 38); assert.ok(FD.candidates(c2, 'S1', ISO).some(x => x.type === 'LAPSED' && x.sku === A.code));
-  assert.ok(FD.CATALOG.B_GAP_NEAR.en.includes('{pct}% of similar stores nearby carry this') && FD.CATALOG.B_GAP_NEAR.ar);
+  assert.ok(FD.CATALOG.B_GAP_NEAR.en.includes('{pct}% of similar stores buy this.') && FD.CATALOG.B_GAP_NEAR.ar);
 });
 
 test('must-stock is by class and nearby place and keeps its own reason', () => {
@@ -175,13 +175,13 @@ test('metrics use the split: upsell figures, reorder figures, closed-only rates,
     assert.strictEqual(m.sustained + m.notReordered + m.returnedMat, m.closedUpsells); assert.strictEqual(m.closedUpsells + m.pending, m.upsellCount);
     assert.ok(Math.abs(m.xsell - (m.closedUpsells ? 100 * m.sustained / m.closedUpsells : 0)) < 1e-9);
     reorderSeen += m.reorderCount; collectedSeen += m.collected;
-    const col = new Set(st.visits.filter(x => x.vsr === v.id && x.status === 'DONE' && x.collected > 0 && x.date >= from && x.date <= to && !st.covers.some(c => c.date === x.date && c.route === x.route)).map(x => x.store + x.date));
+    const col = new Set(st.visits.filter(x => x.vsr === v.id && x.status === 'DONE' && (x.collected > 0 || x.nc === 10) && x.date >= from && x.date <= to && !st.covers.some(c => c.date === x.date && c.route === x.route)).map(x => x.store + x.date));
     assert.ok(m.collected <= col.size);
   }
   assert.ok(reorderSeen > 0 && collectedSeen > 0);
   assert.ok(st.visits.every(v => v.skipReason !== 'SK_COLLECT'), 'the simulation never skips a stop as collection-only');
   assert.ok(st.visits.filter(v => v.collected > 0).every(v => v.status === 'DONE'));
-  assert.strictEqual(FD.PILOT_END, FD.addDays(FD.PILOT_START, 89)); assert.strictEqual(FD.BASE_FROM, FD.addDays(FD.PILOT_START, -90)); // 90-day pilot against the 90 days before
+  let wd = 0; for (let d = FD.PILOT_START; d <= FD.PILOT_END; d = FD.addDays(d, 1)) if (FD.isSellingDay(d)) wd++; assert.strictEqual(wd, 90); assert.ok(FD.isSellingDay(FD.PILOT_END)); assert.strictEqual(FD.BASE_FROM, '2026-07-22'); // 90 Working Days against the 2 months before
   const sk = FD.skuPerf(st, from, to).filter(x => x.sold); assert.ok(sk.every(x => x.sustainedPct >= 0 && x.sustainedPct <= 100));
   assert.ok(/overdue/.test(FD.CATALOG.KPI_TIP_COLLECT.en) && !/credit limit/.test(FD.CATALOG.KPI_TIP_COLLECT.en));
 });

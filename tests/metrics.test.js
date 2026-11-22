@@ -9,13 +9,13 @@ const get = () => shared || (shared = boot());
 test('pilot display uses the approved primary KPI and four supporting KPIs verbatim', () => {
   const FD = require('./load')();
   assert.deepStrictEqual(FD.PILOT_METRICS.map(m => FD.CATALOG[m.label].en), [
-    'Net Sales per Salesman per Selling Day', 'Visits', 'Visits with a Sale (%)', 'Average Sale Value', 'Damage & expiry (% of sales)'
+    'Net Sales per VSR per Selling Day', 'Visits', 'Visits with a Sale (%)', 'Average Sale Value', 'Returns (% of Sales)'
   ]);
   assert.deepStrictEqual(FD.PILOT_METRICS.slice(1).map(m => FD.CATALOG[m.info].en), [
-    'Completed store visits per salesman per selling day.',
-    'Share of completed visits that end in a posted order.',
-    'Sales value per visit with a sale, including reorders and upsells.',
-    'Damaged and expired returns as a share of gross sales.'
+    'All completed store visits, including collection visits.',
+    'Visits with a sale ÷ visits, leaving out collection-only visits. A visit where an offer was declined still counts.',
+    'Sales value before returns ÷ visits with a sale, including reorders and upsells.',
+    'Pilot returns ÷ sales. Counts returns of deliveries from Day 1, after the first 30 days. Provisional until the Maturity Check.'
   ]);
   assert.deepStrictEqual(FD.PILOT_ADOPTION.map(m => [FD.CATALOG[m.label].en, FD.CATALOG[m.target].en]), [
     ['Morning queue action rate', '100% of alerts'], ['Low-usage route follow-up', 'Same-day call'],
@@ -26,12 +26,12 @@ test('pilot display uses the approved primary KPI and four supporting KPIs verba
 
 test('primary KPI equals the four-factor formula for pooled data and repeated store visits', () => {
   const FD = boot(), s = FD.state, ids = s.world.vsrs.filter(v => v.kind === 'sales').map(v => v.id);
-  const verify = m => assert.ok(Math.abs(m.perDay - m.visits * m.withSale / 100 * m.avgSale * (1 - m.resale / 100)) < 1e-7); // net deducts resaleable returns only
+  const verify = m => assert.ok(Math.abs(m.perDay - m.sellingVisits * m.withSale / 100 * m.avgSale * (1 - m.returns / 100)) < 1e-7); // net deducts pilot returns; collection-only visits leave the chain
   verify(FD.teamLevers(s, ids, FD.PILOT_START, FD.TODAY));
   const v = s.visits.find(v => ids.includes(v.vsr) && v.status === 'DONE' && v.date >= FD.PILOT_START && v.date <= FD.TODAY && s.world.stores.find(x => x.id === v.store).credit !== 'BLOCKED');
   s.visits.push({...v,id:'contract-repeat-visit'}); s.dv++;
   const m = FD.vsrMetrics(s,v.vsr,FD.PILOT_START,FD.TODAY);
-  verify({...m.lev,perDay:m.perDay});
+  verify({...m.lev,perDay:m.perDay,sellingVisits:(m.genuine-m.collected)/m.days});
   verify(FD.teamLevers(s, ids, FD.PILOT_START, FD.TODAY));
 });
 
@@ -80,7 +80,7 @@ test('store health bands and shelf states', () => {
   for (const s of ['CARRIED', 'PENDING', 'OPPORTUNITY', 'GATED', 'RETURNED']) assert.ok(states.has(s), s);
 });
 test('follow-ups fire from seeded behaviour, are ordered, and respect done/snooze', () => {
-  const FD = boot(); const fu = FD.followUps(FD.state);
+  const FD = boot(); FD.SALESMAN_ENTRY = true; FD.invalidate(FD.state); const fu = FD.followUps(FD.state);
   for (const t of ['F_MISSING_REASONS', 'F_CORRECTION', 'F_VSR_STORE_MSG']) assert.ok(fu.some(f => f.tpl === t), t);
   assert.ok(fu.some(f => f.tpl === 'F_MISSING_REASONS' && f.slots.vsrId === FD.state.skipVan));
   for (let i = 1; i < fu.length; i++) assert.ok(fu[i - 1].pri <= fu[i].pri);

@@ -35,7 +35,7 @@
     F_WATCH_BAD: E('{sku} returns are still {pct}% after {days} days on the watchlist', 'مرتجعات {sku} ما زالت {pct}٪ بعد {days} يوماً من المراقبة'),
     F_WATCH_BAD_C: E('Before the watchlist: {n}%. Keep watching or block it.', 'قبل المراقبة: {n}٪. استمر في المراقبة أو أوقفه.'),
     ACT_UNWATCH: E('Take off watchlist', 'إزالة من المراقبة'), ACT_REVIEW_PRODUCT: E('Review product', 'مراجعة المنتج'), AU_WATCH_KEEP: E('Watchlist extended', 'تم تمديد المراقبة'),
-    B_SUP: E('Your supervisor picked this for this store.', 'اختاره مشرفك لهذا المحل.'),
+    B_SUP: E('Picked by your supervisor.', 'اختاره مشرفك.'),
     N_PLAN_SUP: E('{sup} updated your plan at {store}', 'حدّث {sup} خطتك في {store}'),
     SK_SUP: E('Removed by supervisor', 'أزاله المشرف'), SK_SUP_ADDED: E('Added by supervisor', 'أضافه المشرف'),
     AU_REASON_ADD: E('Reason added', 'أضيف سبب'), AU_REASON_EDIT: E('Reason renamed', 'أعيدت تسمية سبب'), AU_REASON_HIDE: E('Reason hidden', 'أخفي سبب'), AU_REASON_SHOW: E('Reason shown again', 'أعيد إظهار سبب'),
@@ -50,6 +50,11 @@
     return (e[FD.lang] || e.en).replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null) ? String(slots[k]) : '');
   };
   FD.has = id => !!FD.CATALOG[id];
+  // quantities always say their unit in words ("24 pieces"), never "×24"
+  FD.pcs = (code, q) => { const k = FD.sku(code) || {}; const many = q > 1; return FD.fmt.num(q) + ' ' + (FD.lang === 'ar' ? (many ? k.units_ar : k.unit_ar) : (many ? k.units : k.unit)); };
+  // carton size is a detail line under the product, never part of its name
+  FD.cartonText = code => { const k = FD.sku(code); if (!k || !k.pcsPerCrt) return null;
+    return k.packOf ? FD.t('L_CARTON_PACKS', { n: FD.fmt.num(k.pcsPerCrt), qty: FD.fmt.num(k.pcsPerCrt / k.packOf), pcs: FD.fmt.num(k.packOf) }) : FD.t('L_CARTON_PCS', { n: FD.fmt.num(k.pcsPerCrt) }); };
 
   const loc = () => FD.lang === 'ar' ? (FD.digits === 'arab' ? 'ar-SA-u-nu-arab' : 'ar-SA-u-nu-latn') : 'en-GB';
   const nf = {};

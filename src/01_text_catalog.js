@@ -275,8 +275,8 @@
   "ar": "المحادثات"
  },
  "B_LAPSED": {
-  "en": "Last ordered {days} days ago. Used to take {qty} {unit} a visit.",
-  "ar": "آخر طلب قبل {days} يوماً. كان يأخذ {qty} {unit} في كل زيارة."
+  "en": "Last order {days} days ago. Usual {qty} {unit}.",
+  "ar": "آخر طلب قبل {days} يوماً. المعتاد {qty} {unit}."
  },
  "B_GAP_TAG": {
   "en": "{pct}% of stores {tag} carry this. This store doesn't.",
@@ -287,24 +287,24 @@
   "ar": "{pct}٪ من محلات فئة {label} توفّر هذا المنتج، وهذا المحل لا يوفّره."
  },
  "B_GAP_MUST": {
-  "en": "On the must-stock list for {label} stores. Not on this shelf yet.",
-  "ar": "ضمن قائمة المنتجات الأساسية لمحلات {label}، وغير موجود على الرف بعد."
+  "en": "{pct}% of similar stores buy this.",
+  "ar": "{pct}٪ من المحلات المشابهة تشتري هذا."
  },
  "B_UP_PACK": {
-  "en": "Sells {sku_small} steadily. Offer the {sku} box for more cash per visit.",
-  "ar": "يبيع {sku_small} بانتظام. اعرض علبة {sku} لربح أكبر في كل زيارة."
+  "en": "Buys {sku_small}. Add this one too.",
+  "ar": "يشتري {sku_small}. أضف هذا أيضاً."
  },
  "B_UP_FLAVOUR": {
-  "en": "{sku_have} sells well here. Add {sku} to complete the range.",
-  "ar": "{sku_have} يُباع جيداً هنا. أضف {sku} لإكمال التشكيلة."
+  "en": "Buys {sku_have}. Add this one too.",
+  "ar": "يشتري {sku_have}. أضف هذا أيضاً."
  },
  "B_PROMO": {
-  "en": "{promo} until {date}. Good time to stock up.",
-  "ar": "{promo} حتى {date}. وقت مناسب لزيادة المخزون."
+  "en": "{promo} until {date}.",
+  "ar": "{promo} حتى {date}."
  },
  "B_PINNED": {
-  "en": "Priority from your supervisor.",
-  "ar": "أولوية من المشرف."
+  "en": "Picked by your supervisor.",
+  "ar": "اختاره مشرفك."
  },
  "C_PITCH": {
   "en": "Costs {cost} SAR · sells for {rev} SAR · store earns {earn} SAR",
@@ -335,8 +335,8 @@
   "ar": "غير متوفر في السيارة اليوم"
  },
  "D_DATA_AGE": {
-  "en": "Store data updated · {date} {time}",
-  "ar": "تم تحديث بيانات المحل · {date} {time}"
+  "en": "Data to {date}",
+  "ar": "البيانات حتى {date}"
  },
  "D_EXPIRES": {
   "en": "Valid until end of this visit",
@@ -643,8 +643,8 @@
   "ar": "رد على السعر بسعر المحل"
  },
  "K_PRICE": {
-  "en": "For {sku}: the store pays {cost} SAR a piece including VAT. Say the SAR amount and how often it sells here, not a percentage.",
-  "ar": "لمنتج {sku}: يدفع المحل {cost} ريال للقطعة شاملة الضريبة. اذكر المبلغ بالريال ومدى بيعه هنا، لا النسبة."
+  "en": "For {sku}: the store pays about {cost} SAR a piece with VAT. Say the SAR amount and how often it sells here.",
+  "ar": "لمنتج {sku}: يدفع المحل حوالي {cost} ريال للقطعة مع الضريبة. اذكر المبلغ وكم يُباع هنا."
  },
  "K_ENOUGH_T": {
   "en": "Check the shelf before offering",

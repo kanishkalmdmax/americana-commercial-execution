@@ -8,7 +8,7 @@
   CI_WHAT:E('What did you see?','ماذا رأيت؟'),CI_PRICE:E('Lower price or deal','سعر أقل أو عرض'),CI_DISPLAY:E('Own stand or display','ستاند أو عرض خاص'),CI_NEW:E('New product','منتج جديد'),CI_SPACE:E('More shelf space than us','مساحة رف أكبر منا'),
   CI_LOST:E('Lost to their deal: {n}','خسرناها لعرضه: {n}'),CI_PHOTOS:E('Photos: {n}','الصور: {n}'),CI_LAST:E('Last seen {date}','آخر مرة {date}'),
   CI_NONE:E('No competitor seen at this store in the last 60 days.','لم يُرصد منافس في هذا المحل خلال آخر 60 يوماً.'),
-  CI_FROM:E('Last 60 days, from competitor photos, "Competitor deal" reasons and the latest Shelf Check.','آخر 60 يوماً، من صور المنافس وأسباب "عرض منافس" وآخر فحص للرف.'),PG_ADD_MORE:E('Add another photo','إضافة صورة أخرى'),PG_ADD:E('Add photos','إضافة صور'),PG_BEFORE:E('Before','قبل الترتيب'),PG_AFTER:E('After','بعد الترتيب'),
+  CI_FROM:E('Last 60 days, from competitor photos and "Competitor deal" reasons.','آخر 60 يوماً، من صور المنافس وأسباب "عرض منافس" وآخر فحص للرف.'),PG_ADD_MORE:E('Add another photo','إضافة صورة أخرى'),PG_ADD:E('Add photos','إضافة صور'),PG_BEFORE:E('Before','قبل الترتيب'),PG_AFTER:E('After','بعد الترتيب'),
   PG_GUIDE:E('Face the display straight on. Include its edges and price labels. Keep product fronts clear.','واجه الرف مباشرة، وأظهر حوافه وبطاقات الأسعار وواجهات المنتجات بوضوح.'),
   PG_TIPS:E('Use the normal lens. Tap to focus, hold still and check glare. Match the angle for the after photo.','استخدم العدسة العادية، واضغط للتركيز وثبّت الهاتف وتجنب الانعكاس. استخدم الزاوية نفسها للصورة التالية.'),
   PG_SAVED:E('Photos saved','تم حفظ الصور'),PG_SAVING:E('Saving photos…','جارٍ حفظ الصور…'),PG_FAILED:E('{n} photos could not be saved. You can try them again.','تعذّر حفظ {n} صور. يمكنك المحاولة مرة أخرى.'),
@@ -17,7 +17,7 @@
   PG_ASSORTMENT:E('Store assortment','تشكيلة المحل'),PG_PURCHASED:E('Products purchased','المنتجات المشتراة'),PG_RECURRING:E('Recurring products','المنتجات المتكررة'),PG_GAPS:E('Recommended additions','إضافات موصى بها'),PG_HISTORY_SOURCE:E('From order history, not a shelf stock count','من سجل الطلبات، وليس تعداداً لمخزون الرف'),
 
   F_PLANOGRAM:E('Shelf Check at {store}','فحص الرف في {store}'),F_PLANOGRAM_C:E('{n} items: not in van, help needed or a damaged pack','{n} بنود: غير متوفر في السيارة أو يحتاج مساعدة أو عبوة تالفة'),ACT_PLANOGRAM:E('Open Shelf Check','فتح فحص الرف'),
-  PG_VALUE:E('Compare pack value','مقارنة قيمة العبوات'),PG_VALUE_CHEAPER:E('{n}% lower cost per 100g','تكلفة أقل بنسبة {n}% لكل ١٠٠ غ'),PG_PACK_COST:E('Store pays / piece','يدفع المحل / قطعة'),PG_100G:E('Store pays / 100g','يدفع المحل / ١٠٠ غ'),PG_PRICE_BASIS:E('Price per piece from past orders, plus 15% VAT as on the store invoice. Compare the same selling unit.','سعر القطعة من الطلبات السابقة مع ضريبة ١٥٪ كما في فاتورة المحل. قارن وحدة البيع نفسها.'),
+  PG_VALUE:E('Compare pack value','مقارنة قيمة العبوات'),PG_VALUE_CHEAPER:E('{n}% lower cost per 100g','تكلفة أقل بنسبة {n}% لكل ١٠٠ غ'),PG_PACK_COST:E('Store pays / piece','يدفع المحل / قطعة'),PG_100G:E('Store pays / 100g','يدفع المحل / ١٠٠ غ'),PG_PRICE_BASIS: E('Estimated: price per piece from past orders, plus 15% VAT.', 'تقديري: سعر القطعة من الطلبات السابقة مع ضريبة ١٥٪.'),
   PG_COLUMNS:E('Columns','الأعمدة'),PG_SEARCH_PRODUCTS:E('Search products','بحث المنتجات'),PG_BROWSE:E('Browse assortment','تصفح التشكيلة'),PG_ALL_PRODUCTS:E('All products','كل المنتجات'),PG_RESET:E('Clear filters','مسح المرشحات'),PG_PRODUCT_COUNT:E('{n} products','{n} منتجات'),PG_STORE_COUNT:E('Stores · {n}','المحلات · {n}'),PG_SHOWING:E('Showing {n} of {m} stores','عرض {n} من {m} محلاً'),PG_SORT:E('Sort by','ترتيب حسب'),PG_SORT_SALES:E('Highest sales','الأعلى مبيعاً'),PG_SORT_NAME:E('Product name','اسم المنتج'),PG_SORT_RETURNS:E('Highest returns','الأعلى مرتجعات'),PG_SORT_COST:E('Lowest cost per 100g','أقل تكلفة لكل ١٠٠ غ'),
   PG_BASE:E('Before recommendations','قبل التوصيات'),PG_PREVIOUS_PERIOD:E('Previous period','الفترة السابقة'),PG_VIEW:E('View store intelligence','عرض معلومات المحل'),
   // Shelf Check: fixed wording only. Analysis returns IDs; these strings are all a person ever reads.
@@ -95,7 +95,7 @@
  const scSummary=(st,id)=>{
   const a=FD.pgAssessment(st,id);if(!a)return null;
   const photos=FD.pgPhotos(st,id).map(p=>{const r=FD.scResult(p.ref);return {p,r,status:r?r.photo.status:'NONE',reasons:r&&r.photo.status!=='OK'?r.photo.reasons||[]:[]};});
-  const done=photos.filter(x=>x.r);if(!done.length)return {analysed:false,photos};
+  const done=photos.filter(x=>x.r);if(!FD.SHELF_AI||!done.length)return {analysed:false,photos};
   const W=a.weights||FD.scWeights(st),phase=ph=>done.filter(x=>x.p.phase===ph&&FD.scUsable(x.r));
   let B=phase('BEFORE'),A=phase('AFTER'),next=false;
   // no After photo: the next visit's Before photo of the same display checks these issues
@@ -166,7 +166,7 @@
     a.adjust={BEFORE:B};}
    const s=FD.scSummary(st,id);
    // outcomes agree with what the After photo shows
-   s.findings.forEach((x,k)=>{a.actions[x.check]=x.cls==='ASK'?(x.status==='FIXED'?'OWNER_YES':x.status==='STILL'?'OWNER_NO':FD.SC_OUTCOMES.ASK[(n+k)%3])
+   (s.findings||[]).forEach((x,k)=>{a.actions[x.check]=x.cls==='ASK'?(x.status==='FIXED'?'OWNER_YES':x.status==='STILL'?'OWNER_NO':FD.SC_OUTCOMES.ASK[(n+k)%3])
     :x.status==='FIXED'?'DONE':x.status==='PARTLY_FIXED'?'PARTLY_DONE':x.status==='STILL'?(((n+k)%6===0)?'NOT_IN_VAN':'OWNER_NO'):((n+k)%40===7?'NOT_IN_VAN':(n+k)%40===23?'NEED_HELP':(n+k)%9===4?'PARTLY_DONE':'DONE');});}
  };
 })();

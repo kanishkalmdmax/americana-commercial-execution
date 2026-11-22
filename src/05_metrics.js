@@ -6,7 +6,7 @@
     CTX_COVERED: E('Covered on {date}', 'تمت التغطية في {date}'),
     CTX_RELIEF: E('Relief route · not ranked', 'مسار بديل · غير مرتب'),
     S_STORAGE: E('Browser storage is full. Changes stay until you close this tab', 'مساحة التخزين ممتلئة، ستبقى التغييرات حتى إغلاق الصفحة'),
-    B_GAP_NEAR: E('{pct}% of similar stores nearby carry this', '{pct}٪ من المحلات المشابهة القريبة توفّر هذا المنتج'),
+    B_GAP_NEAR: E('{pct}% of similar stores buy this.', '{pct}٪ من المحلات المشابهة تشتري هذا.'),
     NOT_REORDERED: E('Not reordered', 'لم يُعد الطلب'),
   });
   // The five sales levers (names fixed by the business; every screen uses these and only these)
@@ -18,7 +18,7 @@
     { k: 'returns', label: 'M_RETURNS', info: 'MI_RETURNS', icon: 'undo', lowerBetter: true }];
   FD.METRIC_KEYS = FD.METRICS.map(x => x.k);
   // Approved pilot contract. Upsell value remains an operational diagnostic, outside the four supporting KPIs.
-  FD.routeArea = r => !r ? '' : FD.nameOf(r).split(' · ').pop(); // route names lead with an internal code
+  FD.routeArea = r => !r ? '' : String(r.id).replace('_', ' '); // the data has no area name for a route; show RYD 01
   FD.PILOT_METRICS = [{ k: 'primary', label: 'M_PRIMARY', info: 'MI_PRIMARY', formula: 'MF_PRIMARY', icon: 'chart' },
     ...FD.METRICS.filter(m => m.k !== 'upsell').map((m, i) => ({...m, number: i + 1, formula: 'MF_' + m.k.toUpperCase()}))];
   FD.PILOT_ADOPTION = [
@@ -36,7 +36,9 @@
   // ponytail: placeholder targets until Americana/Finance approve them (spec §16)
   FD.TARGETS = { uplift: 1.05, upsellPerDay: 150, returnsCut: 0.9 };
   // one lever value -> display text
-  FD.metricText = (k, v) => v == null ? '—' : k === 'visits' ? FD.fmt.num(v, 1) : k === 'withSale' || k === 'returns' ? FD.fmt.pct(v) : FD.fmt.money0(v);
+  // no return counts until Day 31, and that day's data loads the night after it
+  FD.returnsPending = () => !!FD.state && FD.state.clock.date <= FD.addDays(FD.PILOT_START, 30);
+  FD.metricText = (k, v) => k === 'returns' && FD.returnsPending() ? FD.t('M_RETURNS_START') : v == null ? '—' : k === 'visits' ? FD.fmt.num(v, 1) : k === 'withSale' || k === 'returns' ? FD.fmt.pct(v) : FD.fmt.money0(v);
   const SOLD = ['FULL', 'PARTIAL', 'ALT'];
   const NEEDS_REASON = ['NOT_SOLD', 'NOT_OFFERED'];
   const cap = x => Math.max(0, Math.min(100, x));
@@ -61,10 +63,16 @@
   }
   const covered = (st, v) => st.covers.some(c => c.date === v.date && c.route === v.route);
   // cut {date, time}: on that day only count visits finished by that time (fair "today so far" comparisons)
+  // a paired day carries the Friday after it: Friday sales and visits count, but Friday adds no Selling Day
+  const inDays = (only, d) => !only || only.has(d) || (new Date(d + 'T00:00:00Z').getUTCDay() === 5 && only.has(FD.addDays(d, -1)));
+  const DECLINE_NC = [2, 6, 7]; // SalesBuzz: No Money, Has stock, Refused
+  const collectionOnly = v => (v.collected || v.nc === 10) && !DECLINE_NC.includes(v.nc);
+  // SOW Return Attribution: a return counts only if its delivery was on or after Day 1 and it was not logged in the first 30 days. The baseline rows already follow the same rule.
+  FD.pilotReturn = (st, x) => st.base || (!!x.saleDate && x.saleDate >= FD.PILOT_START && x.date >= FD.addDays(FD.PILOT_START, 30));
   const inCut = (v, cut) => !cut || v.date !== cut.date || (v.leftAt || '99:99') <= cut.time;
   function visitsOf(st, vsrId, from, to, cut, days) {
     const lim = to > st.clock.date ? st.clock.date : to;
-    return st.visits.filter(v => v.vsr === vsrId && v.date >= from && v.date <= lim && v.status === 'DONE' && !covered(st, v) && inCut(v, cut) && (!days || days.has(v.date)));
+    return st.visits.filter(v => v.vsr === vsrId && v.date >= from && v.date <= lim && v.status === 'DONE' && !covered(st, v) && inCut(v, cut) && inDays(days, v.date));
   }
   function core(st, vsrId, from, to, cut, only) { // only: optional set of dates (paired days)
     const idx = dayIndex(st);
@@ -72,18 +80,21 @@
     const vs = visitsOf(st, vsrId, from, to, cut, only);
     // a revisit is the same store-day: its value and visit count once (C1)
     let gross = 0, productive = 0, collected = 0; const days = new Set(), seen = new Set();
-    // a collection-only stop (payment, no order) is a completed visit: it is in the visit count, not in the with-sale count
-    for (const v of vs) { const k = v.store + '|' + v.date; if (seen.has(k)) continue; seen.add(k); const val = idx.get(k) || 0; gross += val; if (val > 0) productive++; else if (v.collected) collected++; days.add(v.date); }
+    // one store-day: any decline reason that day means it was not collection-only, whichever visit carried it
+    const declined = new Set(), paid = new Set();
+    for (const v of vs) { const k = v.store + '|' + v.date; if (DECLINE_NC.includes(v.nc)) declined.add(k); if (v.collected || v.nc === 10) paid.add(k); }
+    // a collection-only stop is a completed visit: it is in the visit count, not in the with-sale count or its denominator
+    for (const v of vs) { const k = v.store + '|' + v.date; if (seen.has(k)) continue; seen.add(k); const val = idx.get(k) || 0; gross += val; if (val > 0) productive++; else if (paid.has(k) && !declined.has(k)) collected++; if (FD.isSellingDay(v.date)) days.add(v.date); }
     const lim = to > st.clock.date ? st.clock.date : to;
     const rv = returnVsr(st);
-    // good (resaleable) returns come off net sales; damage / expiry is reported on its own as the returns rate
-    const mineRet = st.returns.filter(x => rv.get(x.id) === vsrId && x.date >= from && x.date <= lim && (!only || only.has(x.date)));
+    // pilot returns only (Return Credits); old returns stay in store history and affect no KPI
+    const mineRet = st.returns.filter(x => rv.get(x.id) === vsrId && x.date >= from && x.date <= lim && inDays(only, x.date) && FD.pilotReturn(st, x));
     const ret = mineRet.filter(FD.goodReturn).reduce((a, x) => a + x.value, 0), bad = mineRet.filter(x => !FD.goodReturn(x)).reduce((a, x) => a + x.value, 0);
-    const net = gross - ret;
-    return { net, gross, ret, bad, collected, genuine: seen.size, productive, days: days.size, pvr: pct(productive, seen.size), drop: productive ? net / productive : 0, perDay: days.size ? net / days.size : 0 };
+    const net = gross - ret - bad;
+    return { net, gross, ret, bad, collected, genuine: seen.size, productive, days: days.size, pvr: pct(productive, seen.size - collected), drop: productive ? gross / productive : 0, perDay: days.size ? net / days.size : 0 };
   }
-  // Baseline: the PILOT_DAYS before the pilot. Pilot selling day k is compared with baseline selling day k (first 10 days of the pilot
-  // against the first 10 days of the baseline, and so on). A pair is left out when the baseline day has no sales data (before the
+  // Baseline: the 2 months before the pilot. Pilot selling day k is compared with baseline selling day k (first 10 days of the pilot
+  // against the first 10 days of the baseline, and so on; when baseline days run out, restart from baseline day 1). A pair is left out when the baseline day has no sales data (before the
   // extract's first order) or either day is in an odd week. Each side is then a per-working-day figure over its own paired days.
   const sellDays = (a, b) => { const out = []; for (let d = a; d <= b; d = FD.addDays(d, 1)) if (FD.isSellingDay(d)) out.push(d); return out; };
   const PAIRS = new Map(); let pilotSell = null, baseSell = null;
@@ -91,18 +102,18 @@
     const B = (FD.REAL && FD.REAL.baseline) || {}, odd = new Set((FD.REAL && FD.REAL.oddDays) || []);
     pilotSell = pilotSell || sellDays(FD.PILOT_START, FD.PILOT_END); baseSell = baseSell || sellDays(FD.BASE_FROM, FD.addDays(FD.PILOT_START, -1));
     const pilot = new Set(), base = new Set();
-    pilotSell.forEach((d, i) => { const e = baseSell[i]; if (!e || d < from || d > to || !B.dataStart || e < B.dataStart || odd.has(d) || odd.has(e)) return; pilot.add(d); base.add(e); });
+    pilotSell.forEach((d, i) => { const e = baseSell[i % baseSell.length]; if (!e || d < from || d > to || !B.dataStart || e < B.dataStart || odd.has(d) || odd.has(e)) return; pilot.add(d); base.add(e); });
     const bs = [...base].sort(), r = { pilot, base, from: bs[0] || null, to: bs[bs.length - 1] || null, key: k }; PAIRS.set(k, r); return r; };
   // the baseline day paired with a pilot date (the last selling day on or before it)
   FD.baseDayOf = iso => { pilotSell = pilotSell || sellDays(FD.PILOT_START, FD.PILOT_END); baseSell = baseSell || sellDays(FD.BASE_FROM, FD.addDays(FD.PILOT_START, -1));
-    let i = -1; for (let j = 0; j < pilotSell.length && pilotSell[j] <= iso; j++) i = j; return i >= 0 ? baseSell[i] || null : null; };
+    let i = -1; for (let j = 0; j < pilotSell.length && pilotSell[j] <= iso; j++) i = j; return i >= 0 ? baseSell[i % baseSell.length] || null : null; };
   // the baseline as its own small state (store-day rows from the data load), so every measure runs through the same code
   let BASE = null;
   FD.baseState = () => BASE || (BASE = (() => {
     const B = (FD.REAL && FD.REAL.baseline) || { visits: [], sales: [], returns: [] }, core = (FD.REAL && FD.REAL.core) || [], st = FD.state || {};
     const orders = []; for (const [d, vsr, store, value, skus] of B.sales) { orders.push({ store, date: d, vsr, sku: '*', units: 1, value }); for (const i of skus) orders.push({ store, date: d, vsr, sku: core[i], units: 1, value: 0 }); }
-    const returns = []; let n = 0; for (const [d, store, good, bad] of B.returns) { if (good) returns.push({ id: 'BR' + (++n), store, date: d, value: good, reason: FD.GOOD_RETURN }); if (bad) returns.push({ id: 'BR' + (++n), store, date: d, value: bad, reason: 'DAMAGE' }); }
-    return { base: true, world: st.world || { stores: [], vsrs: [], routes: [] }, rules: st.rules || {}, visits: B.visits.map(([d, vsr, store]) => ({ store, vsr, date: d, status: 'DONE' })),
+    const coll = new Set((B.collectionOnly || []).map(([d, store]) => d + '|' + store)), returns = (B.ruleReturns || []).map(([d, store, value], i) => ({ id: 'BR' + (i + 1), store, date: d, value, reason: 'DAMAGE' }));
+    return { base: true, world: st.world || { stores: [], vsrs: [], routes: [] }, rules: st.rules || {}, visits: B.visits.map(([d, vsr, store]) => ({ store, vsr, date: d, status: 'DONE', collected: coll.has(d + '|' + store) })),
       orders, returns, recs: [], covers: [], clock: { date: FD.addDays(FD.PILOT_START, -1), time: '23:59' }, dv: 0, lang: 'en' }; })());
   FD.resetBaseState = () => { BASE = null; };
   // what a period is compared with: one day -> the previous selling day; a period whose previous window starts before the pilot ->
@@ -156,8 +167,8 @@
       const xsell = pct(sustained, closedUps); // only closed ones (reordered, not reordered, returned) are in the denominator
       const action = pct(acted.length, counted.length);
       // the five levers; a selling day is a day the salesman made at least one visit
-      const lev = { primary: c.days ? c.perDay : null, visits: c.days ? c.genuine / c.days : 0, withSale: c.pvr, avgSale: c.productive ? c.gross / c.productive : 0, upsell: upsellSales, returns: pct(c.bad, c.gross), resale: pct(c.ret, c.gross) }; // net per day = visits x with sale x avg sale x (1 - resale)
-      const base = { primary: lfl.days ? lfl.expected / lfl.days : null, visits: b.days ? b.genuine / b.days : 0, withSale: b.pvr, avgSale: b.productive ? b.gross / b.productive : 0, upsell: 0, returns: pct(b.bad, b.gross) };
+      const lev = { primary: c.days ? c.perDay : null, visits: c.days ? c.genuine / c.days : 0, withSale: c.pvr, avgSale: c.productive ? c.gross / c.productive : 0, upsell: upsellSales, returns: pct(c.ret + c.bad, c.gross) }; // net per day = visits x with sale x avg sale x (1 - returns)
+      const base = { primary: lfl.days ? lfl.expected / lfl.days : null, visits: b.days ? b.genuine / b.days : 0, withSale: b.pvr, avgSale: b.productive ? b.gross / b.productive : 0, upsell: 0, returns: pct(b.ret + b.bad, b.gross) };
       const T = FD.TARGETS; const retT = base.returns * T.returnsCut;
       const target = { visits: base.visits * T.uplift, withSale: base.withSale * T.uplift, avgSale: base.avgSale * T.uplift, upsell: T.upsellPerDay * c.days, returns: retT };
       const score = {
@@ -183,7 +194,7 @@
         followedPct: pct(recs.length - recs.filter(r => r.outcome === 'NOT_OFFERED').length, recs.length),
         followed: { withRecs: chg(A), without: chg(B), stores: A.size, pending: pending > 0 },
         reasonsPct: pct(withReason.length, needReason.length), missingReasons: needReason.length - withReason.length,
-        returnRate: pct(c.bad, c.gross), vsBaseline: lfl.pct, hasBaseline: lfl.expected > 0 && lfl.days > 0,
+        returnRate: pct(c.ret + c.bad, c.gross), vsBaseline: lfl.pct, hasBaseline: lfl.expected > 0 && lfl.days > 0,
       };
     });
   };
@@ -191,8 +202,8 @@
   // the five levers for a group of salesmen: pooled (sums first, then ratios), not an average of averages
   FD.teamLevers = (st, vsrIds, from, to, only) => {
     const ms = vsrIds.map(id => FD.vsrMetrics(st, id, from, to, null, only)); const S = f => ms.reduce((a, m) => a + f(m), 0);
-    const days = S(m => m.days), visits = S(m => m.genuine), sold = S(m => m.productive), gross = S(m => m.net + m.goodReturns), ret = S(m => m.goodReturns), bad = S(m => m.returnsValue);
-    return { primary: days ? (gross - ret) / days : null, perDay: days ? (gross - ret) / days : null, visits: days ? visits / days : null, withSale: visits ? pct(sold, visits) : null, avgSale: sold ? gross / sold : null, upsell: S(m => m.upsellSales), returns: gross ? pct(bad, gross) : null, resale: gross ? pct(ret, gross) : null, net: gross - ret, days, collected: S(m => m.collected), reorderValue: S(m => m.reorderValue) };
+    const days = S(m => m.days), visits = S(m => m.genuine), sold = S(m => m.productive), ret = S(m => m.goodReturns), bad = S(m => m.returnsValue), gross = S(m => m.net) + ret + bad, net = gross - ret - bad;
+    return { primary: days ? net / days : null, perDay: days ? net / days : null, visits: days ? visits / days : null, sellingVisits: days ? (visits - S(m => m.collected)) / days : null, withSale: visits - S(m => m.collected) ? pct(sold, visits - S(m => m.collected)) : null, avgSale: sold ? gross / sold : null, upsell: S(m => m.upsellSales), returns: gross ? pct(ret + bad, gross) : null, net, days, collected: S(m => m.collected), reorderValue: S(m => m.reorderValue) };
   };
 
   FD.ranking = function (st, mode, from, to) {
@@ -391,13 +402,13 @@
   Object.assign(FD.CATALOG, {
     ME_UPDATED: E('Updated to {date}', 'آخر تحديث {date}'),
     ME_KPI_CARD: E('My KPIs this month', 'مؤشراتي هذا الشهر'),
-    ME_KPI_ON_TRACK: E('{n} of 4 KPIs on track', '{n} من ٤ مؤشرات على المسار'),
-    ME_DAYS_LEFT: E('{n} selling days left', 'باقي {n} أيام بيع'),
-    ME_BONUS_EXPECTED: E('Expected bonus {money} · {total} at 100%', 'المكافأة المتوقعة {money} · {total} عند ١٠٠٪'),
+    ME_KPI_ON_TRACK: E('{n} of 4 on track', '{n} من ٤ على المسار'),
+    ME_DAYS_LEFT: E('{n} days left', 'باقي {n} أيام'),
+    ME_BONUS_EXPECTED: E('Est. bonus {money} of {total}', 'المكافأة التقديرية {money} من {total}'),
     ME_NEXT: E('Next: {tip}', 'التالي: {tip}'),
     ME_MORE_TODO: E('{n} more to do', 'باقي {n}'),
     ME_YDAY_CARD: E('Yesterday, {date}', 'أمس، {date}'),
-    ME_STORES_BOUGHT: E('{done} of {need} stores invoiced', '{done} من {need} محلاً مفوتراً'),
+    ME_STORES_BOUGHT: E('{done} of {need} stores', '{done} من {need} محلات'),
     ME_UPS_CARD: E('My upsells this month', 'مبيعاتي الإضافية هذا الشهر'),
     ME_UPS_TITLE: E('My upsells', 'مبيعاتي الإضافية'),
     ME_UPS_SOLD: E('Sold', 'مباع'), ME_UPS_REORDERED: E('Reordered', 'أعيد طلبه'), ME_UPS_RETURNED: E('Returned', 'مرتجع'), ME_UPS_WAITING: E('Waiting', 'قيد الانتظار'),
@@ -416,7 +427,7 @@
     ME_K_VISITS: E('Visits per day', 'الزيارات يومياً'),
     ME_K_BOUGHT: E('Stores invoiced', 'المحلات المفوترة'),
     ME_K_AVG: E('Average sale', 'متوسط البيع'),
-    ME_K_RETURNS: E('Damage & expiry', 'التالف والمنتهي'),
+    ME_K_RETURNS: E('Returns', 'المرتجعات'),
     ME_MORE_MONEY: E('{money} more than before', '{money} أكثر من قبل'),
     ME_LESS_MONEY: E('{money} less than before', '{money} أقل من قبل'),
     ME_MORE_N: E('{n} more than before', '{n} أكثر من قبل'),
@@ -430,27 +441,27 @@
     KPI_MET: E('Met', 'تحقق'), KPI_ON_TRACK: E('On track', 'على المسار'), KPI_BEHIND: E('Behind', 'متأخر'),
     KPI_SALES_LINE: E('{done} of {target}', '{done} من {target}'),
     KPI_SELL_DAY: E('Sell {money} a day', 'بِع {money} يومياً'),
-    KPI_ACTIVE_LINE: E('{done} of {need} stores invoiced', '{done} من {need} محلاً مفوتراً'),
+    KPI_ACTIVE_LINE: E('{done} of {need} stores', '{done} من {need} محلات'),
     KPI_ACTIVE_LEFT: E('{n} to go', 'باقي {n}'),
     KPI_OVERDUE: E('Overdue {money}', 'متأخر {money}'),
     KPI_LIMIT: E('Limit {money}', 'الحد {money}'),
-    KPI_BONUS_WHEN_MET: E('Bonus when met: {money}', 'المكافأة عند التحقيق: {money}'),
+    KPI_BONUS_WHEN_MET: E('Bonus {money} when met', 'المكافأة {money} عند التحقيق'),
     KPI_TIP_RANGE: E('Add 1 new product in {n} stores', 'أضف منتجاً جديداً واحداً في {n} محلات'),
     KPI_RANGE: E('Range per store', 'التشكيلة لكل محل'),
-    KPI_RANGE_SUB: E('Core products bought: before recommendations → last 4 weeks', 'المنتجات الأساسية المشتراة: قبل التوصيات ← آخر ٤ أسابيع'),
+    KPI_RANGE_SUB: E('Before → last 4 weeks', 'قبل ← آخر ٤ أسابيع'),
     L_COL_RANGE: E('Range', 'التشكيلة'),
     L_G_RANGE: E('Core range: before → 4 weeks', 'التشكيلة الأساسية: قبل ← ٤ أسابيع'),
-    KPI_BONUS_PACE: E('At this pace: {pct}% of target, bonus {money}', 'بهذه الوتيرة: {pct}٪ من الهدف، المكافأة {money}'),
-    KPI_OVERDUE_CLOSE: E('Judged at month close', 'يُحتسب عند إقفال الشهر'),
+    KPI_BONUS_PACE: E('Est. bonus {money}', 'المكافأة التقديرية {money}'),
+    KPI_OVERDUE_CLOSE: E('At month end', 'في نهاية الشهر'),
     KPI_NEXT: E('Next to do', 'المطلوب التالي'),
     KPI_FOR: E('{kpi} · Bonus {money}', '{kpi} · المكافأة {money}'),
-    KPI_TIP_UNVISITED: E('Visit {n} stores not seen this month', 'زُر {n} محلات لم تزرها هذا الشهر'),
-    KPI_TIP_NOBUY: E('Get an order from {n} stores you visited', 'احصل على طلب من {n} محلات زرتها'),
-    KPI_TIP_GROCERY: E('Offer canned food to {n} stores that bought only cake', 'اعرض المعلبات على {n} محلات اشترت الكيك فقط'),
+    KPI_TIP_UNVISITED: E('Visit {n} stores', 'زر {n} محلات'),
+    KPI_TIP_NOBUY: E('Get an order from {n} stores', 'احصل على طلب من {n} محلات'),
+    KPI_TIP_GROCERY: E('Offer canned food to {n} stores', 'اعرض المعلبات على {n} محلات'),
     KPI_TIP_CAKE: E('Sell {money} of cake a day', 'بِع كيك بقيمة {money} يومياً'),
     KPI_TIP_CAKE_B: E('About {n} more orders a day', 'حوالي {n} طلبات إضافية يومياً'),
-    KPI_TIP_COLLECT: E('Collect overdue invoices from {n} stores', 'حصّل الفواتير المتأخرة من {n} محلات'),
-    KPI_TIP_KEEP: E('All on track. Keep each day at {money} or more.', 'كل المؤشرات على المسار. أبقِ كل يوم عند {money} أو أكثر.'),
+    KPI_TIP_COLLECT: E('Collect overdue from {n} stores', 'حصّل المتأخر من {n} محلات'),
+    KPI_TIP_KEEP: E('On track. Sell {money} a day.', 'على المسار. بِع {money} يومياً.'),
   });
 
   const isGrocery = code => (FD.sku(code) || {}).category === 'other';

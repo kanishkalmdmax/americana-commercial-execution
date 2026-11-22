@@ -16,12 +16,20 @@
   const parseIso = s => { let v = PARSE_MEMO.get(s); if (v === undefined) PARSE_MEMO.set(s, v = Date.parse(s)); return v; };
   FD.addDays = (iso, n) => { if (!n) return iso; const k = iso + '|' + n; let v = ADD_MEMO.get(k); if (v === undefined) { const d = new Date(parseIso(iso)); d.setUTCDate(d.getUTCDate() + n); ADD_MEMO.set(k, v = d.toISOString().slice(0, 10)); } return v; };
   FD.dow = iso => { let v = DOW_MEMO.get(iso); if (v === undefined) DOW_MEMO.set(iso, v = new Date(parseIso(iso)).getUTCDay()); return v; };
+  // the pilot's salesman app is view-only; salesman entry returns after Phase 1
+  FD.SALESMAN_ENTRY = false;
+  // Shelf Check in Phase 1 is photos only; scores, issues and AI insights switch on in Phase 2
+  FD.SHELF_AI = false;
+  // nearby places need reliable store locations; held until those are fixed
+  FD.NEARBY_DATA = false;
   FD.isSellingDay = iso => FD.dow(iso) !== 5;
   FD.daysBetween = (a, b) => Math.round((parseIso(b) - parseIso(a)) / 864e5);
   // HIST_START: first day of the simulated history in the app state. PILOT_START: recommendations live from here.
-  // The pilot runs PILOT_DAYS; it is compared with the PILOT_DAYS before it (data load: FD.REAL.baseline).
+  // The pilot runs PILOT_DAYS Working Days; it is compared with the 2 months before it (data load: FD.REAL.baseline).
   FD.HIST_START = '2026-09-15'; FD.PILOT_START = '2026-09-22'; FD.PILOT_DAYS = 90;
-  FD.PILOT_END = FD.addDays(FD.PILOT_START, FD.PILOT_DAYS - 1); FD.BASE_FROM = FD.addDays(FD.PILOT_START, -FD.PILOT_DAYS);
+  // ponytail: Fridays only; add official holidays to isSellingDay when Americana sends the list
+  FD.PILOT_END = (() => { let d = FD.PILOT_START, n = FD.isSellingDay(d) ? 1 : 0; while (n < FD.PILOT_DAYS) { d = FD.addDays(d, 1); if (FD.isSellingDay(d)) n++; } return d; })();
+  FD.BASE_FROM = (() => { const d = new Date(Date.parse(FD.PILOT_START)); d.setUTCMonth(d.getUTCMonth() - 2); return d.toISOString().slice(0, 10); })();
   FD.TODAY = '2026-10-22';
   FD.lang = 'en'; FD.digits = 'arab';
   const subs = {};

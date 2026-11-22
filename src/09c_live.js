@@ -66,32 +66,22 @@
   // ---------- notifications panel (supervisor): everything that arrived or is waiting, each one opens its screen ----------
   const LOG = L['notif:log'] = L['notif:log'] || [];
   const seenN = () => (L['notif:seen'] = L['notif:seen'] || new Set());
-  FD.supNotifs = () => { const s = st(), ids = S.vans().map(v => v.id), out = LOG.slice();
+  FD.supNotifs = () => { const s = st(), ids = S.vans().map(v => v.id), out = [];
     for (const th of s.threads.filter(x => x.unreadSup && x.messages.length && (x.team || ids.includes(x.vsr)))) { const m = th.messages[th.messages.length - 1];
-      out.push({ key: 'th|' + th.id + '|' + th.messages.length, ic: 'message', tone: 'info', title: th.team ? t('L_WHOLE_TEAM') : tx('N_MSG_FROM', { vsrId: th.vsr }), sub: FD.chatSnippet(m, 'SUP'), at: m.at.time, open: () => FD.chatOpen(th.anchor, 'SUP') }); }
-    for (const id of [...new Set((s.ownerMsgs || []).map(m => m.store))].filter(id => { const x = storeOf(id); return x && ids.includes(x.vsr) && FD.ownerUnread(s, id, 'SUP'); })) {
-      out.push({ key: 'wa|' + id + '|' + FD.ownerEvents(s, id), ic: 'wa', tone: 'good', title: tx('N_WA_FROM', { storeId: id }), sub: tx('N_WA_NEW', { n: FD.fmt.num(FD.ownerUnreadN(s, id, 'SUP')) }), open: () => FD.chatOpen({ type: 'wa', id }, 'SUP') }); }
-    for (const g of FD.supervisorAlertGroups(s, ids)) out.push({ key: 'al|' + g.type + g.van + g.day + '|' + g.count, ic: ALERT_IC[g.type] || 'inbox', tone: g.type === 'A_MISSED' ? 'bad' : 'warn',
-      title: tx(g.type + '_G', { vsrId: g.van, n: g.count }), sub: FD.fmt.date(g.day), open: () => { if (g.type === 'A_PREORDER') return S.preordersDrawer(); S.vsrDrawer(g.van, false, 'day', { date: g.day });
-        FD.flashTo(g.items.filter(a => a.store).map(a => '.drawer [data-store="' + a.store + '"]').join(',') || '.drawer'); } });
-    const fu = FD.followUps(s).length; if (fu) out.push({ key: 'fu|' + fu, ic: 'bell', tone: 'warn', title: t('L_FOLLOWUPS_ALL') + ' · ' + FD.fmt.num(fu), open: () => S.followupsDrawer() });
-    const seen = seenN(); return out.map(n => Object.assign(n, { unread: !seen.has(n.key) })); };
+      out.push({ key: 'th|' + th.id + '|' + th.messages.length, title: th.team ? t('L_WHOLE_TEAM') : FD.nameOf(vsrOf(th.vsr)), sub: FD.chatSnippet(m, 'SUP'), n: th.messages.filter(x => x.by !== 'SUP' && !x.readSup).length || 1, open: () => FD.chatOpen(th.anchor, 'SUP') }); }
+    return out; };
   S.openFollowUp = f => { const sel = '[data-fu="' + f.key + '"]';
     if (!S.fuVsr(f)) { L['fu:tab'] = 'open'; L['fu:type'] = 'ALL'; S.followupsDrawer(); return FD.flashTo('.drawer ' + sel); }
     L['ctl:tab'] = 'ALERTS'; L['al:type'] = 'ALL'; L['alv:' + S.fuVsr(f)] = true; if (!location.hash.startsWith('#/sup/today')) FD.go('#/sup/today'); else FD.render(); FD.flashTo(sel); };
-  // "Mark all read" sits in the title bar, so the list starts at the top
-  S.notifPanel = () => FD.drawer.open({ title: () => { const ns = FD.supNotifs(), seen = seenN();
-      return h('span', { class: 'row', style: { gap: '8px', width: '100%' } }, h('span', { class: 'grow' }, t('L_INBOX')),
-        ns.some(n => n.unread) ? FD.btn(t('N_ALL_READ'), () => { ns.forEach(n => seen.add(n.key)); FD.drawer.refresh(); FD.render(); }, 'ghost sm', 'check') : null); },
-    render: () => { const ns = FD.supNotifs(), seen = seenN();
-    return h('div', { class: 'stack s12' },
-      h('div', { class: 'card' }, ns.length ? ns.map(n => h('button', { type: 'button', class: 'list-row click notif-row' + (n.unread ? ' un' : ''), on: { click: () => { seen.add(n.key); FD.drawer.close(); FD.render(); n.open(); } } },
-        h('span', { class: 'fu-ic ' + n.tone }, n.ic === 'wa' ? FD.waLogo('s16') : I(n.ic, 's16')), h('span', { class: 'grow', style: { minWidth: 0, textAlign: 'start' } }, h('b', { class: 'notif-t' }, n.title), n.sub ? h('span', { class: 'small muted notif-s', dir: 'auto' }, n.sub) : null),
-        h('span', { class: 'small muted nowrap' }, n.at || ''), n.unread ? h('span', { class: 'unread-dot', 'aria-label': t('L_UNREAD') }) : null)) : FD.empty('N_NONE', null, 'bell'))); } });
-  S.notifCount = () => FD.supNotifs().filter(n => n.unread).length;
+  // production's panel: under the bell, unread message threads only; a row opens that thread
+  S.notifPanel = anchor => { const old = document.querySelector('.notif-panel'); if (old) { old.remove(); return; } const ns = FD.supNotifs();
+    const panel = h('div', { class: 'notif-panel', role: 'dialog', 'aria-label': t('L_INBOX') }, h('h3', null, t('L_INBOX')), ns.length ? ns.map(n => h('button', { type: 'button', class: 'notif-row', on: { click: () => { panel.remove(); n.open(); } } },
+      h('span', { class: 'grow', style: { minWidth: 0, textAlign: 'start' } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, n.title), n.sub ? h('span', { class: 'small muted ellipsis', dir: 'auto', style: { display: 'block' } }, n.sub) : null),
+      h('span', { class: 'chip brand' }, FD.fmt.num(n.n)))) : h('div', { class: 'notif-empty' }, t('L_NO_MESSAGES')));
+    anchor.parentNode.style.position = anchor.parentNode.style.position || 'relative'; const r = anchor.getBoundingClientRect(); panel.style.top = (r.bottom + 8) + 'px'; panel.style.insetInlineEnd = '16px'; document.body.appendChild(panel);
+    setTimeout(() => { const away = e => { if (!panel.contains(e.target)) { panel.remove(); removeEventListener('pointerdown', away); } }; addEventListener('pointerdown', away); }, 0); };
+  S.notifCount = () => FD.supNotifs().length;
 
-  // first one shortly after opening, then every 2 to 3 minutes
-  function tick() { try { if (on() && !document.hidden) { const n = next(); if (n) show(n); } } catch (e) { console.warn(e); } setTimeout(tick, 120000 + rnd() * 60000); }
-  setTimeout(tick, 12000);
+  // no pop-ups: production's bell lists unread messages only
   FD.liveDemo = () => { const n = next(); if (n) show(n); return n; }; // used by the click-through check
 })();

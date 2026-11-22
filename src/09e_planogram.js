@@ -19,6 +19,8 @@
   return h('div',{class:'row wrap sc-req'},r.status==='OPEN'?FD.chip(t('SC_REQ_OPEN',{date:FD.fmt.date(r.at.date)}),'info'):r.status==='DONE'?FD.chip(t('SC_REQ_DONE',{date:FD.fmt.date(r.doneAt.date)}),'good'):FD.chip(t('SC_REQ_BLOCKED',{reason:t('SC_REQ_'+r.reason)}),'warn'),r.photoReceived?FD.chip(t('SC_REQ_PHOTO'),'warn'):null,r.status==='OPEN'?null:ask,snap);};
  const storeOf=id=>st().world.stores.find(s=>s.id===id);
  S.scCard=store=>{const a=analysed(store)[0],s=a&&FD.scSummary(st(),a.id);
+  if(!FD.SHELF_AI&&a)return h('section',{class:'card sc-card'},h('div',null,h('h3',null,t('SC_TITLE')),h('div',{class:'small muted'},FD.fmt.date(a.date)+' · '+FD.nameOf(st().world.vsrs.find(v=>v.id===a.vsr)))),
+   h('div',{class:'row between wrap'},h('div',{class:'sc-thumbs'},s.photos.slice(0,4).map(x=>h('img',{src:x.p.src,alt:'',loading:'lazy'}))),h('div',{class:'row wrap'},S.scRequestLine(store),FD.btn(t('ACT_PLANOGRAM'),()=>{L['store:sc:'+store]=a.id;refresh();},'secondary sm'))));
   if(!s||!s.analysed||!s.current)return h('section',{class:'card sc-card'},h('div',{class:'row between wrap'},h('h3',null,t('SC_TITLE')),S.scRequestLine(store)),h('p',{class:'small muted'},t('SC_REQ_NONE')));
   const open=()=>{L['store:sc:'+store]=a.id;refresh();},issues=s.findings.concat(s.fresh).filter(f=>f.status!=='FIXED').slice(0,3);
   return h('section',{class:'card sc-card'},
@@ -35,11 +37,14 @@
   const label=x=>FD.fmt.date(x.date)+' · '+FD.nameOf(st().world.vsrs.find(v=>v.id===x.vsr));
   return h('div',{class:'stack s16 pg-view'},h('div',{class:'row between wrap'},back,all.length>1?FD.select(all.map(x=>({id:x.id,label:label(x)})),a.id,v=>{L['store:sc:'+store]=v;refresh();}):h('span',{class:'small muted'},label(a))),
    FD.scPanel(a.id,{role:'SUP',redraw:refresh}),
-   h('div',{class:'row wrap'},FD.btn(t('PG_COACH'),()=>S.pgCoach(store,false,a.id),'secondary','message'),S.scRequestLine(store)));
+   h('div',{class:'row wrap'},FD.SHELF_AI?FD.btn(t('PG_COACH'),()=>S.pgCoach(store,false,a.id),'secondary','message'):null,S.scRequestLine(store)));
  };
  S.pgContent=(store,{assessmentId}={})=>{L['store:sc:'+store]=assessmentId||L['store:sc:'+store]||'latest';return S.scFull(store);};
  // Analytics: shelf condition and follow-through per salesman. Sorted by name, never ranked.
  S.scTeamCard=(ids,from,to,narrow)=>{
+  if(!FD.SHELF_AI){const nm=id=>FD.nameOf(st().world.vsrs.find(v=>v.id===id));
+   const rows=ids.map(vsr=>{const ps=st().photos.filter(p=>p.vsr===vsr&&p.assessmentId&&!p.kind&&p.date>=from&&p.date<=to);return {vsr,stores:new Set(ps.map(p=>p.store)).size,before:ps.filter(p=>p.phase==='BEFORE').length,after:ps.filter(p=>p.phase==='AFTER').length};}).filter(r=>r.stores).sort((a,b)=>nm(a.vsr).localeCompare(nm(b.vsr)));
+   return S.card(t('SC_TEAM'),null,!rows.length?FD.empty('SC_NO_TEAM'):FD.table({id:'scTeamPhotos',rows,columns:[{key:'v',label:t('L_COL_SALESMAN'),render:r=>nm(r.vsr)},{key:'n',label:t('SC_COL_STORES'),num:true,render:r=>FD.fmt.num(r.stores)},{key:'b',label:t('PG_BEFORE'),num:true,render:r=>FD.fmt.num(r.before)},{key:'a',label:t('PG_AFTER'),num:true,render:r=>FD.fmt.num(r.after)}]}));}
   const rows=FD.scTeam(st(),from,to,ids).filter(r=>r.stores).sort((a,b)=>FD.nameOf(st().world.vsrs.find(v=>v.id===a.vsr)).localeCompare(FD.nameOf(st().world.vsrs.find(v=>v.id===b.vsr))));
   const paired=rows.some(r=>r.change!=null),nm=id=>FD.nameOf(st().world.vsrs.find(v=>v.id===id));
   const cols=[{key:'v',label:t('L_COL_SALESMAN'),render:r=>nm(r.vsr)},

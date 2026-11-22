@@ -11,7 +11,11 @@
   const STAGE = { PLAN_READY: ['ST_PLAN_READY', 'info'], DISPATCHED: ['ST_DISPATCHED', 'info'], LIVE: ['ST_LIVE', 'good'], CLOSED: ['ST_CLOSED', ''], NO_ACTIVITY: ['ST_NO_ACTIVITY', ''] };
   const gid = (id, n) => n === 1 && FD.has(id + '1') ? id + '1' : id; // singular wording for one
   // a van the supervisor closed reads "Reviewed"; until SalesBuzz sends that day, say so
-  const stageChip = (sg, van) => FD.chip(t(sg === 'CLOSED' && van && FD.vanLocked(st(), van, today()) ? 'VAN_REVIEWED' : STAGE[sg][0]), STAGE[sg][1]);
+  // the only van chip: the supervisor changed today's plan or its offers
+  const changedToday = id => { const s = st(), d = today(); return s.planChanges.some(c => c.vsr === id && c.date === d && c.bySup) || s.recs.some(r => r.date === d && FD.recVsr(r) === id && (r.supEdited || r.supRemoved)); };
+  const planChip = id => changedToday(id) ? FD.chip([I('user', 's14'), t('L_PLAN_CHANGED')], 'info') : null;
+  // today's plan: stops and the estimated sale
+  const todayPlan = id => { const s = st(), stops = FD.planFor(s, id, today()).stops.filter(x => x.status !== 'SKIPPED'); return { n: stops.length, est: stops.reduce((a, x) => a + FD.expectedSales(s, x.store), 0) }; };
   const waitLine = van => van && FD.waitingData(st(), van, today()) ? h('div', { class: 'small muted' }, t('VAN_WAITING')) : null;
   // stores closed on or before that day are not missed
   const closedOn = (id, iso) => { const so = storeOf(id); return !!(so && so.closed && so.closed <= iso); };
@@ -36,15 +40,16 @@
   // collection outcome, next to the order outcome
   const colText = x => x.col === 'paid' ? tx('L_SQ_PAID', { money: FD.fmt.money0(x.paid) }) : x.col === 'due' ? t('L_SQ_DUE') : '';
   function vanTile(v) {
-    const { sg, p, day, alerts } = vanStat(v);
-    const money = h('div', { class: 'small' }, FD.fmt.money0(p.sales), h('span', { class: 'muted' }, ' / ' + FD.fmt.money0(p.expected)));
+    const { sg, p, day, alerts } = vanStat(v), tp = todayPlan(v.id);
+    const money = h('div', { class: 'small' }, FD.fmt.money0(p.sales), h('span', { class: 'muted' }, ' / ' + tx('L_TODAY_EST', { money: FD.fmt.money0(p.expected) })));
     return h('div', { class: 'van-tile' + (sg === 'NO_ACTIVITY' ? ' quiet' : '') + (L['map:sel'] === v.id ? ' sel' : '') },
       h('button', { type: 'button', class: 'van-loc', 'aria-label': t('L_LOCATE') + ' · ' + FD.nameOf(v), title: t('L_LOCATE'), on: { click: () => S.locateVan(v.id) } }, I('map-pin', 's16')),
       h('button', { type: 'button', class: 'van-main', on: { click: () => S.vsrDrawer(v.id, false, 'day') } },
       // the salesman is the heading; route code is secondary; the badge says what it counts
       h('div', { class: 'row van-head' }, h('b', { class: 'ellipsis grow' }, FD.nameOf(v)), alerts ? h('span', { class: 'badge', title: t('L_ALERTS') + ' · ' + FD.fmt.num(alerts), 'aria-label': t('L_ALERTS') + ' · ' + FD.fmt.num(alerts) }, FD.fmt.num(alerts)) : null),
       h('div', { class: 'small muted ellipsis' }, FD.routeArea(st().world.routes.find(r => r.id === v.route))),
-      h('div', { class: 'row', style: { gap: '6px', flexWrap: 'wrap' } }, stageChip(sg, v.id)), waitLine(v.id),
+      planChip(v.id),
+      h('div', { class: 'small', style: { fontWeight: 600 } }, tp.n ? [tx('L_TODAY_STOPS', { n: tp.n }), h('span', { class: 'muted', style: { fontWeight: 400 } }, ' · ' + tx('L_TODAY_EST', { money: FD.fmt.money0(tp.est) }))] : t('X_TODAY_NONE')),
       sg === 'NO_ACTIVITY' && !p.planned ? null : h('div', { class: 'stack', style: { gap: '4px' } },
         stopSq(p),
         h('div', { class: 'small nowrap' }, day ? h('b', null, FD.fmt.date(day) + ' · ') : null, tx('L_STOPS_DONE', { n: p.done, m: p.planned })), p.offPlan ? h('div', { class: 'small muted nowrap' }, '+' + FD.fmt.num(p.offPlan) + ' ' + t('L_OFF_PLAN')) : null,
@@ -54,11 +59,11 @@
     const rows = vans.map(vanStat), day = rows.length && rows[0].day, dl = lb => day ? lb + ' · ' + FD.fmt.date(day) : lb;
     return FD.table({ id: 'vanList', rows, onRow: r => S.vsrDrawer(r.v.id, false, 'day'), columns: [
       { key: 'n', label: t('L_COL_VSR'), render: r => h('div', { style: { minWidth: 0 } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, FD.nameOf(r.v)), h('span', { class: 'small muted ellipsis', style: { display: 'block' } }, FD.routeArea(st().world.routes.find(x => x.id === r.v.route)))) },
-      { key: 'sg', label: t('L_COL_STATUS'), render: r => h('div', null, stageChip(r.sg, r.v.id), waitLine(r.v.id)) },
+      { key: 'tp', label: t('L_NAV_TODAY'), num: true, sort: (a, b) => todayPlan(a.v.id).n - todayPlan(b.v.id).n, render: r => { const tp = todayPlan(r.v.id); return h('div', null, tp.n ? t('L_PLAN_STOPS', { n: FD.fmt.num(tp.n) }) : '—', tp.n ? h('div', { class: 'small muted' }, tx('L_TODAY_EST', { money: FD.fmt.money0(tp.est) })) : null, planChip(r.v.id)); } },
       { key: 'sq', label: t('L_PLAN_ADHERENCE'), nosort: true, render: r => r.p.planned ? stopSq(r.p) : null },
       { key: 'st', label: dl(t('L_COL_STOPS')), num: true, sort: (a, b) => a.p.done / (a.p.planned || 1) - b.p.done / (b.p.planned || 1), render: r => r.p.planned ? tx('L_STOPS_DONE', { n: r.p.done, m: r.p.planned }) : '—' },
       { key: 'off', label: t('L_OFF_PLAN'), num: true, sort: (a, b) => a.p.offPlan - b.p.offPlan, render: r => r.p.offPlan ? '+' + FD.fmt.num(r.p.offPlan) : '—' },
-      { key: 'sales', label: dl(t('L_COL_SALES')), num: true, sort: (a, b) => a.p.sales - b.p.sales, render: r => h('span', null, FD.fmt.money0(r.p.sales), h('span', { class: 'muted exp' }, ' / ' + FD.fmt.money0(r.p.expected))) },
+      { key: 'sales', label: dl(t('L_COL_SALES')), num: true, sort: (a, b) => a.p.sales - b.p.sales, render: r => h('span', null, FD.fmt.money0(r.p.sales), h('span', { class: 'muted exp' }, ' / ' + tx('L_TODAY_EST', { money: FD.fmt.money0(r.p.expected) }))) },
       { key: 'al', label: t('L_ALERTS'), num: true, sort: (a, b) => a.alerts - b.alerts, render: r => r.alerts ? h('span', { class: 'badge' }, FD.fmt.num(r.alerts)) : '—' },
       { key: 'loc', label: '', render: r => FD.iconBtn('map-pin', t('L_LOCATE'), () => S.locateVan(r.v.id)) }] });
   }
@@ -78,7 +83,7 @@
     return h('div', { class: 'ctl split' + (p <= 0 ? ' map-only' : p >= 100 ? ' list-only' : ''), style: '--ctl-l:' + Math.max(15, Math.min(85, p)) }, left, grip, right);
   }
   // locate: the map switches to vans and the chosen van turns red
-  S.locateVan = id => { L['map:mode'] = 'VANS'; L['map:sel'] = id; if (L['map:van'] && L['map:van'] !== id) L['map:van'] = ''; FD.render();
+  S.locateVan = id => { L['map:van'] = id; FD.render();
     setTimeout(() => { const m = document.querySelector('.ctl-map'); if (m) { const r = m.getBoundingClientRect(); if (r.top < 0 || r.top > innerHeight - 160) m.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }, 60); };
 
   // ---------- alerts (one row per van and type, expandable to its stops) ----------
@@ -224,11 +229,10 @@
   // ================= TODAY =================
   FD.registerView('sup', 'today', () => {
     const s = st(); const d = today(); const vans = S.vans(); const dd = FD.dataDay(s);
-    const ready = vans.filter(v => FD.stageFor(s, v.id, d) === 'PLAN_READY');
     const groups = S.alertGroupsNow().filter(g => vans.some(v => v.id === g.van) || g.type === 'A_PREORDER');
     // one block per salesman holds everything for him: release checks, alerts, follow-ups; the most critical salesman first
     const pendingV = vans.filter(v => ['PLAN_READY', 'DISPATCHED'].includes(FD.stageFor(s, v.id, d)) && v.kind !== 'inactive');
-    const coachBy = pendingV.length ? Object.fromEntries(S.coachList(pendingV).filter(c => c.list.length).map(c => [c.v.id, c])) : {};
+    const coachBy = {};
     const fuAll = FD.followUps(s), fuMine = fuAll.filter(f => S.fuVsr(f));
     // one optional type filter across all salesmen; the grouping per salesman stays
     const aType = L['al:type'] || 'ALL', want = k => aType === 'ALL' || aType === k;
@@ -243,7 +247,7 @@
       h('div', { class: 'card-h' }, switcher,
         h('div', { class: 'grow' }, FD.liveData(st()) ? h('div', { class: 'sub' }, S.updatedLine()) : null),
         tab === 'VANS' ? (() => { const list = pref('vanView', 'TILES') === 'LIST'; const b = FD.iconBtn(list ? 'list' : 'grid', t('L_LAYOUT') + ': ' + t(list ? 'L_LAYOUT_LIST' : 'L_LAYOUT_TILES'), () => { setPref('vanView', list ? 'TILES' : 'LIST'); FD.render(); }); b.setAttribute('aria-pressed', String(list)); return b; })() : null, // one button; its icon shows the current layout
-        ready.length ? FD.btn(t('ACT_RELEASE_ALL') + ' (' + FD.fmt.num(ready.length) + ')', () => FD.dx('VAN_RELEASE_ALL', { vans: ready.map(v => v.id) }), 'primary sm', 'check') : null));
+        null));
     const pill = (ic, tone, n) => h('span', { class: 'alert-type ' + tone }, I(ic, 's14'), FD.fmt.num(n));
     const vanBlock = b => { const open = L['alv:' + b.v.id];
       return h('div', { class: 'alert-van' }, h('button', { type: 'button', class: 'list-row click alert-van-h', 'aria-expanded': String(!!open), on: { click: () => { L['alv:' + b.v.id] = !open; FD.render(); } } },
@@ -310,10 +314,6 @@
       return h('div', { class: 'stack s16' }, daySeg, h('div', { class: 'small muted' }, t('L_TOMORROW_HELP')),
         list.length ? h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, t('L_SUGGESTED_CHANGES'))), list.map(x => S.sugRow(vsrId, x, tm))) : null,
         FD.vanLocked(s, vsrId, tm) ? h('div', { class: 'small muted' }, t('VAN_LOCK_NOTE')) : S.planEditor(vsrId, { date: tm })); }
-    const actions = h('div', { class: 'row wrap' },
-      sg === 'PLAN_READY' ? FD.btn(t('ACT_RELEASE'), () => FD.dx('VAN_RELEASE', { van: vsrId }), 'primary sm', 'check') : null,
-      sg === 'LIVE' || sg === 'DISPATCHED' || sg === 'PLAN_READY' ? FD.btn(t('ACT_CLOSE_VAN'), () => S.confirm(t('ACT_CLOSE_VAN') + ' · ' + FD.nameOf(v), () => FD.dx('VAN_CLOSE', { van: vsrId })), 'secondary sm', 'lock') : null,
-      sg === 'CLOSED' && locked && !FD.dayClosed(s, d) ? FD.btn(t('ACT_REOPEN_VAN'), () => FD.dx('VAN_REOPEN', { van: vsrId }), 'ghost sm', 'undo') : null);
     const resultsHead = live ? null : h('div', { class: 'small muted' }, tx('L_RESULTS_OF', { date: pd }));
     const metric = (label, val) => h('div', { class: 'card', style: { padding: '10px 12px' } }, h('div', { class: 'small muted' }, label), h('b', { class: 'tabular' }, val));
     const metrics = h('div', { class: 'grid-3 metric-grid' },
@@ -322,9 +322,9 @@
       metric(t('L_OFF_PLAN'), FD.fmt.num(p.offPlan)), metric(t('L_MISSED'), FD.fmt.num(p.missed)), metric(t('L_COLLECTED'), FD.fmt.money0(p.collected)));
     // before the van starts: what to check, grouped by type
     let checks = null;
-    if (sg === 'PLAN_READY' || sg === 'DISPATCHED') {
+    {
       const xs = FD.dispatchExceptions(s, vsrId, d); const by = {}; xs.forEach(x => (by[x.type] = by[x.type] || []).push(x));
-      checks = h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, t('L_CHECK_BEFORE_RELEASE'))),
+      checks = h('div', { class: 'card' }, h('div', { class: 'card-h' }, h('h3', null, t('L_SUGGESTED_CHANGES'))),
         Object.keys(by).length ? Object.entries(by).map(([type, list]) => { const open = L['xg:' + vsrId + type];
           return h('div', { class: 'alert-g' }, h('div', { class: 'list-row' }, h('button', { type: 'button', class: 'row-toggle', 'aria-expanded': String(!!open), on: { click: () => { L['xg:' + vsrId + type] = !open; FD.drawer.refresh(); } } },
             h('span', { class: 'fu-ic' }, I(X_IC[type], 's16')), h('span', { class: 'grow fu-t' }, tx(gid(type + '_G', list.length), { n: list.length })), I(open ? 'chevron-up' : 'chevron-down', 's16'))),
@@ -334,9 +334,9 @@
               x.store ? FD.iconBtn('chevron-right', t('L_OPEN'), () => S.storeDrawer(x.store, null, true)) : null))) : null); })
           : h('div', { class: 'card-b' }, FD.empty('E_NO_EXCEPTIONS', null, 'check')));
     }
-    return h('div', { class: 'stack s16' }, daySeg, h('div', { class: 'row between', style: { flexWrap: 'wrap', gap: '8px' } }, h('div', { class: 'row', style: { gap: '8px' } }, stageChip(sg, vsrId), S.updatedLine()), actions),
+    return h('div', { class: 'stack s16' }, daySeg, h('div', { class: 'row between', style: { flexWrap: 'wrap', gap: '8px' } }, h('div', { class: 'row', style: { gap: '8px' } }, planChip(vsrId), S.updatedLine())),
       locked ? h('div', { class: 'small muted' }, [FD.waitingData(s, vsrId, d) ? t('VAN_WAITING') : null, t('VAN_LOCK_NOTE')].filter(Boolean).join(' · ')) : null,
-      checks, // what to fix before release comes first; yesterday's results are context
+      checks,
       sg === 'NO_ACTIVITY' && !p.planned ? h('div', { class: 'card' }, FD.empty('ST_NO_ACTIVITY', null, 'truck')) : h('div', { class: 'stack s8' }, resultsHead, metrics),
       locked ? null : S.planEditor(vsrId, { missed }));
   };
@@ -363,17 +363,16 @@
   // plans for the coming selling days: pick a date, open one salesman at a time, act on suggestions
   S.planDates = () => { const out = []; let d = today(); for (let i = 0; i < 5; i++) { d = FD.nextSellingDay(d); out.push(d); } return out; };
   S.tomorrowDrawer = () => FD.drawer.open({ title: () => tx('L_TOMORROW_TITLE', { date: L['tm:date'] && S.planDates().includes(L['tm:date']) ? L['tm:date'] : FD.nextSellingDay(today()) }), render: () => {
-    const s = st(); const dates = S.planDates(); const tm = dates.includes(L['tm:date']) ? L['tm:date'] : dates[0]; const vans = S.vans().filter(v => v.kind === 'sales'); const unsent = vans.filter(v => !s.released[v.id + '|' + tm]);
+    const s = st(); const dates = S.planDates(); const tm = dates.includes(L['tm:date']) ? L['tm:date'] : dates[0]; const vans = S.vans().filter(v => v.kind === 'sales');
     const daySw = FD.seg(dates.map(d => ({ id: d, label: FD.fmt.date(d) })), tm, v => { L['tm:date'] = v; FD.drawer.refresh(); });
-    return h('div', { class: 'stack s16' }, daySw, h('div', { class: 'small muted' }, t('L_TOMORROW_HELP') + ' ' + t('L_SEND_PLANS_HELP')),
+    return h('div', { class: 'stack s16' }, daySw, h('div', { class: 'small muted' }, t('L_TOMORROW_HELP')),
       vans.map(v => { const { list, acted, rows } = S.planRows(v.id, tm); const n = FD.planFor(s, v.id, tm).stops.filter(x => x.status !== 'SKIPPED').length; const open = L['tm:open:' + v.id];
         return h('div', { class: 'card plan-van' }, h('button', { type: 'button', class: 'list-row click plan-van-h', 'aria-expanded': String(!!open), on: { click: () => { L['tm:open:' + v.id] = !open; FD.drawer.refresh(); } } },
             FD.avatar(v), h('span', { class: 'grow', style: { minWidth: 0 } }, h('b', null, FD.nameOf(v)), h('span', { class: 'small muted', style: { display: 'block' } }, t('L_PLAN_STOPS', { n: FD.fmt.num(n) }) + (list.length ? ' · ' + t('L_SUGGESTIONS_N', { n: FD.fmt.num(list.length) }) : ''))),
             !list.length && acted.length ? FD.chip([I('check', 's14'), t('L_SUGS_DONE')], 'good') : null,
-            s.released[v.id + '|' + tm] ? FD.chip(t('L_SENT'), 'good') : null, I(open ? 'chevron-up' : 'chevron-down', 's16')),
+            I(open ? 'chevron-up' : 'chevron-down', 's16')),
           open ? h('div', null, rows.length ? rows.map(x => S.sugRow(v.id, x, tm)) : h('div', { class: 'card-b small muted' }, t('L_NO_PLAN_CHANGES')),
-            tm === dates[0] ? h('div', { class: 'card-f' }, FD.btn(t('L_OPEN_PLAN'), () => { L['vd:day'] = 'TOM'; S.vsrDrawer(v.id, false, 'day'); }, 'ghost sm')) : null) : null); }),
-      unsent.length ? h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, FD.btn(tx('L_SEND_PLANS', { n: unsent.length }), () => { FD.dx('VAN_RELEASE_ALL', { vans: unsent.map(v => v.id), date: tm }); FD.toast(null, null, { text: tx('L_PLANS_SENT', { date: tm }) }); FD.drawer.refresh(); }, 'primary', 'send')) : FD.chip(tx('L_PLANS_SENT', { date: tm }), 'good'));
+            tm === dates[0] ? h('div', { class: 'card-f' }, FD.btn(t('L_OPEN_PLAN'), () => { L['vd:day'] = 'TOM'; S.vsrDrawer(v.id, false, 'day'); }, 'ghost sm')) : null) : null); }));
   } });
 
   // ================= PRE-ORDERS =================

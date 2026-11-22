@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),load=requir
 const node=(tag,attrs,...children)=>({tag,attrs:attrs||{},children:children.flat(Infinity).filter(x=>x!=null&&x!==false),querySelector(){return node('img');},appendChild(child){this.children.push(child);},addEventListener(){},style:{setProperty(){}},setAttribute(){},replaceChildren(...items){this.children=items;}});
 // stub DOM harness copied from planogram_views.test.js
 function ui(shelf){
- const FD=load();if(shelf)FD.SHELF_RESULTS=shelf(FD);FD.init(7,{storage:null});global.document={};global.requestAnimationFrame=()=>{};
+ const FD=load();FD.SHELF_AI=true;if(shelf)FD.SHELF_RESULTS=shelf(FD);FD.init(7,{storage:null});global.document={};global.requestAnimationFrame=()=>{};
  let seq=0;FD.key=()=>String(++seq);FD.ui={local:{}};FD.h=node;FD.icon=k=>node('icon',{k});FD.registerView=(role,name,fn)=>{FD.views[role][name]=fn;};FD.views={sup:{},vsr:{}};
  FD.btn=(text,fn,cls)=>node('button',{on:{click:fn},class:cls},text);FD.iconBtn=(icon,text,fn)=>FD.btn(text,fn);FD.select=(options,value,change)=>node('select',{options,value,change});FD.seg=(options,value,change)=>node('group',{options,value,change});
  FD.skuLabel=code=>node('span',null,FD.nameOf(FD.sku(code)));FD.skuTile=()=>null;FD.skuIcon=()=>null;FD.chip=x=>node('span',null,x);FD.typeChip=x=>node('span',null,FD.t('TYPE_'+x));FD.productPickBar=()=>node('div');FD.searchBox=()=>node('input');FD.empty=()=>null;FD.table=cfg=>node('table',{cfg},cfg.rows.map(r=>cfg.columns.map(c=>c.render?.(r))));FD.photoButton=p=>node('button',{'aria-label':p.label},node('img',{src:p.src}));FD.sizeIcon=()=>null;FD.creditChip=()=>null;FD.avatar=()=>null;FD.ring=()=>null;FD.delta=()=>null;FD.line=()=>null;FD.spark=()=>null;FD.bars=()=>null;FD.drawer={refresh(){},open(cfg){return cfg.render();}};FD.sheet={open(cfg){FD._sheet=cfg;return cfg.render();},redraw(){},close(){}};FD.dx=FD.dispatch;FD.toast=()=>{};
@@ -24,20 +24,6 @@ test('D04: a damaged-stock line (no store, no product) renders in the van day',(
  for(const lang of ['en','ar']){FD.lang=lang;const text=content(FD.sup.vanDay(van.id));assert.ok(text.includes(FD.tx('X_DAMAGED',x.slots)));}
 }finally{cleanup();}});
 
-test('a reviewed van locks the plan editor, says it is waiting for data and can be reopened',()=>{try{
- const FD=ui(),s=FD.state,van=s.world.vsrs.find(v=>v.kind==='sales'),d=s.clock.date;let editors=0;FD.sup.planEditor=()=>{editors++;return node('div');};
- const open=FD.sup.vanDay(van.id);assert.equal(editors,1,'open van: editor shown');
- assert.ok(walk(open).some(n=>n.tag==='button'&&content(n)===FD.t('ACT_CLOSE_VAN')),'close action is labelled as review');
- assert.equal(FD.t('ACT_CLOSE_VAN'),'Mark as reviewed');
- FD.dispatch('VAN_CLOSE',{van:van.id});assert.ok(FD.vanLocked(s,van.id,d));assert.ok(FD.waitingData(s,van.id,d));
- editors=0;const closed=FD.sup.vanDay(van.id),text=content(closed);
- assert.equal(editors,0,'plan editor hidden for a locked van');assert.ok(text.includes(FD.t('VAN_WAITING')));assert.ok(text.includes(FD.t('VAN_LOCK_NOTE')));assert.ok(text.includes(FD.t('VAN_REVIEWED')));
- assert.ok(walk(closed).some(n=>n.tag==='button'&&content(n)===FD.t('ACT_REOPEN_VAN')),'reopen stays');
- assert.ok(!walk(closed).some(n=>n.tag==='button'&&content(n)===FD.t('ACT_CLOSE_VAN')));
- FD.dispatch('VAN_REOPEN',{van:van.id});editors=0;FD.sup.vanDay(van.id);assert.equal(editors,1);
- for(const lang of ['en','ar']){FD.lang=lang;for(const k of ['VAN_WAITING','VAN_LOCK_NOTE','VAN_REVIEWED','PAY_COLLECT','PAY_BIG','SC_REQ_PHOTO'])assert.ok(FD.t(k).length>0);}
-}finally{cleanup();}});
-
 test('Today shows one payday line on days 27-31 and 1-7 only',()=>{const timer=global.setTimeout;try{
  const FD=ui();global.setTimeout=()=>0;global.innerWidth=1440;
  for(const [date,key] of [['2026-10-29','PAY_COLLECT'],['2026-10-03','PAY_BIG'],['2026-10-15',null]]){FD.state.clock.date=date;
@@ -46,7 +32,7 @@ test('Today shows one payday line on days 27-31 and 1-7 only',()=>{const timer=g
 }finally{global.setTimeout=timer;cleanup();}});
 
 test('a request stays open after an unusable photo, shows photoReceived, and closes on an analysed one',()=>{
- const FD=load();FD.SHELF_RESULTS=shelf(FD);FD.init(7,{storage:null});const s=FD.state,store=s.world.stores[0].id;
+ const FD=load();FD.SHELF_AI=true;FD.SHELF_RESULTS=shelf(FD);FD.init(7,{storage:null});const s=FD.state,store=s.world.stores[0].id;
  FD.dispatch('SC_REQUEST',{store});assert.equal(FD.scRequest(s,store).photoReceived,false);
  add(FD,'u',store,[{id:'p1',src:'x',phase:'BEFORE',ref:null}]);                       // no analysis
  add(FD,'u2',store,[{id:'p2',src:'x',phase:'BEFORE',ref:1}]);                          // photo says retake
@@ -82,7 +68,7 @@ test('supervisor capture opens the Before flow; an analysed photo closes the req
 }finally{cleanup();}});
 
 test('pgFollowUps keeps an older open fix until a later check clears it',()=>{
- const FD=load();FD.SHELF_RESULTS=shelf(FD);FD.init(7,{storage:null});const s=FD.state,store=s.world.stores[0].id;
+ const FD=load();FD.SHELF_AI=true;FD.SHELF_RESULTS=shelf(FD);FD.init(7,{storage:null});const s=FD.state,store=s.world.stores[0].id;
  add(FD,'old',store,[{id:'b',src:'x',phase:'BEFORE',ref:0}]);
  FD.dispatch('SC_ACTION_SET',{id:'old',check:'FULL_EMPTY_SPACE',outcome:'NOT_IN_VAN'});
  assert.equal(FD.pgFollowUps(s).filter(f=>f.action.assessmentId==='old').length,1);

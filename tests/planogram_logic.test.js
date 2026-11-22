@@ -4,7 +4,7 @@ const result=(FD,checks={},extra={})=>({scope:'AMBIENT_SHELF',photo:{status:'OK'
  checks:Object.fromEntries(FD.SC_CHECKS.map(c=>[c,checks[c]||{result:'PASS'}])),
  findings:Object.entries(checks).filter(([,v])=>['FAIL','PARTLY'].includes(v.result)).map(([check])=>({check,box_2d:[100,100,400,400]})),
  americana_seen:['CUPCAKE'],competition:[{signal:'COMP_NEXT',brand:'LUSINE',box_2d:[1,1,300,300]}],confidence:'HIGH',...extra});
-const boot=(photos={},groups=[])=>{const FD=load();FD.SHELF_RESULTS={model:'test',photos,groups};FD.init(7,{storage:null});return FD;};
+const boot=(photos={},groups=[])=>{const FD=load();FD.SHELF_AI=true;FD.SHELF_RESULTS={model:'test',photos,groups};FD.init(7,{storage:null});return FD;};
 const fixture=FD=>({
  0:{file:'before.jpeg',result:result(FD,{FULL_EMPTY_SPACE:{result:'PARTLY',met:0.5},FIND_HIDDEN:{result:'FAIL'},FIND_WRONG_AREA:{result:'FAIL'},COND_DAMAGED_PACK:{result:'FAIL'},COND_ROTATION:{result:'CANT_SEE'},FULL_EMPTY_CARTON:{result:'NOT_APPLICABLE'},COND_CARTON:{result:'NOT_APPLICABLE'}})},
  1:{file:'after.jpeg',result:result(FD,{FULL_EMPTY_SPACE:{result:'PARTLY',met:0.75},FIND_WRONG_AREA:{result:'FAIL'},COND_ROTATION:{result:'CANT_SEE'},FIND_FACING:{result:'FAIL'},FULL_EMPTY_CARTON:{result:'NOT_APPLICABLE'},COND_CARTON:{result:'NOT_APPLICABLE'}})},
@@ -13,7 +13,7 @@ const fixture=FD=>({
 const capture=(FD,id,photos)=>{const s=FD.state,store=s.world.stores[0].id;if(!FD.pgAssessment(s,id))FD.dispatch('PG_START',{id,store});FD.dispatch('PG_PHOTOS_ADD',{id,photos:photos.map(([pid,phase,ref])=>({id:pid,src:'x',phase,ref}))});return store;};
 
 test('Shelf Score uses check importance, keeps unclear checks out and drops checks that cannot apply',()=>{
- const FD=load(),vals=FD.scCombine([fixture(FD)[0].result]),s=FD.scScore(vals,FD.SC_DEFAULT_WEIGHTS);
+ const FD=load();FD.SHELF_AI=true;const vals=FD.scCombine([fixture(FD)[0].result]),s=FD.scScore(vals,FD.SC_DEFAULT_WEIGHTS);
  // FULL: space 0.5×50 + forward 30 over 80 applicable; FIND: (0×35+0×30+20+15)/100; COND: damaged 0 of 40 assessed, rotation unclear
  assert.equal(+s.areas.FULL.score.toFixed(2),68.75);assert.equal(s.areas.FIND.score,35);assert.equal(s.areas.COND.score,0);
  const budget={FULL:40*0.8,FIND:35,COND:25*0.7},seen={FULL:32,FIND:35,COND:10};
@@ -57,7 +57,7 @@ test('photos without a result, unusable photos and the team view stay honest',()
  assert.equal(row.stores,1,'latest check per store');assert.equal(row.change,null);assert.ok(!('rank' in row));
 });
 test('seeded field photos become Before checks and same-display groups supply After photos',()=>{
- let FD=load();const photos=Object.fromEntries((FD.PHOTOS||[]).map((_,i)=>[i,{file:'p'+i+'.jpeg',result:fixture(FD)[i%2===0?0:1].result}]));
+ let FD=load();FD.SHELF_AI=true;const photos=Object.fromEntries((FD.PHOTOS||[]).map((_,i)=>[i,{file:'p'+i+'.jpeg',result:fixture(FD)[i%2===0?0:1].result}]));
  FD=boot(photos,[[0,1]]);const s=FD.state,as=s.planogram.assessments.filter(a=>a.seeded);
  assert.ok(as.length>0);assert.ok(as.every(a=>FD.scSummary(s,a.id).analysed));assert.ok(as.some(a=>FD.scSummary(s,a.id).comparable));
  assert.ok(as.some(a=>Object.keys(a.actions).length));

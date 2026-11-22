@@ -110,7 +110,7 @@
       FD.select([{ id: '', label: t('L_ALL_STORES_F') }].concat(usedStores.map(x => ({ id: x.id, label: FD.nameOf(x) }))), F.store || '', v => setF('store', v)),
       FD.select([{ id: '', label: t('L_ALL_LABELS') }].concat(FD.LABELS.map(x => ({ id: x, label: t('LBL_' + x) }))), F.label || '', v => setF('label', v)),
       who === 'SUP' ? FD.select([{ id: '', label: t('L_ALL_PROFILES') }].concat(FD.PROFILES.map(x => ({ id: x, label: t('PROFN_' + x) }))), F.profile || '', v => setF('profile', v)) : null, // area type: supervisor only, as on Stores
-      FD.select([{ id: '', label: t('L_ALL_TAGS') }].concat(FD.TAGS.map(x => ({ id: x, label: t('TAGN_' + x.slice(4)) }))), F.tag || '', v => setF('tag', v)),
+      FD.NEARBY_DATA ? FD.select([{ id: '', label: t('L_ALL_TAGS') }].concat(FD.TAGS.map(x => ({ id: x, label: t('TAGN_' + x.slice(4)) }))), F.tag || '', v => setF('tag', v)) : null,
       FD.select([{ id: '', label: t('L_ALL_TOPICS') }].concat(['R_T_RETURN', 'R_T_REQUEST', 'R_T_PRICE', 'R_T_ACCESS', 'R_T_OTHER'].map(x => ({ id: x, label: t(x) }))), F.topic || '', v => setF('topic', v)),
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!F.files, on: { change: e => setF('files', e.target.checked) } }), t('L_HAS_FILES'))) : null;
     const chipOf = k => ({ store: () => FD.nameOf(storeOf(F.store)), label: () => t('LBL_' + F.label), profile: () => t('PROFN_' + F.profile), tag: () => t('TAGN_' + F.tag.slice(4)), topic: () => t(F.topic), files: () => t('L_HAS_FILES') })[k]();
