@@ -44,6 +44,7 @@
   // ---------- shared bits ----------
   V.area = FD.routeArea;
   V.statusChip = v => {
+    if ((v.status || 'PLANNED') === 'PLANNED' && !v.moved) return null; // the visit label says what the stop is; "Planned" adds nothing
     const m = { PLANNED: ['L_STATUS_PLANNED', ''], ARRIVED: ['L_STATUS_ARRIVED', 'info'], DONE: ['L_STATUS_DONE', 'good'], SKIPPED: ['L_STATUS_SKIPPED', ''] }[v.status] || ['L_STATUS_PLANNED', ''];
     return FD.chip(t(v.moved && v.status === 'PLANNED' ? 'L_STATUS_MOVED' : m[0]), m[1]);
   };
