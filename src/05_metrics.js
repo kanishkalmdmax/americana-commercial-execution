@@ -4,7 +4,6 @@
   Object.assign(FD.CATALOG, {
     CTX_REMOTE: E('Remote route · {n} stops/day', 'مسار بعيد · {n} زيارات يومياً'),
     CTX_COVERED: E('Covered on {date}', 'تمت التغطية في {date}'),
-    CTX_RELIEF: E('Relief route · not ranked', 'مسار بديل · غير مرتب'),
     S_STORAGE: E('Browser storage is full. Changes stay until you close this tab', 'مساحة التخزين ممتلئة، ستبقى التغييرات حتى إغلاق الصفحة'),
     B_GAP_NEAR: E('{pct}% of similar stores buy this.', '{pct}٪ من المحلات المشابهة تشتري هذا.'),
     NOT_REORDERED: E('Not reordered', 'لم يُعد الطلب'),
@@ -222,7 +221,6 @@
         for (let w = 7; w >= 0; w--) { const t = FD.addDays(lim, -7 * w); const f = FD.addDays(t, -6); spark.push(t < FD.PILOT_START ? null : Math.round(FD.vsrMetrics(st, x.vsr, f < FD.PILOT_START ? FD.PILOT_START : f, t).perDay || 0)); } // weekly net sales per selling day
         const v = st.world.vsrs.find(q => q.id === x.vsr); const route = st.world.routes.find(r => r.id === v.route);
         const context = [];
-        if (route.relief) context.push({ id: 'CTX_RELIEF', slots: {} });
         if (route.remote) context.push({ id: 'CTX_REMOTE', slots: { n: st.world.stores.filter(s => s.route === route.id && s.days.includes(3)).length } });
         st.covers.filter(c => c.route === route.id && c.date >= from && c.date <= lim).forEach(c => context.push({ id: 'CTX_COVERED', slots: { date: c.date } }));
         st.covers.filter(c => c.vsr === x.vsr && c.date >= from && c.date <= lim).forEach(c => context.push({ id: 'CTX_COVERED', slots: { date: c.date } }));

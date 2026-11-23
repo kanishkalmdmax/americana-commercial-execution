@@ -28,7 +28,6 @@
     L_NO_VISITS_YET: E('No visit data received yet today', 'لم تصل بيانات الزيارات اليوم بعد'),
     L_WHAT_IS_THIS: E('What is this?', 'ما هذا؟'), 
     
-    L_CMP_TODAY: E('Small figures compare with {date} up to {time}. Today is still in progress.', 'الأرقام الصغيرة تقارن بيوم {date} حتى الساعة {time}. اليوم لم ينتهِ بعد.'),
     L_STORE_TYPE: E('Store type', 'نوع المحل'), L_LOCATION_TYPE: E('Nearby place', 'مكان قريب'),
     L_NEW_REASON: E('New reason', 'سبب جديد'), L_EDIT_REASON: E('Edit reason', 'تعديل السبب'), L_REASON_EN: E('Name in English', 'الاسم بالإنجليزية'), L_REASON_AR: E('Name in Arabic', 'الاسم بالعربية'),
     L_REASON_AR_HINT: E('Salesmen see the Arabic name. If you leave one empty, the other is used.', 'يرى المندوبون الاسم العربي. إذا تركت أحدهما فارغاً يُستخدم الآخر.'),
@@ -74,7 +73,6 @@
     L_F_ALL: E('All', 'الكل'), L_F_UNREAD: E('Unread', 'غير مقروءة'), L_F_STORES: E('Stores', 'المحلات'), L_F_VSRS: E('Salesmen', 'المندوبون'),
     QV_OK: E('Okay, will do', 'تمام، سأفعل'), QV_DONE: E('Done, the owner agreed', 'تم، وافق صاحب المحل'), QV_LATER: E('Will try on the next visit', 'سأحاول في الزيارة القادمة'), QV_CALL: E('Can you call me?', 'هل يمكنك الاتصال بي؟'),
     L_PTS: E('pts', 'نقطة'), 
-    L_CMP_NOTE: E('Small figures show the change against {date} to {label}.', 'الأرقام الصغيرة تبين التغير مقارنة بالفترة من {date} إلى {label}.'),
     
     L_FILTERS: E('Filters', 'التصفية'), L_REORDER_DUE: E('Reorder due', 'حان وقت الطلب'), L_LIKELY_NEEDS: E('Likely needs a regular reorder today: {label}', 'يحتاج على الأغلب طلباً عادياً اليوم: {label}'),
     L_COVER_HELP: E('Days until the store likely runs out, from its last delivery and 4-week sales.', 'الأيام المتوقعة حتى نفاد المحل، حسب آخر توريد ومبيعات ٤ أسابيع.'),
@@ -99,6 +97,8 @@
     L_PENDING_N: E('{n} still pending', '{n} ما زالت معلقة'), L_DONE_VIA: E('{status} · {date} {time}', '{status} · {date} {time}'),
     L_SCORECARD_SETUP: E('Scorecard', 'بطاقة الأداء'), L_COL_IN_SCORE: E('In score', 'ضمن التقييم'), L_COL_WEIGHT: E('Weight', 'الوزن'), L_COL_SEES: E('Salesman sees', 'يظهر للمندوب'), L_EXPAND: E('Open full page', 'فتح الصفحة كاملة'), L_PIN_NAV: E('Keep menu open', 'تثبيت القائمة'), L_UNPIN_NAV: E('Collapse menu', 'طي القائمة'),
     L_WHY_NOT_FOLLOWED: E('Why wasn\u2019t it offered?', 'لماذا لم تُعرض؟'), L_GENERAL: E('General', 'عام'), L_STORE_THREADS: E('Store conversations', 'محادثات المحلات'), L_NEW_MSG: E('New message', 'رسالة جديدة'), L_MESSAGE: E('Message', 'مراسلة'),
+    VL_SALE_COLL: E('Sale + Collection', 'بيع + تحصيل'), VL_SALE: E('Sale', 'بيع'), VL_COLL: E('Collection', 'تحصيل'), VL_SHELF: E('Shelf only', 'ترتيب الرف فقط'),
+    L_VOICE_NOTE: E('Voice note', 'رسالة صوتية'), L_RECORD: E('Record voice note', 'تسجيل رسالة صوتية'), L_RECORDING: E('Recording', 'جارٍ التسجيل'), L_PLAY: E('Play', 'تشغيل'), L_PAUSE: E('Pause', 'إيقاف مؤقت'), L_MIC_BLOCKED: E('Allow the microphone to record', 'اسمح باستخدام الميكروفون للتسجيل'),
     L_VISIT_AGAIN: E('Visit again', 'زيارة مرة أخرى'), L_LATER_TODAY: E('Later today', 'لاحقاً اليوم'), L_NEXT_VISIT_DAY: E('Next visit day', 'يوم الزيارة التالي'), L_REVISIT: E('Revisit', 'زيارة متكررة'),
     L_CARRIED_FROM: E('Open since {date} · {reason}', 'مفتوحة منذ {date} · {reason}'), L_STORE_PRODUCTS: E('Products at this store', 'المنتجات في هذا المحل'),
     L_SKU_STATS: E('Last {date} · {qty} · {n} in 4 weeks', 'آخر طلب {date} · {qty} · {n} خلال ٤ أسابيع'), L_COVER_DAYS: E('~{days} days cover', '~{days} أيام تغطية'), L_ADD_PHOTOS: E('Add shelf photos', 'إضافة صور للرف'),
@@ -252,7 +252,6 @@
     L_FOL_EXPL: E('Net sales change in stores that took recommendations, against the other stores on the route.', 'تغير صافي المبيعات في المحلات التي أخذت التوصيات، مقارنة ببقية محلات المسار.'),
     K_I_NET: E('Sales minus returns, against the average day before recommendations.', 'المبيعات ناقص المرتجعات، مقارنة بمتوسط اليوم قبل التوصيات.'),
     L_NEW_SINCE_PILOT: E('New since recommendations', 'جديد منذ بدء التوصيات'), L_COL_NET_VS: E('Net sales vs before recommendations', 'صافي المبيعات مقارنة بما قبل التوصيات'),
-    L_CMP_NOTE_PRE: E('Small figures compare with the same selling days {date} to {label}, before recommendations.', 'الأرقام الصغيرة تقارن بأيام البيع نفسها من {date} إلى {label} قبل التوصيات.'),
     L_PILOT: E('With recommendations', 'مع التوصيات'), L_P_PILOT: E('Since 22 Sep', 'منذ ٢٢ سبتمبر'), L_BASE_AVG: E('Average before recommendations', 'المتوسط قبل التوصيات'),
     L_UPSELL_VALUE_YOU: E('Your upsell value', 'قيمة مبيعاتك الإضافية'),
     // SalesBuzz no-sale codes in our own fixed words (the extract has typos such as "Payment  of depts")

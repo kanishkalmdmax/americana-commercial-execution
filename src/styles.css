@@ -1414,3 +1414,14 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
 .notif-row:last-child { border-bottom: 0; }
 .notif-row:hover { background: var(--hover); }
 .notif-empty { padding: 20px; text-align: center; font-size: 13px; color: var(--muted); }
+/* visit label and voice note */
+.chip.visit-label { font-weight: 600; }
+.voice-note { display:flex; align-items:center; gap:8px; min-width:180px; }
+.voice-wave { display:flex; align-items:center; gap:2px; flex:1; }
+.voice-wave i { display:block; width:3px; border-radius:2px; background: currentColor; opacity:.55; }
+.chat-rec { display:flex; align-items:center; gap:8px; padding: 0 8px; min-height: 40px; }
+.chat-rec .rec-dot { width:10px; height:10px; border-radius:50%; background: var(--bad); animation: recPulse 1s infinite; }
+.chat-rec-time { font-variant-numeric: tabular-nums; color: var(--ink-3); }
+@keyframes recPulse { 50% { opacity:.3; } }
+@media (prefers-reduced-motion: reduce) { .chat-rec .rec-dot { animation: none; } }
+.voice-note .voice-play { color: inherit; border-radius: 50%; background: color-mix(in srgb, currentColor 16%, transparent); flex-shrink: 0; }

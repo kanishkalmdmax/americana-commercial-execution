@@ -12,6 +12,17 @@
   // ---------- attachments live in IndexedDB so the event log stays small (memory fallback for this session) ----------
   let dbp = null; const mem = {};
   const db = () => dbp || (dbp = new Promise(res => { try { const r = indexedDB.open('fielddrive-files', 1); r.onupgradeneeded = () => r.result.createObjectStore('f'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } }));
+  const fmtSec = x => { x = Math.round(x); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); };
+  // voice note bubble: play/pause, a fixed wave and the length
+  const voiceNode = v => { const btn = h('button', { type: 'button', class: 'icon-btn voice-play', 'aria-label': t('L_PLAY'), title: t('L_PLAY') }, I('play', 's16'));
+    let audio = null;
+    btn.addEventListener('click', async () => { if (audio && !audio.paused) { audio.pause(); return; }
+      if (!audio) { const src = await FD.fileGet(v.id); if (!src) return; audio = new Audio(src);
+        audio.onplay = () => { btn.replaceChildren(I('pause', 's16')); btn.setAttribute('aria-label', t('L_PAUSE')); };
+        audio.onpause = audio.onended = () => { btn.replaceChildren(I('play', 's16')); btn.setAttribute('aria-label', t('L_PLAY')); }; }
+      audio.play(); });
+    return h('div', { class: 'voice-note' }, btn, h('span', { class: 'voice-wave', 'aria-hidden': 'true' }, [4, 8, 12, 6, 10, 14, 7, 11, 5, 9, 13, 6, 8, 4].map(x => h('i', { style: { height: x + 'px' } }))), h('span', { class: 'small' }, fmtSec(v.sec)));
+  };
   FD.filePut = async (id, data) => { C.cache[id] = mem[id] = data; const d = await db(); if (!d) return;
     await new Promise(r => { try { const x = d.transaction('f', 'readwrite'); x.objectStore('f').put(data, id); x.oncomplete = x.onerror = x.onabort = r; } catch (e) { r(); } }); };
   FD.fileGet = async id => { if (C.cache[id]) return C.cache[id]; const d = await db(); if (!d) return mem[id] || null;
@@ -148,8 +159,9 @@
           showBy ? h('div', { class: 'msg-by' }, nameBy(m.by)) : null,
           tagLine(m),
           m.topic ? h('div', { class: 'msg-topic' }, t(m.topic)) : null,
-          quoted ? h('button', { type: 'button', class: 'msg-quote', on: { click: () => jump(quoted.id) } }, h('b', null, isMine(quoted, who, vsr) ? t('L_YOU') : nameBy(quoted.by)), h('span', { class: 'ellipsis', dir: 'auto' }, quoted.text || t('L_ATTACHMENT'))) : null,
+          quoted ? h('button', { type: 'button', class: 'msg-quote', on: { click: () => jump(quoted.id) } }, h('b', null, isMine(quoted, who, vsr) ? t('L_YOU') : nameBy(quoted.by)), h('span', { class: 'ellipsis', dir: 'auto' }, quoted.text || t(quoted.voice ? 'L_VOICE_NOTE' : 'L_ATTACHMENT'))) : null,
           m.text ? h('div', { class: 'msg-text', dir: 'auto' }, mark(m.text, q)) : null,
+          m.voice ? voiceNode(m.voice) : null,
           photos.length || files.some(f => f.kind === 'img') ? h('div', { class: 'msg-photos' }, photos.map(p => FD.photoButton({src:p,label:t('PG_PHOTO_LABEL')})), files.filter(f => f.kind === 'img').map(fileNode)) : null,
           files.filter(f => f.kind !== 'img').map(fileNode),
           h('div', { class: 'msg-meta' }, h('time', null, FD.fmt.time(m.at.time)), mine ? h('span', { class: 'tick' + (seen ? ' seen' : ''), title: t(seen ? 'L_SEEN' : 'L_SENT'), 'aria-label': t(seen ? 'L_SEEN' : 'L_SENT') }, I(seen ? 'check-check' : 'check', 's14')) : null)),
@@ -192,6 +204,24 @@
       const x = findTh(anchor); if (x && FD.chatUnread(x, who, vsr)) FD.dx('THREAD_READ', { thread: x.id, who, vsr });
       rerender();
     }
+    // voice note: record with the phone or laptop microphone, send as one message with its length
+    async function startRec() {
+      try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const rec = new MediaRecorder(stream); const parts = [];
+        rec.ondataavailable = e => parts.push(e.data); C.rec = { rec, stream, parts, at: Date.now(), key }; rec.start(); rerender();
+        C.rec.timer = setInterval(() => { const el = document.querySelector('.chat-rec-time'); if (el && C.rec) el.textContent = fmtSec((Date.now() - C.rec.at) / 1000); }, 500);
+      } catch (e) { FD.toast(null, null, { text: t('L_MIC_BLOCKED') }); }
+    }
+    function stopRec(keep) {
+      const r = C.rec; if (!r) return; C.rec = null; clearInterval(r.timer);
+      r.rec.onstop = () => { r.stream.getTracks().forEach(x => x.stop()); if (!keep) { rerender(); return; }
+        const sec = Math.max(1, Math.round((Date.now() - r.at) / 1000)); const fr = new FileReader();
+        fr.onload = async () => { const id = 'V' + Date.now().toString(36); try { await FD.filePut(id, fr.result); } catch (e) { /* kept in memory */ }
+          FD.dx('MSG_SEND', { anchor, by: who === 'SUP' ? 'SUP' : vsr, text: '', voice: { id, sec }, replyTo: D.replyTo || null, store: tag ? tag.store || null : null, sku: tag ? tag.sku || null : null, rec: tag ? tag.rec || null : null });
+          D.replyTo = null; C.stick[slot] = true; rerender(); };
+        fr.readAsDataURL(new Blob(r.parts, { type: r.rec.mimeType || 'audio/webm' })); };
+      r.rec.stop();
+    }
+    const recOn = C.rec && C.rec.key === key;
     const autosize = el => { el.style.height = 'auto'; el.style.height = Math.min(140, el.scrollHeight) + 'px'; };
     const ta = h('textarea', { class: 'textarea chat-input', dir: 'auto', rows: '1', placeholder: t('L_TYPE_MSG'), 'aria-label': t('L_TYPE_MSG'), maxlength: '1000',
       on: { input: e => { D.text = e.target.value; autosize(e.target); }, focus: () => { C.typing = key; }, blur: e => { if (e.target.isConnected) C.typing = null; },
@@ -212,7 +242,9 @@
         h('button', { type: 'button', class: 'att-x', 'aria-label': t('L_REMOVE'), on: { click: () => { D.files.splice(i, 1); rerender(); } } }, I('x', 's14'))))) : null,
       h('div', { class: 'chat-row' }, fileIn, camIn, picIn, h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('L_ATTACH'), title: t('L_ATTACH'), 'aria-haspopup': 'menu', on: { click: e => FD.menu(e.currentTarget, [
         who !== 'SUP' ? { icon: 'camera', label: t('L_PHOTO'), onClick: () => camIn.click() } : null, { icon: 'image', label: t('L_CHOOSE_PHOTOS'), onClick: () => picIn.click() }, { icon: 'paperclip', label: t('L_CHOOSE_FILES'), onClick: () => fileIn.click() }]) } }, I('paperclip')),
-        h('div', { class: 'grow' }, ta), h('button', { class: 'btn primary chat-send', type: 'button', 'aria-label': t('L_SEND'), on: { click: () => send(D.text) } }, I('send', 's16'))));
+        recOn ? h('div', { class: 'grow chat-rec', role: 'status' }, h('span', { class: 'rec-dot' }), h('span', null, t('L_RECORDING')), h('span', { class: 'chat-rec-time' }, fmtSec((Date.now() - C.rec.at) / 1000))) : h('div', { class: 'grow' }, ta),
+        recOn ? FD.iconBtn('trash', t('L_REMOVE'), () => stopRec(false)) : h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('L_RECORD'), title: t('L_RECORD'), on: { click: startRec } }, I('mic')),
+        h('button', { class: 'btn primary chat-send', type: 'button', 'aria-label': t('L_SEND'), on: { click: () => recOn ? stopRec(true) : send(D.text) } }, I('send', 's16'))));
     return h('div', { class: 'chat chat-' + mode }, header, searchBar, panel, chips, list, composer);
   };
 

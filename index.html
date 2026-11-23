@@ -1487,6 +1487,17 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
 .notif-row:last-child { border-bottom: 0; }
 .notif-row:hover { background: var(--hover); }
 .notif-empty { padding: 20px; text-align: center; font-size: 13px; color: var(--muted); }
+/* visit label and voice note */
+.chip.visit-label { font-weight: 600; }
+.voice-note { display:flex; align-items:center; gap:8px; min-width:180px; }
+.voice-wave { display:flex; align-items:center; gap:2px; flex:1; }
+.voice-wave i { display:block; width:3px; border-radius:2px; background: currentColor; opacity:.55; }
+.chat-rec { display:flex; align-items:center; gap:8px; padding: 0 8px; min-height: 40px; }
+.chat-rec .rec-dot { width:10px; height:10px; border-radius:50%; background: var(--bad); animation: recPulse 1s infinite; }
+.chat-rec-time { font-variant-numeric: tabular-nums; color: var(--ink-3); }
+@keyframes recPulse { 50% { opacity:.3; } }
+@media (prefers-reduced-motion: reduce) { .chat-rec .rec-dot { animation: none; } }
+.voice-note .voice-play { color: inherit; border-radius: 50%; background: color-mix(in srgb, currentColor 16%, transparent); flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -3200,6 +3211,13 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     if ((iso < FD.TODAY && FD.overdueAt ? FD.overdueAt(id, iso) : (s.overdue || 0)) > 0 || (sc && sc.status === 'OPEN')) return 2;
     return FD.daysBetween(last, iso) <= 7 ? 3 : 2;
   };
+  // visit label: order due and/or money due at the stop. Same label for every stop, whoever planned it.
+  FD.visitLabel = function (st, v) {
+    const s = storeById(st, v.store); if (!s) return 'VL_SHELF';
+    const sale = FD.stopTier(st, v) === 1 || FD.storeRecs(st, v.store).some(r => r.date === v.date && !r.blockedAt);
+    const money = (v.date < FD.TODAY && FD.overdueAt ? FD.overdueAt(v.store, v.date) : (s.overdue || 0)) > 0;
+    return sale && money ? 'VL_SALE_COLL' : sale ? 'VL_SALE' : money ? 'VL_COLL' : 'VL_SHELF';
+  };
   FD.ensureDay = function (st, iso) {
     if (st.planned[iso]) return;
     st.planned[iso] = true;
@@ -3870,7 +3888,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     if (!th) { th = { id: nextId(st, 'TH'), anchor: key, store: null, vsr: team ? null : vsr, messages: [], unreadSup: false, unreadVsr: false, team, unreadVsrs: {}, seenVsrs: {} }; st.threads.push(th); }
     const at = msg.at || now(st); const seen = at.date + ' ' + at.time;
     const m = { id: nextId(st, 'MS'), by, at, text: msg.text, photo: msg.photo || null, files: msg.files || [], replyTo: msg.replyTo || null, qr: msg.qr || null, topic: msg.topic || null, system: msg.system || null, reason: msg.reason || null,
-      store: team ? null : tag.store, sku: team ? null : tag.sku, rec: team ? null : tag.rec, tip: msg.tip || null };
+      store: team ? null : tag.store, sku: team ? null : tag.sku, rec: team ? null : tag.rec, tip: msg.tip || null, voice: msg.voice || null };
     th.messages.push(m);
     if (th.team) { th.unreadVsrs = th.unreadVsrs || {}; th.seenVsrs = th.seenVsrs || {}; for (const v of st.world.vsrs) if (v.id !== by) th.unreadVsrs[v.id] = true; if (by !== 'SUP') { th.unreadSup = true; th.seenVsrs[by] = seen; } else th.seenSup = seen; }
     else if (by === 'SUP') { th.unreadVsr = true; th.unreadSup = false; th.seenSup = seen; } else { th.unreadSup = true; th.seenVsr = seen; }
@@ -3880,10 +3898,10 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
   R.MSG_SEND = (st, p) => {
     const th = postMsg(st, p.anchor, p.by, p); if (!th.id) return; // anchor no longer exists
     if (p.by !== 'SUP') return; const m = th.last; const target = { screen: 'thread', thread: th.id };
-    if (th.team) st.world.vsrs.forEach(v => notify(st, v.id, 'N_MSG', { supId: 'S1', snippet: (p.text || '').slice(0, 60) }, target));
+    if (th.team) st.world.vsrs.forEach(v => notify(st, v.id, 'N_MSG', { supId: 'S1', snippet: (p.text || (p.voice ? FD.tx('L_VOICE_NOTE') : '')).slice(0, 60) }, target));
     else if (m.rec && m.sku) notify(st, th.vsr, 'N_REPLY', { skuCode: m.sku, storeId: m.store }, target);
     else if (m.store) notify(st, th.vsr, 'N_REPLY_STORE', { storeId: m.store }, target);
-    else notify(st, th.vsr, 'N_MSG', { supId: 'S1', snippet: (p.text || '').slice(0, 60) }, target);
+    else notify(st, th.vsr, 'N_MSG', { supId: 'S1', snippet: (p.text || (p.voice ? FD.tx('L_VOICE_NOTE') : '')).slice(0, 60) }, target);
   };
   R.THREAD_READ = (st, p) => { const th = st.threads.find(t => t.id === p.thread); if (!th) return; const at = now(st); const seen = at.date + ' ' + at.time;
     if (p.who === 'SUP') { th.unreadSup = false; th.seenSup = seen; }
@@ -4117,7 +4135,6 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
   Object.assign(FD.CATALOG, {
     CTX_REMOTE: E('Remote route · {n} stops/day', 'مسار بعيد · {n} زيارات يومياً'),
     CTX_COVERED: E('Covered on {date}', 'تمت التغطية في {date}'),
-    CTX_RELIEF: E('Relief route · not ranked', 'مسار بديل · غير مرتب'),
     S_STORAGE: E('Browser storage is full. Changes stay until you close this tab', 'مساحة التخزين ممتلئة، ستبقى التغييرات حتى إغلاق الصفحة'),
     B_GAP_NEAR: E('{pct}% of similar stores buy this.', '{pct}٪ من المحلات المشابهة تشتري هذا.'),
     NOT_REORDERED: E('Not reordered', 'لم يُعد الطلب'),
@@ -4335,7 +4352,6 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
         for (let w = 7; w >= 0; w--) { const t = FD.addDays(lim, -7 * w); const f = FD.addDays(t, -6); spark.push(t < FD.PILOT_START ? null : Math.round(FD.vsrMetrics(st, x.vsr, f < FD.PILOT_START ? FD.PILOT_START : f, t).perDay || 0)); } // weekly net sales per selling day
         const v = st.world.vsrs.find(q => q.id === x.vsr); const route = st.world.routes.find(r => r.id === v.route);
         const context = [];
-        if (route.relief) context.push({ id: 'CTX_RELIEF', slots: {} });
         if (route.remote) context.push({ id: 'CTX_REMOTE', slots: { n: st.world.stores.filter(s => s.route === route.id && s.days.includes(3)).length } });
         st.covers.filter(c => c.route === route.id && c.date >= from && c.date <= lim).forEach(c => context.push({ id: 'CTX_COVERED', slots: { date: c.date } }));
         st.covers.filter(c => c.vsr === x.vsr && c.date >= from && c.date <= lim).forEach(c => context.push({ id: 'CTX_COVERED', slots: { date: c.date } }));
@@ -5716,7 +5732,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>', trash: '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
     edit: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>', maximize: '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
     'sort-az': '<path d="m3 16 4 4 4-4M7 20V4M20 8h-5M15 10V6.5a2.5 2.5 0 0 1 5 0V10M15 14h5l-5 6h5"/>', repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
-    'check-check': '<path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>', paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+    'check-check': '<path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>', mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/>', play: '<path d="M7 4l13 8-13 8z"/>', pause: '<path d="M7 4h4v16H7zM14 4h4v16h-4z"/>', paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
     reply: '<path d="m9 17-5-5 5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>', file: '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/>',
     megaphone: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
     'user-switch': '<circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6M16 14l3 3-3 3M22 17h-6"/>', 'pin-off': '<path d="M12 17v5M15 9.3V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8M2 2l20 20M9 9v1.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h11"/>', star: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
@@ -6214,7 +6230,6 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     L_NO_VISITS_YET: E('No visit data received yet today', 'لم تصل بيانات الزيارات اليوم بعد'),
     L_WHAT_IS_THIS: E('What is this?', 'ما هذا؟'), 
     
-    L_CMP_TODAY: E('Small figures compare with {date} up to {time}. Today is still in progress.', 'الأرقام الصغيرة تقارن بيوم {date} حتى الساعة {time}. اليوم لم ينتهِ بعد.'),
     L_STORE_TYPE: E('Store type', 'نوع المحل'), L_LOCATION_TYPE: E('Nearby place', 'مكان قريب'),
     L_NEW_REASON: E('New reason', 'سبب جديد'), L_EDIT_REASON: E('Edit reason', 'تعديل السبب'), L_REASON_EN: E('Name in English', 'الاسم بالإنجليزية'), L_REASON_AR: E('Name in Arabic', 'الاسم بالعربية'),
     L_REASON_AR_HINT: E('Salesmen see the Arabic name. If you leave one empty, the other is used.', 'يرى المندوبون الاسم العربي. إذا تركت أحدهما فارغاً يُستخدم الآخر.'),
@@ -6260,7 +6275,6 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     L_F_ALL: E('All', 'الكل'), L_F_UNREAD: E('Unread', 'غير مقروءة'), L_F_STORES: E('Stores', 'المحلات'), L_F_VSRS: E('Salesmen', 'المندوبون'),
     QV_OK: E('Okay, will do', 'تمام، سأفعل'), QV_DONE: E('Done, the owner agreed', 'تم، وافق صاحب المحل'), QV_LATER: E('Will try on the next visit', 'سأحاول في الزيارة القادمة'), QV_CALL: E('Can you call me?', 'هل يمكنك الاتصال بي؟'),
     L_PTS: E('pts', 'نقطة'), 
-    L_CMP_NOTE: E('Small figures show the change against {date} to {label}.', 'الأرقام الصغيرة تبين التغير مقارنة بالفترة من {date} إلى {label}.'),
     
     L_FILTERS: E('Filters', 'التصفية'), L_REORDER_DUE: E('Reorder due', 'حان وقت الطلب'), L_LIKELY_NEEDS: E('Likely needs a regular reorder today: {label}', 'يحتاج على الأغلب طلباً عادياً اليوم: {label}'),
     L_COVER_HELP: E('Days until the store likely runs out, from its last delivery and 4-week sales.', 'الأيام المتوقعة حتى نفاد المحل، حسب آخر توريد ومبيعات ٤ أسابيع.'),
@@ -6285,6 +6299,8 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     L_PENDING_N: E('{n} still pending', '{n} ما زالت معلقة'), L_DONE_VIA: E('{status} · {date} {time}', '{status} · {date} {time}'),
     L_SCORECARD_SETUP: E('Scorecard', 'بطاقة الأداء'), L_COL_IN_SCORE: E('In score', 'ضمن التقييم'), L_COL_WEIGHT: E('Weight', 'الوزن'), L_COL_SEES: E('Salesman sees', 'يظهر للمندوب'), L_EXPAND: E('Open full page', 'فتح الصفحة كاملة'), L_PIN_NAV: E('Keep menu open', 'تثبيت القائمة'), L_UNPIN_NAV: E('Collapse menu', 'طي القائمة'),
     L_WHY_NOT_FOLLOWED: E('Why wasn\u2019t it offered?', 'لماذا لم تُعرض؟'), L_GENERAL: E('General', 'عام'), L_STORE_THREADS: E('Store conversations', 'محادثات المحلات'), L_NEW_MSG: E('New message', 'رسالة جديدة'), L_MESSAGE: E('Message', 'مراسلة'),
+    VL_SALE_COLL: E('Sale + Collection', 'بيع + تحصيل'), VL_SALE: E('Sale', 'بيع'), VL_COLL: E('Collection', 'تحصيل'), VL_SHELF: E('Shelf only', 'ترتيب الرف فقط'),
+    L_VOICE_NOTE: E('Voice note', 'رسالة صوتية'), L_RECORD: E('Record voice note', 'تسجيل رسالة صوتية'), L_RECORDING: E('Recording', 'جارٍ التسجيل'), L_PLAY: E('Play', 'تشغيل'), L_PAUSE: E('Pause', 'إيقاف مؤقت'), L_MIC_BLOCKED: E('Allow the microphone to record', 'اسمح باستخدام الميكروفون للتسجيل'),
     L_VISIT_AGAIN: E('Visit again', 'زيارة مرة أخرى'), L_LATER_TODAY: E('Later today', 'لاحقاً اليوم'), L_NEXT_VISIT_DAY: E('Next visit day', 'يوم الزيارة التالي'), L_REVISIT: E('Revisit', 'زيارة متكررة'),
     L_CARRIED_FROM: E('Open since {date} · {reason}', 'مفتوحة منذ {date} · {reason}'), L_STORE_PRODUCTS: E('Products at this store', 'المنتجات في هذا المحل'),
     L_SKU_STATS: E('Last {date} · {qty} · {n} in 4 weeks', 'آخر طلب {date} · {qty} · {n} خلال ٤ أسابيع'), L_COVER_DAYS: E('~{days} days cover', '~{days} أيام تغطية'), L_ADD_PHOTOS: E('Add shelf photos', 'إضافة صور للرف'),
@@ -6438,7 +6454,6 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     L_FOL_EXPL: E('Net sales change in stores that took recommendations, against the other stores on the route.', 'تغير صافي المبيعات في المحلات التي أخذت التوصيات، مقارنة ببقية محلات المسار.'),
     K_I_NET: E('Sales minus returns, against the average day before recommendations.', 'المبيعات ناقص المرتجعات، مقارنة بمتوسط اليوم قبل التوصيات.'),
     L_NEW_SINCE_PILOT: E('New since recommendations', 'جديد منذ بدء التوصيات'), L_COL_NET_VS: E('Net sales vs before recommendations', 'صافي المبيعات مقارنة بما قبل التوصيات'),
-    L_CMP_NOTE_PRE: E('Small figures compare with the same selling days {date} to {label}, before recommendations.', 'الأرقام الصغيرة تقارن بأيام البيع نفسها من {date} إلى {label} قبل التوصيات.'),
     L_PILOT: E('With recommendations', 'مع التوصيات'), L_P_PILOT: E('Since 22 Sep', 'منذ ٢٢ سبتمبر'), L_BASE_AVG: E('Average before recommendations', 'المتوسط قبل التوصيات'),
     L_UPSELL_VALUE_YOU: E('Your upsell value', 'قيمة مبيعاتك الإضافية'),
     // SalesBuzz no-sale codes in our own fixed words (the extract has typos such as "Payment  of depts")
@@ -6920,6 +6935,17 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
   // ---------- attachments live in IndexedDB so the event log stays small (memory fallback for this session) ----------
   let dbp = null; const mem = {};
   const db = () => dbp || (dbp = new Promise(res => { try { const r = indexedDB.open('fielddrive-files', 1); r.onupgradeneeded = () => r.result.createObjectStore('f'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } }));
+  const fmtSec = x => { x = Math.round(x); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); };
+  // voice note bubble: play/pause, a fixed wave and the length
+  const voiceNode = v => { const btn = h('button', { type: 'button', class: 'icon-btn voice-play', 'aria-label': t('L_PLAY'), title: t('L_PLAY') }, I('play', 's16'));
+    let audio = null;
+    btn.addEventListener('click', async () => { if (audio && !audio.paused) { audio.pause(); return; }
+      if (!audio) { const src = await FD.fileGet(v.id); if (!src) return; audio = new Audio(src);
+        audio.onplay = () => { btn.replaceChildren(I('pause', 's16')); btn.setAttribute('aria-label', t('L_PAUSE')); };
+        audio.onpause = audio.onended = () => { btn.replaceChildren(I('play', 's16')); btn.setAttribute('aria-label', t('L_PLAY')); }; }
+      audio.play(); });
+    return h('div', { class: 'voice-note' }, btn, h('span', { class: 'voice-wave', 'aria-hidden': 'true' }, [4, 8, 12, 6, 10, 14, 7, 11, 5, 9, 13, 6, 8, 4].map(x => h('i', { style: { height: x + 'px' } }))), h('span', { class: 'small' }, fmtSec(v.sec)));
+  };
   FD.filePut = async (id, data) => { C.cache[id] = mem[id] = data; const d = await db(); if (!d) return;
     await new Promise(r => { try { const x = d.transaction('f', 'readwrite'); x.objectStore('f').put(data, id); x.oncomplete = x.onerror = x.onabort = r; } catch (e) { r(); } }); };
   FD.fileGet = async id => { if (C.cache[id]) return C.cache[id]; const d = await db(); if (!d) return mem[id] || null;
@@ -7056,8 +7082,9 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
           showBy ? h('div', { class: 'msg-by' }, nameBy(m.by)) : null,
           tagLine(m),
           m.topic ? h('div', { class: 'msg-topic' }, t(m.topic)) : null,
-          quoted ? h('button', { type: 'button', class: 'msg-quote', on: { click: () => jump(quoted.id) } }, h('b', null, isMine(quoted, who, vsr) ? t('L_YOU') : nameBy(quoted.by)), h('span', { class: 'ellipsis', dir: 'auto' }, quoted.text || t('L_ATTACHMENT'))) : null,
+          quoted ? h('button', { type: 'button', class: 'msg-quote', on: { click: () => jump(quoted.id) } }, h('b', null, isMine(quoted, who, vsr) ? t('L_YOU') : nameBy(quoted.by)), h('span', { class: 'ellipsis', dir: 'auto' }, quoted.text || t(quoted.voice ? 'L_VOICE_NOTE' : 'L_ATTACHMENT'))) : null,
           m.text ? h('div', { class: 'msg-text', dir: 'auto' }, mark(m.text, q)) : null,
+          m.voice ? voiceNode(m.voice) : null,
           photos.length || files.some(f => f.kind === 'img') ? h('div', { class: 'msg-photos' }, photos.map(p => FD.photoButton({src:p,label:t('PG_PHOTO_LABEL')})), files.filter(f => f.kind === 'img').map(fileNode)) : null,
           files.filter(f => f.kind !== 'img').map(fileNode),
           h('div', { class: 'msg-meta' }, h('time', null, FD.fmt.time(m.at.time)), mine ? h('span', { class: 'tick' + (seen ? ' seen' : ''), title: t(seen ? 'L_SEEN' : 'L_SENT'), 'aria-label': t(seen ? 'L_SEEN' : 'L_SENT') }, I(seen ? 'check-check' : 'check', 's14')) : null)),
@@ -7100,6 +7127,24 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
       const x = findTh(anchor); if (x && FD.chatUnread(x, who, vsr)) FD.dx('THREAD_READ', { thread: x.id, who, vsr });
       rerender();
     }
+    // voice note: record with the phone or laptop microphone, send as one message with its length
+    async function startRec() {
+      try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const rec = new MediaRecorder(stream); const parts = [];
+        rec.ondataavailable = e => parts.push(e.data); C.rec = { rec, stream, parts, at: Date.now(), key }; rec.start(); rerender();
+        C.rec.timer = setInterval(() => { const el = document.querySelector('.chat-rec-time'); if (el && C.rec) el.textContent = fmtSec((Date.now() - C.rec.at) / 1000); }, 500);
+      } catch (e) { FD.toast(null, null, { text: t('L_MIC_BLOCKED') }); }
+    }
+    function stopRec(keep) {
+      const r = C.rec; if (!r) return; C.rec = null; clearInterval(r.timer);
+      r.rec.onstop = () => { r.stream.getTracks().forEach(x => x.stop()); if (!keep) { rerender(); return; }
+        const sec = Math.max(1, Math.round((Date.now() - r.at) / 1000)); const fr = new FileReader();
+        fr.onload = async () => { const id = 'V' + Date.now().toString(36); try { await FD.filePut(id, fr.result); } catch (e) { /* kept in memory */ }
+          FD.dx('MSG_SEND', { anchor, by: who === 'SUP' ? 'SUP' : vsr, text: '', voice: { id, sec }, replyTo: D.replyTo || null, store: tag ? tag.store || null : null, sku: tag ? tag.sku || null : null, rec: tag ? tag.rec || null : null });
+          D.replyTo = null; C.stick[slot] = true; rerender(); };
+        fr.readAsDataURL(new Blob(r.parts, { type: r.rec.mimeType || 'audio/webm' })); };
+      r.rec.stop();
+    }
+    const recOn = C.rec && C.rec.key === key;
     const autosize = el => { el.style.height = 'auto'; el.style.height = Math.min(140, el.scrollHeight) + 'px'; };
     const ta = h('textarea', { class: 'textarea chat-input', dir: 'auto', rows: '1', placeholder: t('L_TYPE_MSG'), 'aria-label': t('L_TYPE_MSG'), maxlength: '1000',
       on: { input: e => { D.text = e.target.value; autosize(e.target); }, focus: () => { C.typing = key; }, blur: e => { if (e.target.isConnected) C.typing = null; },
@@ -7120,7 +7165,9 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
         h('button', { type: 'button', class: 'att-x', 'aria-label': t('L_REMOVE'), on: { click: () => { D.files.splice(i, 1); rerender(); } } }, I('x', 's14'))))) : null,
       h('div', { class: 'chat-row' }, fileIn, camIn, picIn, h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('L_ATTACH'), title: t('L_ATTACH'), 'aria-haspopup': 'menu', on: { click: e => FD.menu(e.currentTarget, [
         who !== 'SUP' ? { icon: 'camera', label: t('L_PHOTO'), onClick: () => camIn.click() } : null, { icon: 'image', label: t('L_CHOOSE_PHOTOS'), onClick: () => picIn.click() }, { icon: 'paperclip', label: t('L_CHOOSE_FILES'), onClick: () => fileIn.click() }]) } }, I('paperclip')),
-        h('div', { class: 'grow' }, ta), h('button', { class: 'btn primary chat-send', type: 'button', 'aria-label': t('L_SEND'), on: { click: () => send(D.text) } }, I('send', 's16'))));
+        recOn ? h('div', { class: 'grow chat-rec', role: 'status' }, h('span', { class: 'rec-dot' }), h('span', null, t('L_RECORDING')), h('span', { class: 'chat-rec-time' }, fmtSec((Date.now() - C.rec.at) / 1000))) : h('div', { class: 'grow' }, ta),
+        recOn ? FD.iconBtn('trash', t('L_REMOVE'), () => stopRec(false)) : h('button', { type: 'button', class: 'icon-btn', 'aria-label': t('L_RECORD'), title: t('L_RECORD'), on: { click: startRec } }, I('mic')),
+        h('button', { class: 'btn primary chat-send', type: 'button', 'aria-label': t('L_SEND'), on: { click: () => recOn ? stopRec(true) : send(D.text) } }, I('send', 's16'))));
     return h('div', { class: 'chat chat-' + mode }, header, searchBar, panel, chips, list, composer);
   };
 
@@ -7396,7 +7443,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
       h('div', { class: 'grow' }, h('div', { class: 'nm row', style: { gap: '6px' } }, FD.sizeIcon(s.size), h('span', null, FD.nameOf(s))),
         h('div', { class: 'meta' }, [t('LBL_' + s.label), nearName(s, true)].filter(Boolean).join(' · ')),
         stop.status === 'SKIPPED' ? h('div', { class: 'meta' }, t(stop.skipReason)) : null,
-        h('div', { class: 'row wrap', style: { marginTop: '6px', gap: '6px' } }, V.statusChip(stop), stop.supAdded && stop.status === 'PLANNED' ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, st().recs.some(r => r.store === stop.store && r.date === stop.date && (r.supEdited || r.supRemoved)) ? FD.chip([I('user', 's14'), t('L_SUP_CHANGED')], 'info') : null, stop.collected ? FD.chip([I('wallet', 's14'), t('L_COLLECTED') + ' ' + FD.fmt.money0(stop.collected)], 'good') : null, stop.revisit ? FD.chip([I('repeat', 's14'), t('L_REVISIT')], 'warn') : null, st().preorders.some(p => p.store === stop.store && p.forDate === stop.date && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, FD.waChips(st(), stop.store, stop.date), stop.reassigned || stop.supAdded ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, stop.offPlan ? FD.chip(t('SK_OFFPLAN'), 'info') : null,
+        h('div', { class: 'row wrap', style: { marginTop: '6px', gap: '6px' } }, FD.chip(t(FD.visitLabel(st(), stop)), 'outline visit-label'), V.statusChip(stop), stop.supAdded && stop.status === 'PLANNED' ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, st().recs.some(r => r.store === stop.store && r.date === stop.date && (r.supEdited || r.supRemoved)) ? FD.chip([I('user', 's14'), t('L_SUP_CHANGED')], 'info') : null, stop.collected ? FD.chip([I('wallet', 's14'), t('L_COLLECTED') + ' ' + FD.fmt.money0(stop.collected)], 'good') : null, stop.revisit ? FD.chip([I('repeat', 's14'), t('L_REVISIT')], 'warn') : null, st().preorders.some(p => p.store === stop.store && p.forDate === stop.date && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, FD.waChips(st(), stop.store, stop.date), stop.reassigned || stop.supAdded ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, stop.offPlan ? FD.chip(t('SK_OFFPLAN'), 'info') : null,
           !FD.invoicedThisMonth(st(), s.id, stop.date) ? FD.chip(t('L_NOT_INVOICED_M'), 'warn') : null, s.overdue > 0 ? FD.chip(tx('L_OVERDUE_AMT', { money: FD.fmt.money0(s.overdue) }), 'bad') : null,
           s.credit !== 'OK' && !(s.overdue > 0) ? FD.creditChip(s.credit, true) : null,
           n ? FD.chip(tx('L_RECS_N', { n }), 'info') : FD.chip(t('L_NO_RECS'), '')))),
@@ -7469,7 +7516,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     const head = h('div', { class: 'stack', style: { gap: '6px', marginTop: '2px' } },
       store.overdue > 0 ? h('div', { class: 'banner warn collect-first', role: 'status' }, I('wallet'), h('span', null, store.oldestDue ? tx('L_COLLECT_FIRST', { money: FD.fmt.money0(store.overdue), date: store.oldestDue }) : tx('L_COLLECT_FIRST_N', { money: FD.fmt.money0(store.overdue) }))) : null,
       // one compact chip row (scrolls sideways, never wraps), then the last order
-      h('div', { class: 'store-chips' }, FD.chip(t('LBL_' + store.label), 'info'), FD.chip([FD.sizeIcon(store.size), t('SIZE_' + store.size)]), (FD.NEARBY_DATA ? store.tags || [] : []).map(x => FD.chip(t('TAGN_' + x.slice(4)), 'outline'))),
+      h('div', { class: 'store-chips' }, visit ? FD.chip(t(FD.visitLabel(s, visit)), 'outline visit-label') : null, FD.chip(t('LBL_' + store.label), 'info'), FD.chip([FD.sizeIcon(store.size), t('SIZE_' + store.size)]), (FD.NEARBY_DATA ? store.tags || [] : []).map(x => FD.chip(t('TAGN_' + x.slice(4)), 'outline'))),
       h('div', { class: 'small muted store-line' }, lastOrder ? t('L_LAST_VISIT', { date: FD.fmt.date(lastOrder) }) : t('SA_NO_ORDER_EVER')),
       h('div', { class: 'row store-meta' }, h('div', { class: 'row wrap grow', style: { gap: '6px', minWidth: 0 } }, visit ? V.statusChip(visit) : null,
           store.overdue > 0 ? FD.chip([I('wallet', 's14'), tx('L_OVERDUE_AMT', { money: FD.fmt.money0(store.overdue) })], 'bad') : store.credit !== 'OK' ? FD.creditChip(store.credit, true) : null,
@@ -8755,7 +8802,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
           h('div', { class: 'grow', style: { minWidth: 0 } }, // name on top, details and chips below so the name never gets squeezed
             h('button', { type: 'button', class: 'link-btn', style: { maxWidth: '100%', textAlign: 'start' }, on: { click: () => S.storeDrawer(x.store, null, true) } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, FD.nameOf(storeOf(x.store)))),
             h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '4px' } }, h('span', { class: 'small muted' }, [t('LBL_' + storeOf(x.store).label), t('SIZE_' + storeOf(x.store).size), x.skipReason ? t(x.skipReason) : null, x.arrivedAt ? FD.fmt.time(x.arrivedAt) : null, sales(x.store) ? FD.fmt.money0(sales(x.store)) : null].filter(Boolean).join(' · ')),
-              o.missed && o.missed.has(x.id) ? FD.chip(t('L_MISSED'), 'bad') : x.offPlan ? FD.chip(t('L_OFF_PLAN'), 'warn') : x.supAdded && x.status === 'PLANNED' ? FD.chip(t('L_ADDED_BY_YOU'), 'info') : FD.vsr.statusChip(x),
+              x.offPlan ? null : FD.chip(t(FD.visitLabel(s, x)), 'outline visit-label'), o.missed && o.missed.has(x.id) ? FD.chip(t('L_MISSED'), 'bad') : x.offPlan ? FD.chip(t('L_OFF_PLAN'), 'warn') : x.supAdded && x.status === 'PLANNED' ? FD.chip(t('L_ADDED_BY_YOU'), 'info') : FD.vsr.statusChip(x),
               s.preorders.some(p => p.store === x.store && p.forDate === d && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, FD.waChips(s, x.store, d))),
           x.status === 'PLANNED' && others.length ? FD.iconBtn('user-switch', t('ACT_MOVE_VAN'), e => FD.menu(e.currentTarget, others.map(q => ({ icon: 'truck', label: FD.nameOf(q), onClick: () => FD.dx('STOP_REASSIGN', { visitId: x.id, toVan: q.id }) })))) : null,
           x.status === 'PLANNED' ? FD.iconBtn('trash', t('L_REMOVE_STOP'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: d }); FD.toast('S_SAVED', null, { undo: () => FD.dx('SUP_STOP_RESTORE', { store: x.store, date: d }) }); })
@@ -9178,7 +9225,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
   const SHORT = { primary: 'MT_PRIMARY', visits: 'MT_VISITS', withSale: 'MT_WITHSALE', avgSale: 'MT_AVGSALE', returns: 'MT_RETURNS' };
   S.teamColumns = (full, rowsPartial, prePilot = false) => { const up = x => !x.prePilot; const num = (key, label, get, render) => ({ key, label, num: true, sort: (a, b) => get(a) - get(b), render });
     return [
-      { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => !x.m.hasBaseline || x.relief ? null : h('div', { class: 'row', style: { gap: '4px' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null) },
+      { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => !x.m.hasBaseline || x.relief ? null : h('div', { class: 'row', style: { gap: '4px', justifyContent: 'center' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), h('span', { style: { minWidth: '28px' } }, x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null)) },
       { key: 'vsr', label: t('L_COL_VSR'), sort: (a, b) => FD.nameOf(vsrOf(a.vsr)).localeCompare(FD.nameOf(vsrOf(b.vsr))), render: x => h('div', null, who(vsrOf(x.vsr)), full && x.context.length ? h('div', { class: 'row wrap', style: { marginTop: '4px', gap: '4px' } }, x.context.slice(0, 2).map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null) },
       full ? num('score', t('L_COL_VS_BASE'), x => x.m.hasBaseline ? x.m.vsBaseline : -Infinity, x => S.baseDelta(x.m)) : null,
       // the five sales metrics, each with its change against the comparison period
@@ -9214,7 +9261,6 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     const s = st(); const { from, to } = S.range();
     const rows = FD.teamCompare(s, from, to, S.fvans());
     const table = S.teamTable('teamFull', rows, true);
-    const p = rows[0] && rows[0].prevRange;
     // suggested tips: one collapsed bar on top (like Today's bars); it opens the per-salesman list and is gone once all are sent
     const drafts = FD.coachDrafts(s).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route), nV = new Set(drafts.map(d => d.vsr)).size;
     const tipBar = drafts.length ? h('button', { type: 'button', class: 'card fu-bar', on: { click: () => S.tipsDrawer() } },
@@ -9225,7 +9271,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     const ttab = L['team:tab'] || 'RES';
     const tabs = FD.seg([{ id: 'RES', label: t('L_TEAM_RESULTS') }, { id: 'KPI', label: t('L_TEAM_KPIS') }], ttab, v => { L['team:tab'] = v; FD.render(); });
     if (ttab === 'KPI') return { title: t('L_NAV_TEAM'), bar: () => tabs, body: [S.kpiTeam()] };
-    return { title: t('L_NAV_TEAM'), bar: () => tabs, body: [tipBar, card(t('L_P_TEAM'), null, h('div', null, table, p ? h('div', { class: 'small muted', style: { padding: '10px 16px' } }, (rows[0].partial ? t('L_CMP_TODAY', { date: FD.fmt.date(p.to), time: FD.fmt.time(s.clock.time) }) : t(rows[0].prePilot ? 'L_CMP_NOTE_PRE' : 'L_CMP_NOTE', { date: FD.fmt.date(p.from), label: FD.fmt.date(p.to) }))) : null), { flush: true, icon: 'users', info: t('I_TEAM') }), S.creditWatch()] };
+    return { title: t('L_NAV_TEAM'), bar: () => tabs, body: [tipBar, card(t('L_P_TEAM'), null, table, { flush: true, icon: 'users', info: t('I_TEAM') }), S.creditWatch()] };
   });
 
   // ================= STORES =================

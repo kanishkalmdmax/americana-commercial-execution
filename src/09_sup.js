@@ -540,7 +540,7 @@
           h('div', { class: 'grow', style: { minWidth: 0 } }, // name on top, details and chips below so the name never gets squeezed
             h('button', { type: 'button', class: 'link-btn', style: { maxWidth: '100%', textAlign: 'start' }, on: { click: () => S.storeDrawer(x.store, null, true) } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, FD.nameOf(storeOf(x.store)))),
             h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '4px' } }, h('span', { class: 'small muted' }, [t('LBL_' + storeOf(x.store).label), t('SIZE_' + storeOf(x.store).size), x.skipReason ? t(x.skipReason) : null, x.arrivedAt ? FD.fmt.time(x.arrivedAt) : null, sales(x.store) ? FD.fmt.money0(sales(x.store)) : null].filter(Boolean).join(' · ')),
-              o.missed && o.missed.has(x.id) ? FD.chip(t('L_MISSED'), 'bad') : x.offPlan ? FD.chip(t('L_OFF_PLAN'), 'warn') : x.supAdded && x.status === 'PLANNED' ? FD.chip(t('L_ADDED_BY_YOU'), 'info') : FD.vsr.statusChip(x),
+              x.offPlan ? null : FD.chip(t(FD.visitLabel(s, x)), 'outline visit-label'), o.missed && o.missed.has(x.id) ? FD.chip(t('L_MISSED'), 'bad') : x.offPlan ? FD.chip(t('L_OFF_PLAN'), 'warn') : x.supAdded && x.status === 'PLANNED' ? FD.chip(t('L_ADDED_BY_YOU'), 'info') : FD.vsr.statusChip(x),
               s.preorders.some(p => p.store === x.store && p.forDate === d && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, FD.waChips(s, x.store, d))),
           x.status === 'PLANNED' && others.length ? FD.iconBtn('user-switch', t('ACT_MOVE_VAN'), e => FD.menu(e.currentTarget, others.map(q => ({ icon: 'truck', label: FD.nameOf(q), onClick: () => FD.dx('STOP_REASSIGN', { visitId: x.id, toVan: q.id }) })))) : null,
           x.status === 'PLANNED' ? FD.iconBtn('trash', t('L_REMOVE_STOP'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: d }); FD.toast('S_SAVED', null, { undo: () => FD.dx('SUP_STOP_RESTORE', { store: x.store, date: d }) }); })
@@ -963,7 +963,7 @@
   const SHORT = { primary: 'MT_PRIMARY', visits: 'MT_VISITS', withSale: 'MT_WITHSALE', avgSale: 'MT_AVGSALE', returns: 'MT_RETURNS' };
   S.teamColumns = (full, rowsPartial, prePilot = false) => { const up = x => !x.prePilot; const num = (key, label, get, render) => ({ key, label, num: true, sort: (a, b) => get(a) - get(b), render });
     return [
-      { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => !x.m.hasBaseline || x.relief ? null : h('div', { class: 'row', style: { gap: '4px' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null) },
+      { key: 'rank', label: t('L_COL_RANK'), sort: (a, b) => b.rank - a.rank, firstDir: 'desc', render: x => !x.m.hasBaseline || x.relief ? null : h('div', { class: 'row', style: { gap: '4px', justifyContent: 'center' } }, h('span', { class: 'rank r' + x.rank }, FD.fmt.num(x.rank)), h('span', { style: { minWidth: '28px' } }, x.move ? h('span', { class: 'delta ' + (x.move > 0 ? 'up' : 'down') }, I(x.move > 0 ? 'arrow-up' : 'arrow-down', 's14'), FD.fmt.num(Math.abs(x.move))) : null)) },
       { key: 'vsr', label: t('L_COL_VSR'), sort: (a, b) => FD.nameOf(vsrOf(a.vsr)).localeCompare(FD.nameOf(vsrOf(b.vsr))), render: x => h('div', null, who(vsrOf(x.vsr)), full && x.context.length ? h('div', { class: 'row wrap', style: { marginTop: '4px', gap: '4px' } }, x.context.slice(0, 2).map(c => FD.chip(tx(c.id, c.slots), 'outline'))) : null) },
       full ? num('score', t('L_COL_VS_BASE'), x => x.m.hasBaseline ? x.m.vsBaseline : -Infinity, x => S.baseDelta(x.m)) : null,
       // the five sales metrics, each with its change against the comparison period
@@ -999,7 +999,6 @@
     const s = st(); const { from, to } = S.range();
     const rows = FD.teamCompare(s, from, to, S.fvans());
     const table = S.teamTable('teamFull', rows, true);
-    const p = rows[0] && rows[0].prevRange;
     // suggested tips: one collapsed bar on top (like Today's bars); it opens the per-salesman list and is gone once all are sent
     const drafts = FD.coachDrafts(s).filter(d => !S.f.route || vsrOf(d.vsr).route === S.f.route), nV = new Set(drafts.map(d => d.vsr)).size;
     const tipBar = drafts.length ? h('button', { type: 'button', class: 'card fu-bar', on: { click: () => S.tipsDrawer() } },
@@ -1010,7 +1009,7 @@
     const ttab = L['team:tab'] || 'RES';
     const tabs = FD.seg([{ id: 'RES', label: t('L_TEAM_RESULTS') }, { id: 'KPI', label: t('L_TEAM_KPIS') }], ttab, v => { L['team:tab'] = v; FD.render(); });
     if (ttab === 'KPI') return { title: t('L_NAV_TEAM'), bar: () => tabs, body: [S.kpiTeam()] };
-    return { title: t('L_NAV_TEAM'), bar: () => tabs, body: [tipBar, card(t('L_P_TEAM'), null, h('div', null, table, p ? h('div', { class: 'small muted', style: { padding: '10px 16px' } }, (rows[0].partial ? t('L_CMP_TODAY', { date: FD.fmt.date(p.to), time: FD.fmt.time(s.clock.time) }) : t(rows[0].prePilot ? 'L_CMP_NOTE_PRE' : 'L_CMP_NOTE', { date: FD.fmt.date(p.from), label: FD.fmt.date(p.to) }))) : null), { flush: true, icon: 'users', info: t('I_TEAM') }), S.creditWatch()] };
+    return { title: t('L_NAV_TEAM'), bar: () => tabs, body: [tipBar, card(t('L_P_TEAM'), null, table, { flush: true, icon: 'users', info: t('I_TEAM') }), S.creditWatch()] };
   });
 
   // ================= STORES =================

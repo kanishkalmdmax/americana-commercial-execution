@@ -67,6 +67,13 @@
     if ((iso < FD.TODAY && FD.overdueAt ? FD.overdueAt(id, iso) : (s.overdue || 0)) > 0 || (sc && sc.status === 'OPEN')) return 2;
     return FD.daysBetween(last, iso) <= 7 ? 3 : 2;
   };
+  // visit label: order due and/or money due at the stop. Same label for every stop, whoever planned it.
+  FD.visitLabel = function (st, v) {
+    const s = storeById(st, v.store); if (!s) return 'VL_SHELF';
+    const sale = FD.stopTier(st, v) === 1 || FD.storeRecs(st, v.store).some(r => r.date === v.date && !r.blockedAt);
+    const money = (v.date < FD.TODAY && FD.overdueAt ? FD.overdueAt(v.store, v.date) : (s.overdue || 0)) > 0;
+    return sale && money ? 'VL_SALE_COLL' : sale ? 'VL_SALE' : money ? 'VL_COLL' : 'VL_SHELF';
+  };
   FD.ensureDay = function (st, iso) {
     if (st.planned[iso]) return;
     st.planned[iso] = true;
@@ -737,7 +744,7 @@
     if (!th) { th = { id: nextId(st, 'TH'), anchor: key, store: null, vsr: team ? null : vsr, messages: [], unreadSup: false, unreadVsr: false, team, unreadVsrs: {}, seenVsrs: {} }; st.threads.push(th); }
     const at = msg.at || now(st); const seen = at.date + ' ' + at.time;
     const m = { id: nextId(st, 'MS'), by, at, text: msg.text, photo: msg.photo || null, files: msg.files || [], replyTo: msg.replyTo || null, qr: msg.qr || null, topic: msg.topic || null, system: msg.system || null, reason: msg.reason || null,
-      store: team ? null : tag.store, sku: team ? null : tag.sku, rec: team ? null : tag.rec, tip: msg.tip || null };
+      store: team ? null : tag.store, sku: team ? null : tag.sku, rec: team ? null : tag.rec, tip: msg.tip || null, voice: msg.voice || null };
     th.messages.push(m);
     if (th.team) { th.unreadVsrs = th.unreadVsrs || {}; th.seenVsrs = th.seenVsrs || {}; for (const v of st.world.vsrs) if (v.id !== by) th.unreadVsrs[v.id] = true; if (by !== 'SUP') { th.unreadSup = true; th.seenVsrs[by] = seen; } else th.seenSup = seen; }
     else if (by === 'SUP') { th.unreadVsr = true; th.unreadSup = false; th.seenSup = seen; } else { th.unreadSup = true; th.seenVsr = seen; }
@@ -747,10 +754,10 @@
   R.MSG_SEND = (st, p) => {
     const th = postMsg(st, p.anchor, p.by, p); if (!th.id) return; // anchor no longer exists
     if (p.by !== 'SUP') return; const m = th.last; const target = { screen: 'thread', thread: th.id };
-    if (th.team) st.world.vsrs.forEach(v => notify(st, v.id, 'N_MSG', { supId: 'S1', snippet: (p.text || '').slice(0, 60) }, target));
+    if (th.team) st.world.vsrs.forEach(v => notify(st, v.id, 'N_MSG', { supId: 'S1', snippet: (p.text || (p.voice ? FD.tx('L_VOICE_NOTE') : '')).slice(0, 60) }, target));
     else if (m.rec && m.sku) notify(st, th.vsr, 'N_REPLY', { skuCode: m.sku, storeId: m.store }, target);
     else if (m.store) notify(st, th.vsr, 'N_REPLY_STORE', { storeId: m.store }, target);
-    else notify(st, th.vsr, 'N_MSG', { supId: 'S1', snippet: (p.text || '').slice(0, 60) }, target);
+    else notify(st, th.vsr, 'N_MSG', { supId: 'S1', snippet: (p.text || (p.voice ? FD.tx('L_VOICE_NOTE') : '')).slice(0, 60) }, target);
   };
   R.THREAD_READ = (st, p) => { const th = st.threads.find(t => t.id === p.thread); if (!th) return; const at = now(st); const seen = at.date + ' ' + at.time;
     if (p.who === 'SUP') { th.unreadSup = false; th.seenSup = seen; }
