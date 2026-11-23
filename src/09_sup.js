@@ -536,11 +536,11 @@
       const editable = x.status === 'PLANNED' || x.status === 'ARRIVED';
       return h('div', { class: 'card plan-stop' + (x.status === 'SKIPPED' ? ' skipped' : ''), dataset: Object.assign({ stop: x.id, store: x.store }, x.status === 'PLANNED' ? { planned: '' } : {}) },
         h('div', { class: 'plan-stop-h' },
-          h('span', { class: 'plan-seq' }, FD.fmt.num(i + 1)), // number, then the name flush left; store type joins the class line; actions and the drag handle on the right
+          h('span', { class: 'plan-seq' + (x.fdRec ? ' fd' : '') }, FD.fmt.num(i + 1)), // number, then the name flush left; store type joins the class line; actions and the drag handle on the right
           h('div', { class: 'grow', style: { minWidth: 0 } }, // name on top, details and chips below so the name never gets squeezed
             h('button', { type: 'button', class: 'link-btn', style: { maxWidth: '100%', textAlign: 'start' }, on: { click: () => S.storeDrawer(x.store, null, true) } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, FD.nameOf(storeOf(x.store)))),
             h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '4px' } }, h('span', { class: 'small muted' }, [t('LBL_' + storeOf(x.store).label), t('SIZE_' + storeOf(x.store).size), x.skipReason ? t(x.skipReason) : null, x.arrivedAt ? FD.fmt.time(x.arrivedAt) : null, sales(x.store) ? FD.fmt.money0(sales(x.store)) : null].filter(Boolean).join(' · ')),
-              x.offPlan ? null : FD.chip(t(FD.visitLabel(s, x)), 'outline visit-label'), o.missed && o.missed.has(x.id) ? FD.chip(t('L_MISSED'), 'bad') : x.offPlan ? FD.chip(t('L_OFF_PLAN'), 'warn') : x.supAdded && x.status === 'PLANNED' ? FD.chip(t('L_ADDED_BY_YOU'), 'info') : FD.vsr.statusChip(x),
+              x.offPlan ? null : FD.chip(t(FD.visitLabel(s, x)), 'outline visit-label'), o.missed && o.missed.has(x.id) ? FD.chip(t('L_MISSED'), 'bad') : x.offPlan ? FD.chip(t('L_OFF_PLAN'), 'warn') : x.supAdded && !x.fdRec && x.status === 'PLANNED' ? FD.chip(t('L_ADDED_BY_YOU'), 'info') : FD.vsr.statusChip(x),
               s.preorders.some(p => p.store === x.store && p.forDate === d && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, FD.waChips(s, x.store, d))),
           x.status === 'PLANNED' && others.length ? FD.iconBtn('user-switch', t('ACT_MOVE_VAN'), e => FD.menu(e.currentTarget, others.map(q => ({ icon: 'truck', label: FD.nameOf(q), onClick: () => FD.dx('STOP_REASSIGN', { visitId: x.id, toVan: q.id }) })))) : null,
           x.status === 'PLANNED' ? FD.iconBtn('trash', t('L_REMOVE_STOP'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: d }); FD.toast('S_SAVED', null, { undo: () => FD.dx('SUP_STOP_RESTORE', { store: x.store, date: d }) }); })

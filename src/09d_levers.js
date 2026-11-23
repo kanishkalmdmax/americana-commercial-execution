@@ -76,11 +76,11 @@
   const bulkOf = c => {
     const keysOf = i => i.alert.items.map(a => FD.alertKey(a, i.alert.day || st().clock.date));
     // missed stops: the playbook step is to put them on the next plan
-    if (c.key === 'A_MISSED') return { label: 'L_CARRY_ALL', run: () => { const nd = FD.nextSellingDay(st().clock.date); c.items.forEach(i => { i.alert.items.forEach(a => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: a.store, date: nd, bySup: true })); FD.dx('ALERT_RESOLVE', { keys: keysOf(i), how: 'REPLANNED' }); }); } };
+    if (c.key === 'A_MISSED') return { label: 'L_CARRY_ALL', run: () => { const nd = FD.nextSellingDay(st().clock.date); c.items.forEach(i => { i.alert.items.forEach(a => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: a.store, date: nd, bySup: true, fdRec: true })); FD.dx('ALERT_RESOLVE', { keys: keysOf(i), how: 'REPLANNED' }); }); } };
     // visits off the plan: ask each salesman why, once
     if (c.key === 'A_OFFPLAN') return { label: 'L_ASK_ALL_WHY', run: () => c.items.forEach(i => { FD.dx('MSG_SEND', { anchor: { type: 'vsr', id: i.vsr }, by: 'SUP', text: tx('MSG_ASK_OFFPLAN', { n: i.n }) }); FD.dx('ALERT_RESOLVE', { keys: keysOf(i), how: 'ASKED' }); }) };
     if (c.items.some(i => i.alert)) return null; // pace: message one salesman at a time
-    if (c.key === 'X_DUE' || c.key === 'X_CARRY') return { label: 'L_ADD_ALL_PLAN', run: () => c.items.forEach(i => i.exc.forEach(x => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: x.store, bySup: true }))) };
+    if (c.key === 'X_DUE' || c.key === 'X_CARRY') return { label: 'L_ADD_ALL_PLAN', run: () => c.items.forEach(i => i.exc.forEach(x => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: x.store, bySup: true, fdRec: true }))) };
     if (c.items.some(i => i.fu)) return { label: 'L_HANDLED_ALL', run: () => c.items.forEach(i => FD.dx('FOLLOWUP_DISMISS', { fu: i.fu.key, why: 'FU_HANDLED', snap: { tpl: i.fu.tpl, slots: i.fu.slots } })) };
     if (c.key === 'A_PREORDER') return { label: 'L_NAV_PREORDERS', run: () => S.preordersDrawer() };
     return null; };

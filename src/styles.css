@@ -1425,3 +1425,4 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
 @keyframes recPulse { 50% { opacity:.3; } }
 @media (prefers-reduced-motion: reduce) { .chat-rec .rec-dot { animation: none; } }
 .voice-note .voice-play { color: inherit; border-radius: 50%; background: color-mix(in srgb, currentColor 16%, transparent); flex-shrink: 0; }
+.plan-seq.fd { background: #1E9E5A; color: #fff; }

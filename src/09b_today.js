@@ -296,7 +296,7 @@
       const outcome=v=>v.status==='DONE'?(sold.has(v.store)?FD.chip(t('L_SQ_SALE'),'good'):v.collected?FD.chip(t('L_COLLECTED'),'good'):FD.chip(t('L_SQ_NOSALE'),'warn')):shut(v)?FD.chip(t('L_STORE_CLOSED'),''):FD.chip(t('L_STATUS_'+v.status),v.offPlan?'':'bad');
       return h('div',{class:'stack s16'},p.planned?h('div',{class:'stack',style:{gap:'6px'}},stopSq(p),h('div',{class:'small'},tx('L_STOPS_DONE',{n:p.done,m:p.planned}),p.offPlan?h('span',{class:'muted'},' · +'+FD.fmt.num(p.offPlan)+' '+t('L_OFF_PLAN')):null)):null,
         h('div',{class:'card'},visits.map(v=>{const miss=v.status!=='DONE'&&!v.offPlan&&!shut(v),out=miss?FD.missOutcome(st(),vsrId,v.store,date):null,key=['A_MISSED',vsrId,v.store,date].join('|');
-        const carry=()=>{FD.dx('OFFPLAN_ADD',{vsr:vsrId,store:v.store,date:FD.nextSellingDay(today()),bySup:true});FD.dx('ALERT_RESOLVE',{keys:[key],how:'REPLANNED'});FD.drawer.refresh();};
+        const carry=()=>{FD.dx('OFFPLAN_ADD',{vsr:vsrId,store:v.store,date:FD.nextSellingDay(today()),bySup:true,fdRec:true});FD.dx('ALERT_RESOLVE',{keys:[key],how:'REPLANNED'});FD.drawer.refresh();};
         const handled=()=>{FD.dx('ALERT_RESOLVE',{keys:[key]});FD.drawer.refresh();};
         return h('div',{class:'day-row',dataset:{store:v.store}},h('button',{type:'button',class:'link day-name',on:{click:()=>S.storeDrawer(v.store)}},FD.nameOf(storeOf(v.store))),
           h('div',{class:'day-meta'},miss?h('span',{class:'small '+(out?'ink-2':'warn-ink')},out?tx(out.id,out.slots||{}):t('L_OUT_NONE')):v.arrivedAt?h('span',{class:'small muted tabular'},FD.fmt.time(v.arrivedAt)):null,
@@ -352,7 +352,7 @@
         : FD.btn(t('ACT_REMOVE_FROM_PLAN'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: tm }); S.planActed(tm, vsrId, x); done(); }, 'ghost sm', 'trash'); }
     const added = s.visits.some(v => v.date === tm && v.store === x.store && v.supAdded && v.status === 'PLANNED');
     return added ? FD.btn(t('L_ADDED'), () => { FD.dx('SUP_STOP_UNADD', { store: x.store, date: tm }); done(); }, 'secondary sm is-done', 'check')
-      : FD.btn(t('ACT_ADD_TO_PLAN'), () => { FD.dx('OFFPLAN_ADD', { vsr: vsrId, store: x.store, bySup: true, date: tm }); S.planActed(tm, vsrId, x); done(); }, 'secondary sm', 'plus'); };
+      : FD.btn(t('ACT_ADD_TO_PLAN'), () => { FD.dx('OFFPLAN_ADD', { vsr: vsrId, store: x.store, bySup: true, date: tm, fdRec: true }); S.planActed(tm, vsrId, x); done(); }, 'secondary sm', 'plus'); };
   // rows the supervisor acted on stay visible (with their undo) instead of vanishing from the list
   S.planActed = (tm, vsrId, x) => { const k = 'tm:acted:' + tm; L[k] = (L[k] || []).filter(y => !(y.x.store === x.store && y.x.type === x.type)).concat([{ vsr: vsrId, x }]); };
   S.planRows = (vsrId, tm) => { const list = FD.planSuggestions(st(), vsrId, tm), acted = (L['tm:acted:' + tm] || []).filter(y => y.vsr === vsrId && !list.some(x => x.store === y.x.store && x.type === y.x.type)).map(y => y.x);

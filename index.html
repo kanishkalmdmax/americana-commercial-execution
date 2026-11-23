@@ -1498,6 +1498,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
 @keyframes recPulse { 50% { opacity:.3; } }
 @media (prefers-reduced-motion: reduce) { .chat-rec .rec-dot { animation: none; } }
 .voice-note .voice-play { color: inherit; border-radius: 50%; background: color-mix(in srgb, currentColor 16%, transparent); flex-shrink: 0; }
+.plan-seq.fd { background: #1E9E5A; color: #fff; }
 </style>
 </head>
 <body>
@@ -3814,7 +3815,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
     const removed = st.visits.find(v => v.date === d && v.store === p.store && v.status === 'SKIPPED' && v.bySup); if (removed) return R.SUP_STOP_RESTORE(st, { store: p.store, date: d });
     const s = storeById(st, p.store); const route = st.world.routes.find(r => FD.routeOwner(st, r.id, d) === p.vsr) || st.world.routes.find(r => r.id === s.route);
     const seq = Math.max(0, ...st.visits.filter(v => v.date === d && v.route === route.id).map(v => v.seq)) + 1;
-    st.visits.push({ id: nextId(st, 'VI'), store: s.id, vsr: p.vsr, route: route.id, date: d, seq, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false, offPlan: !p.bySup, supAdded: !!p.bySup }); // a stop the supervisor adds is part of the plan
+    st.visits.push({ id: nextId(st, 'VI'), store: s.id, vsr: p.vsr, route: route.id, date: d, seq, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false, offPlan: !p.bySup, supAdded: !!p.bySup, fdRec: !!p.fdRec }); // a stop the supervisor adds is part of the plan
     if (!recsFor(st, d, s.id).length) genRecs(st, s, d, p.vsr, FD.openTemps(st, s.id, d).map(r => r.sku));
     { const c = coverFor(st, d, route.id); if (c) recsFor(st, d, s.id).forEach(r => { r.coveredBy = c.vsr; }); }
     st.planChanges.push({ vsr: p.vsr, store: s.id, date: d, reason: p.bySup ? 'SK_SUP_ADDED' : 'SK_OFFPLAN', at: now(st), bySup: !!p.bySup });
@@ -7443,7 +7444,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
       h('div', { class: 'grow' }, h('div', { class: 'nm row', style: { gap: '6px' } }, FD.sizeIcon(s.size), h('span', null, FD.nameOf(s))),
         h('div', { class: 'meta' }, [t('LBL_' + s.label), nearName(s, true)].filter(Boolean).join(' · ')),
         stop.status === 'SKIPPED' ? h('div', { class: 'meta' }, t(stop.skipReason)) : null,
-        h('div', { class: 'row wrap', style: { marginTop: '6px', gap: '6px' } }, FD.chip(t(FD.visitLabel(st(), stop)), 'outline visit-label'), V.statusChip(stop), stop.supAdded && stop.status === 'PLANNED' ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, st().recs.some(r => r.store === stop.store && r.date === stop.date && (r.supEdited || r.supRemoved)) ? FD.chip([I('user', 's14'), t('L_SUP_CHANGED')], 'info') : null, stop.collected ? FD.chip([I('wallet', 's14'), t('L_COLLECTED') + ' ' + FD.fmt.money0(stop.collected)], 'good') : null, stop.revisit ? FD.chip([I('repeat', 's14'), t('L_REVISIT')], 'warn') : null, st().preorders.some(p => p.store === stop.store && p.forDate === stop.date && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, FD.waChips(st(), stop.store, stop.date), stop.reassigned || stop.supAdded ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, stop.offPlan ? FD.chip(t('SK_OFFPLAN'), 'info') : null,
+        h('div', { class: 'row wrap', style: { marginTop: '6px', gap: '6px' } }, FD.chip(t(FD.visitLabel(st(), stop)), 'outline visit-label'), V.statusChip(stop), stop.supAdded && !stop.fdRec && stop.status === 'PLANNED' ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, st().recs.some(r => r.store === stop.store && r.date === stop.date && (r.supEdited || r.supRemoved)) ? FD.chip([I('user', 's14'), t('L_SUP_CHANGED')], 'info') : null, stop.collected ? FD.chip([I('wallet', 's14'), t('L_COLLECTED') + ' ' + FD.fmt.money0(stop.collected)], 'good') : null, stop.revisit ? FD.chip([I('repeat', 's14'), t('L_REVISIT')], 'warn') : null, st().preorders.some(p => p.store === stop.store && p.forDate === stop.date && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, FD.waChips(st(), stop.store, stop.date), stop.reassigned || stop.supAdded ? FD.chip([I('user', 's14'), t('SK_SUP_ADDED')], 'info') : null, stop.offPlan ? FD.chip(t('SK_OFFPLAN'), 'info') : null,
           !FD.invoicedThisMonth(st(), s.id, stop.date) ? FD.chip(t('L_NOT_INVOICED_M'), 'warn') : null, s.overdue > 0 ? FD.chip(tx('L_OVERDUE_AMT', { money: FD.fmt.money0(s.overdue) }), 'bad') : null,
           s.credit !== 'OK' && !(s.overdue > 0) ? FD.creditChip(s.credit, true) : null,
           n ? FD.chip(tx('L_RECS_N', { n }), 'info') : FD.chip(t('L_NO_RECS'), '')))),
@@ -8798,11 +8799,11 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
       const editable = x.status === 'PLANNED' || x.status === 'ARRIVED';
       return h('div', { class: 'card plan-stop' + (x.status === 'SKIPPED' ? ' skipped' : ''), dataset: Object.assign({ stop: x.id, store: x.store }, x.status === 'PLANNED' ? { planned: '' } : {}) },
         h('div', { class: 'plan-stop-h' },
-          h('span', { class: 'plan-seq' }, FD.fmt.num(i + 1)), // number, then the name flush left; store type joins the class line; actions and the drag handle on the right
+          h('span', { class: 'plan-seq' + (x.fdRec ? ' fd' : '') }, FD.fmt.num(i + 1)), // number, then the name flush left; store type joins the class line; actions and the drag handle on the right
           h('div', { class: 'grow', style: { minWidth: 0 } }, // name on top, details and chips below so the name never gets squeezed
             h('button', { type: 'button', class: 'link-btn', style: { maxWidth: '100%', textAlign: 'start' }, on: { click: () => S.storeDrawer(x.store, null, true) } }, h('b', { class: 'ellipsis', style: { display: 'block' } }, FD.nameOf(storeOf(x.store)))),
             h('div', { class: 'row wrap', style: { gap: '6px', marginTop: '4px' } }, h('span', { class: 'small muted' }, [t('LBL_' + storeOf(x.store).label), t('SIZE_' + storeOf(x.store).size), x.skipReason ? t(x.skipReason) : null, x.arrivedAt ? FD.fmt.time(x.arrivedAt) : null, sales(x.store) ? FD.fmt.money0(sales(x.store)) : null].filter(Boolean).join(' · ')),
-              x.offPlan ? null : FD.chip(t(FD.visitLabel(s, x)), 'outline visit-label'), o.missed && o.missed.has(x.id) ? FD.chip(t('L_MISSED'), 'bad') : x.offPlan ? FD.chip(t('L_OFF_PLAN'), 'warn') : x.supAdded && x.status === 'PLANNED' ? FD.chip(t('L_ADDED_BY_YOU'), 'info') : FD.vsr.statusChip(x),
+              x.offPlan ? null : FD.chip(t(FD.visitLabel(s, x)), 'outline visit-label'), o.missed && o.missed.has(x.id) ? FD.chip(t('L_MISSED'), 'bad') : x.offPlan ? FD.chip(t('L_OFF_PLAN'), 'warn') : x.supAdded && !x.fdRec && x.status === 'PLANNED' ? FD.chip(t('L_ADDED_BY_YOU'), 'info') : FD.vsr.statusChip(x),
               s.preorders.some(p => p.store === x.store && p.forDate === d && p.status !== 'DONE') ? FD.chip([I('inbox', 's14'), t('L_PREORDER')], 'info') : null, FD.waChips(s, x.store, d))),
           x.status === 'PLANNED' && others.length ? FD.iconBtn('user-switch', t('ACT_MOVE_VAN'), e => FD.menu(e.currentTarget, others.map(q => ({ icon: 'truck', label: FD.nameOf(q), onClick: () => FD.dx('STOP_REASSIGN', { visitId: x.id, toVan: q.id }) })))) : null,
           x.status === 'PLANNED' ? FD.iconBtn('trash', t('L_REMOVE_STOP'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: d }); FD.toast('S_SAVED', null, { undo: () => FD.dx('SUP_STOP_RESTORE', { store: x.store, date: d }) }); })
@@ -9752,7 +9753,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
       const outcome=v=>v.status==='DONE'?(sold.has(v.store)?FD.chip(t('L_SQ_SALE'),'good'):v.collected?FD.chip(t('L_COLLECTED'),'good'):FD.chip(t('L_SQ_NOSALE'),'warn')):shut(v)?FD.chip(t('L_STORE_CLOSED'),''):FD.chip(t('L_STATUS_'+v.status),v.offPlan?'':'bad');
       return h('div',{class:'stack s16'},p.planned?h('div',{class:'stack',style:{gap:'6px'}},stopSq(p),h('div',{class:'small'},tx('L_STOPS_DONE',{n:p.done,m:p.planned}),p.offPlan?h('span',{class:'muted'},' · +'+FD.fmt.num(p.offPlan)+' '+t('L_OFF_PLAN')):null)):null,
         h('div',{class:'card'},visits.map(v=>{const miss=v.status!=='DONE'&&!v.offPlan&&!shut(v),out=miss?FD.missOutcome(st(),vsrId,v.store,date):null,key=['A_MISSED',vsrId,v.store,date].join('|');
-        const carry=()=>{FD.dx('OFFPLAN_ADD',{vsr:vsrId,store:v.store,date:FD.nextSellingDay(today()),bySup:true});FD.dx('ALERT_RESOLVE',{keys:[key],how:'REPLANNED'});FD.drawer.refresh();};
+        const carry=()=>{FD.dx('OFFPLAN_ADD',{vsr:vsrId,store:v.store,date:FD.nextSellingDay(today()),bySup:true,fdRec:true});FD.dx('ALERT_RESOLVE',{keys:[key],how:'REPLANNED'});FD.drawer.refresh();};
         const handled=()=>{FD.dx('ALERT_RESOLVE',{keys:[key]});FD.drawer.refresh();};
         return h('div',{class:'day-row',dataset:{store:v.store}},h('button',{type:'button',class:'link day-name',on:{click:()=>S.storeDrawer(v.store)}},FD.nameOf(storeOf(v.store))),
           h('div',{class:'day-meta'},miss?h('span',{class:'small '+(out?'ink-2':'warn-ink')},out?tx(out.id,out.slots||{}):t('L_OUT_NONE')):v.arrivedAt?h('span',{class:'small muted tabular'},FD.fmt.time(v.arrivedAt)):null,
@@ -9808,7 +9809,7 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
         : FD.btn(t('ACT_REMOVE_FROM_PLAN'), () => { FD.dx('SUP_STOP_REMOVE', { store: x.store, date: tm }); S.planActed(tm, vsrId, x); done(); }, 'ghost sm', 'trash'); }
     const added = s.visits.some(v => v.date === tm && v.store === x.store && v.supAdded && v.status === 'PLANNED');
     return added ? FD.btn(t('L_ADDED'), () => { FD.dx('SUP_STOP_UNADD', { store: x.store, date: tm }); done(); }, 'secondary sm is-done', 'check')
-      : FD.btn(t('ACT_ADD_TO_PLAN'), () => { FD.dx('OFFPLAN_ADD', { vsr: vsrId, store: x.store, bySup: true, date: tm }); S.planActed(tm, vsrId, x); done(); }, 'secondary sm', 'plus'); };
+      : FD.btn(t('ACT_ADD_TO_PLAN'), () => { FD.dx('OFFPLAN_ADD', { vsr: vsrId, store: x.store, bySup: true, date: tm, fdRec: true }); S.planActed(tm, vsrId, x); done(); }, 'secondary sm', 'plus'); };
   // rows the supervisor acted on stay visible (with their undo) instead of vanishing from the list
   S.planActed = (tm, vsrId, x) => { const k = 'tm:acted:' + tm; L[k] = (L[k] || []).filter(y => !(y.x.store === x.store && y.x.type === x.type)).concat([{ vsr: vsrId, x }]); };
   S.planRows = (vsrId, tm) => { const list = FD.planSuggestions(st(), vsrId, tm), acted = (L['tm:acted:' + tm] || []).filter(y => y.vsr === vsrId && !list.some(x => x.store === y.x.store && x.type === y.x.type)).map(y => y.x);
@@ -10050,11 +10051,11 @@ button.me-pick { border: 0; font: inherit; font-size: 13px; } .me-pick:not(.on) 
   const bulkOf = c => {
     const keysOf = i => i.alert.items.map(a => FD.alertKey(a, i.alert.day || st().clock.date));
     // missed stops: the playbook step is to put them on the next plan
-    if (c.key === 'A_MISSED') return { label: 'L_CARRY_ALL', run: () => { const nd = FD.nextSellingDay(st().clock.date); c.items.forEach(i => { i.alert.items.forEach(a => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: a.store, date: nd, bySup: true })); FD.dx('ALERT_RESOLVE', { keys: keysOf(i), how: 'REPLANNED' }); }); } };
+    if (c.key === 'A_MISSED') return { label: 'L_CARRY_ALL', run: () => { const nd = FD.nextSellingDay(st().clock.date); c.items.forEach(i => { i.alert.items.forEach(a => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: a.store, date: nd, bySup: true, fdRec: true })); FD.dx('ALERT_RESOLVE', { keys: keysOf(i), how: 'REPLANNED' }); }); } };
     // visits off the plan: ask each salesman why, once
     if (c.key === 'A_OFFPLAN') return { label: 'L_ASK_ALL_WHY', run: () => c.items.forEach(i => { FD.dx('MSG_SEND', { anchor: { type: 'vsr', id: i.vsr }, by: 'SUP', text: tx('MSG_ASK_OFFPLAN', { n: i.n }) }); FD.dx('ALERT_RESOLVE', { keys: keysOf(i), how: 'ASKED' }); }) };
     if (c.items.some(i => i.alert)) return null; // pace: message one salesman at a time
-    if (c.key === 'X_DUE' || c.key === 'X_CARRY') return { label: 'L_ADD_ALL_PLAN', run: () => c.items.forEach(i => i.exc.forEach(x => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: x.store, bySup: true }))) };
+    if (c.key === 'X_DUE' || c.key === 'X_CARRY') return { label: 'L_ADD_ALL_PLAN', run: () => c.items.forEach(i => i.exc.forEach(x => FD.dx('OFFPLAN_ADD', { vsr: i.vsr, store: x.store, bySup: true, fdRec: true }))) };
     if (c.items.some(i => i.fu)) return { label: 'L_HANDLED_ALL', run: () => c.items.forEach(i => FD.dx('FOLLOWUP_DISMISS', { fu: i.fu.key, why: 'FU_HANDLED', snap: { tpl: i.fu.tpl, slots: i.fu.slots } })) };
     if (c.key === 'A_PREORDER') return { label: 'L_NAV_PREORDERS', run: () => S.preordersDrawer() };
     return null; };

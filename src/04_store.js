@@ -670,7 +670,7 @@
     const removed = st.visits.find(v => v.date === d && v.store === p.store && v.status === 'SKIPPED' && v.bySup); if (removed) return R.SUP_STOP_RESTORE(st, { store: p.store, date: d });
     const s = storeById(st, p.store); const route = st.world.routes.find(r => FD.routeOwner(st, r.id, d) === p.vsr) || st.world.routes.find(r => r.id === s.route);
     const seq = Math.max(0, ...st.visits.filter(v => v.date === d && v.route === route.id).map(v => v.seq)) + 1;
-    st.visits.push({ id: nextId(st, 'VI'), store: s.id, vsr: p.vsr, route: route.id, date: d, seq, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false, offPlan: !p.bySup, supAdded: !!p.bySup }); // a stop the supervisor adds is part of the plan
+    st.visits.push({ id: nextId(st, 'VI'), store: s.id, vsr: p.vsr, route: route.id, date: d, seq, status: 'PLANNED', arrivedAt: null, leftAt: null, skipReason: null, moved: false, offPlan: !p.bySup, supAdded: !!p.bySup, fdRec: !!p.fdRec }); // a stop the supervisor adds is part of the plan
     if (!recsFor(st, d, s.id).length) genRecs(st, s, d, p.vsr, FD.openTemps(st, s.id, d).map(r => r.sku));
     { const c = coverFor(st, d, route.id); if (c) recsFor(st, d, s.id).forEach(r => { r.coveredBy = c.vsr; }); }
     st.planChanges.push({ vsr: p.vsr, store: s.id, date: d, reason: p.bySup ? 'SK_SUP_ADDED' : 'SK_OFFPLAN', at: now(st), bySup: !!p.bySup });
